@@ -211,7 +211,7 @@ function renderDesktopRow(record, index) {
                 </button>
                 <div class="row-action-menu" data-menu="${index}">
                     <a href="customer-360.html?id=${record.id}">
-                        Xem chi tiết
+                        Xem 360° khách hàng
                     </a>
                     <button type="button" data-edit="${index}">
                         Sửa
@@ -253,7 +253,7 @@ function renderMobileCard(record, index) {
             <span>Người sở hữu: ${escapeHtml(record.ownerName || record.owner || "—")}</span>
         </div>
         <a href="customer-360.html?id=${record.id}" class="crm-btn crm-btn-secondary" style="margin-top:12px; width:100%; text-decoration:none;">
-            Xem chi tiết
+            Xem 360° khách hàng
         </a>
     `;
 
