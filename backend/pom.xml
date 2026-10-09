@@ -97,25 +97,23 @@
             </plugin>
 
             <plugin>
-
-                <groupId>
-                    org.apache.maven.plugins
-                </groupId>
-
-                <artifactId>
-                    maven-war-plugin
-                </artifactId>
-
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
                 <version>3.4.0</version>
-
                 <configuration>
-
-                    <failOnMissingWebXml>
-                        false
-                    </failOnMissingWebXml>
-
+                    <failOnMissingWebXml>false</failOnMissingWebXml>
+                    <webResources>
+                        <resource>
+                            <directory>${project.basedir}/../frontend</directory>
+                            <excludes>
+                                <exclude>serve.js</exclude>
+                                <exclude>package*.json</exclude>
+                                <exclude>node_modules/**</exclude>
+                                <exclude>.git/**</exclude>
+                            </excludes>
+                        </resource>
+                    </webResources>
                 </configuration>
-
             </plugin>
 
         </plugins>

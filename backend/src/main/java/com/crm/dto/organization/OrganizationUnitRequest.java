@@ -8,6 +8,7 @@ public class OrganizationUnitRequest {
     private Long parentId;
     private Long managerId;
     private String description;
+    private String region;
     private Boolean active;
 
     public String getCode() {
@@ -32,6 +33,14 @@ public class OrganizationUnitRequest {
 
     public String getDescription() {
         return description;
+    }
+
+    public String getRegion() {
+        return region;
+    }
+
+    public void setRegion(String region) {
+        this.region = region;
     }
 
     public Boolean getActive() {

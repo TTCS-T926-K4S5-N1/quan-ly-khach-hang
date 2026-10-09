@@ -40,6 +40,72 @@ public class CustomerServlet extends HttpServlet {
                 return;
             }
 
+            // 1. Kiểm tra trùng lặp thời gian thực
+            if (path.equals("/check-duplicate")) {
+                String name = req.getParameter("name");
+                String taxCode = req.getParameter("taxCode");
+                String website = req.getParameter("website");
+                String exclStr = req.getParameter("excludeId");
+                Long excludeId = (exclStr != null && !exclStr.isBlank()) ? Long.parseLong(exclStr.trim()) : null;
+
+                var dupes = customerService.checkDuplicates(currentUserId, name, taxCode, website, excludeId);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Kiểm tra trùng lặp thành công", dupes));
+                return;
+            }
+
+            // 2. Lấy danh sách tất cả các cặp trùng lặp trong hệ thống
+            if (path.equals("/duplicates")) {
+                var pairs = customerService.findAllDuplicatePairs(currentUserId);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Lấy danh sách cặp trùng lặp thành công", pairs));
+                return;
+            }
+
+            // 3. So sánh 2 khách hàng cạnh nhau
+            if (path.equals("/compare")) {
+                String id1Str = req.getParameter("id1");
+                if (id1Str == null) id1Str = req.getParameter("masterId");
+                String id2Str = req.getParameter("id2");
+                if (id2Str == null) id2Str = req.getParameter("duplicateId");
+
+                if (id1Str == null || id2Str == null) {
+                    throw new IllegalArgumentException("Cần cung cấp id1 và id2 để so sánh.");
+                }
+
+                long id1 = Long.parseLong(id1Str.trim());
+                long id2 = Long.parseLong(id2Str.trim());
+                var comparison = customerService.getComparison(currentUserId, id1, id2);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Lấy dữ liệu so sánh thành công", comparison));
+                return;
+            }
+
+            // 4. Khách hàng 360
+            if (path.endsWith("/360")) {
+                long id = parseId(path);
+                var data = customerService.getCustomer360(currentUserId, id);
+                if (data == null) {
+                    ResponseUtil.json(resp, 404, ApiResponse.error("Không tìm thấy khách hàng", null));
+                    return;
+                }
+                ResponseUtil.json(resp, 200, ApiResponse.success("Lấy thông tin khách hàng 360 thành công", data));
+                return;
+            }
+
+            // 5. Kiểm tra trùng lặp cho 1 khách hàng cụ thể
+            if (path.endsWith("/duplicates")) {
+                long id = parseId(path);
+                var current = customerService.getById(currentUserId, id);
+                if (current == null) {
+                    ResponseUtil.json(resp, 404, ApiResponse.error("Không tìm thấy khách hàng", null));
+                    return;
+                }
+                String name = (String) current.get("name");
+                String taxCode = (String) current.get("taxCode");
+                String website = (String) current.get("website");
+                var dupes = customerService.checkDuplicates(currentUserId, name, taxCode, website, id);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Tìm thấy danh sách trùng lặp", dupes));
+                return;
+            }
+
             long id = parseId(path);
             var customer = customerService.getById(currentUserId, id);
             if (customer == null) {
@@ -59,8 +125,20 @@ public class CustomerServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        req.setCharacterEncoding("UTF-8");
         try {
             long currentUserId = requireUser(req);
+            String path = req.getPathInfo();
+
+            // Gộp khách hàng (Yêu cầu Trưởng nhóm trở lên)
+            if (path != null && path.equals("/merge")) {
+                com.crm.dto.customers.CustomerMergeRequest mergeReq =
+                        JsonUtil.getGson().fromJson(req.getReader(), com.crm.dto.customers.CustomerMergeRequest.class);
+                var mergeResult = customerService.mergeCustomers(currentUserId, mergeReq);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Gộp khách hàng thành công", mergeResult));
+                return;
+            }
+
             CustomerWriteRequest body = JsonUtil.getGson().fromJson(req.getReader(), CustomerWriteRequest.class);
 
             var created = customerService.create(currentUserId, body);
@@ -76,6 +154,7 @@ public class CustomerServlet extends HttpServlet {
 
     @Override
     protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        req.setCharacterEncoding("UTF-8");
         try {
             long currentUserId = requireUser(req);
             long id = parseId(req.getPathInfo());

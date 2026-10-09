@@ -19,7 +19,7 @@ END$$
 
 DELIMITER ;
 
--- 1. users: email_signature
+CALL AddCol('users', 'display_name', 'VARCHAR(150) NULL');
 CALL AddCol('users', 'email_signature', 'TEXT NULL');
 CALL AddCol('users', 'phone', 'VARCHAR(30) NULL');
 CALL AddCol('users', 'avatar_url', 'VARCHAR(500) NULL');
@@ -31,5 +31,6 @@ CALL AddCol('custom_fields', 'options_json', 'TEXT NULL');
 DROP PROCEDURE IF EXISTS AddCol;
 
 -- Sync existing data
+UPDATE users SET display_name = full_name WHERE display_name IS NULL OR display_name = '';
 UPDATE users SET email_signature = signature WHERE (email_signature IS NULL OR email_signature = '') AND signature IS NOT NULL;
 UPDATE users SET signature = email_signature WHERE (signature IS NULL OR signature = '') AND email_signature IS NOT NULL;
