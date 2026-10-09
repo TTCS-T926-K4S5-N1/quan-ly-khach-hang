@@ -1,3 +1,8 @@
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%
+    String contextPath = request.getContextPath();
+%>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -17,10 +22,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Khách hàng 360° - Corporate CRM</title>
 
-<link rel="stylesheet" href="css/design-system.css">
-<link rel="stylesheet" href="css/app-shell.css">
-<link rel="stylesheet" href="css/customer/customer-360.css">
-<link rel="stylesheet" href="css/animations.css">
+<link rel="stylesheet" href="<%= contextPath %>/css/design-system.css">
+<link rel="stylesheet" href="<%= contextPath %>/css/app-shell.css">
+<link rel="stylesheet" href="<%= contextPath %>/css/customer/customer-360.css">
+<link rel="stylesheet" href="<%= contextPath %>/css/animations.css">
 </head>
 
 <body class="crm-private">
@@ -34,28 +39,28 @@
 
     <nav class="crm-nav">
         <div class="crm-nav-section">Không gian làm việc</div>
-        <a href="dashboard.html" class="crm-nav-item">
+        <a href="<%= contextPath %>/dashboard.html" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
             <span class="crm-nav-label">Tổng quan</span>
         </a>
 
-        <a href="customers.html" class="crm-nav-item active">
+        <a href="<%= contextPath %>/customers.html" class="crm-nav-item active">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
             <span class="crm-nav-label">Khách hàng</span>
         </a>
 
-        <a href="pipeline.html" class="crm-nav-item">
+        <a href="<%= contextPath %>/pipeline.html" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 9-8 9-8-9 8-9Z"/></svg></span>
             <span class="crm-nav-label">Cơ hội</span>
         </a>
 
-        <a href="calendar.html" class="crm-nav-item">
+        <a href="<%= contextPath %>/calendar.html" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4m8-4v4M3 10h18"/></svg></span>
             <span class="crm-nav-label">Lịch</span>
         </a>
 
         <div class="crm-nav-section">Quản lý</div>
-        <a href="products.html" class="crm-nav-item">
+        <a href="<%= contextPath %>/products.html" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4-8 4-8-4 8-4ZM4 7v10l8 4 8-4V7M12 11v10"/></svg></span>
             <span class="crm-nav-label">Sản phẩm</span>
         </a>
@@ -90,8 +95,8 @@
                 <span><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
             </button>
             <div id="userDropdown" class="crm-user-dropdown">
-                <a href="profile.html">Hồ sơ cá nhân</a>
-                <a href="change-password.html">Đổi mật khẩu</a>
+                <a href="<%= contextPath %>/profile.html">Hồ sơ cá nhân</a>
+                <a href="<%= contextPath %>/change-password.html">Đổi mật khẩu</a>
                 <button type="button">Đăng xuất</button>
             </div>
         </div>
@@ -108,7 +113,7 @@
                 <div id="c360Avatar" class="c360-avatar">P</div>
                 <div class="c360-titles">
                     <nav class="c360-breadcrumb">
-                        <a href="customers.html">← Danh sách khách hàng</a>
+                        <a href="<%= contextPath %>/customers.html">← Danh sách khách hàng</a>
                         <span>/</span>
                         <span>Khách hàng 360°</span>
                         <span>/</span>
@@ -606,12 +611,12 @@
 </div>
 
 <!-- JAVASCRIPT ASSETS -->
-<script src="js/customer/customer-360.js"></script>
-<script src="js/theme.js"></script>
-<script src="js/shared-shell.js"></script>
-<script src="js/ui-core.js"></script>
-<script src="js/page-transition.js"></script>
-<script src="js/ui-effects.js"></script>
+<script src="<%= contextPath %>/js/customer/customer-360.js"></script>
+<script src="<%= contextPath %>/js/theme.js"></script>
+<script src="<%= contextPath %>/js/shared-shell.js"></script>
+<script src="<%= contextPath %>/js/ui-core.js"></script>
+<script src="<%= contextPath %>/js/page-transition.js"></script>
+<script src="<%= contextPath %>/js/ui-effects.js"></script>
 
 </body>
 </html>
