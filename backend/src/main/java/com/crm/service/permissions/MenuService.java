@@ -40,6 +40,16 @@ public class MenuService {
                             "customer"
                     )
             );
+
+            menu.add(
+                    item(
+                            "SUPPORT_TICKETS",
+                            "Hỗ trợ & Churn Risk",
+                            "support-tickets",
+                            "workspace",
+                            "ticket"
+                    )
+            );
         }
 
 

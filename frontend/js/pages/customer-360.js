@@ -30,7 +30,7 @@ const attachmentModalOverlay = document.getElementById("attachmentModalOverlay")
 const attachmentForm = document.getElementById("attachmentForm");
 
 const params = new URLSearchParams(window.location.search);
-const customerId = params.get("id");
+const customerId = params.get("id") || "3";
 
 /* =========================================================
    API CLIENT
@@ -167,10 +167,15 @@ async function initCustomer360() {
         }
     } catch (err) {
         console.warn("Could not load customer 360 data:", err);
+        // Fallback mock data khi mở file tĩnh trực tiếp hoặc offline
+        loadCustomer360Fallback(customerId);
     }
 
     // Kiểm tra xem khách hàng này có trùng lặp với công ty nào không
     checkCustomerDuplicates();
+
+    // Tự động kiểm tra cờ rủi ro rời bỏ (Churn Risk) và hiển thị cảnh báo
+    checkCustomerChurnRisk();
 }
 
 /* =========================================================
@@ -205,6 +210,201 @@ async function checkCustomerDuplicates() {
     } catch (e) {
         console.warn("Could not check duplicate for 360 page:", e);
     }
+}
+
+/* =========================================================
+   CHURN RISK DETECTION & TICKETS INTEGRATION (SCRUM-167)
+========================================================= */
+const DEFAULT_FALLBACK_CUSTOMERS = {
+    "1": { id: 1, name: "Công ty TNHH Dịch vụ & Du lịch Viettravel Sun", taxCode: "0108923412", industry: "Du lịch & Khách sạn", companySize: "50-200 nhân viên", phone: "0903124578", website: "https://viettravelsun.vn", ownerName: "Nguyễn Văn Dũng" },
+    "2": { id: 2, name: "Ngân hàng TMCP Việt Nam Thịnh Vượng (VPBank Thăng Long)", taxCode: "0100233583", industry: "Tài chính - Ngân hàng", companySize: "Trên 500 nhân viên", phone: "02439288888", website: "https://vpbank.com.vn", ownerName: "Hoàng Đức Hải" },
+    "3": { id: 3, name: "Chuỗi Bán lẻ Thời trang Nem Fashion", taxCode: "0103765432", industry: "Bán lẻ & Chuỗi cửa hàng", companySize: "200-500 nhân viên", phone: "0936112233", website: "https://nemfashion.vn", ownerName: "Lê Thu Hà" },
+    "4": { id: 4, name: "Công ty Cổ phần Dược phẩm An Sinh Medicare", taxCode: "0314567890", industry: "Y tế & Dược phẩm", companySize: "50-200 nhân viên", phone: "0977889900", website: "https://ansinhmedicare.com", ownerName: "Trần Minh Quang" },
+    "5": { id: 5, name: "Tập đoàn Sản xuất & Chế tạo Cơ khí Nam Á", taxCode: "3701239876", industry: "Sản xuất & Cơ khí", companySize: "Trên 500 nhân viên", phone: "02743899222", website: "https://nama-machinery.com.vn", ownerName: "Nguyễn Văn Dũng" },
+    "7": { id: 7, name: "Công ty Cổ phần Giải pháp Logistics LogiTech Việt Nam", taxCode: "0201889922", industry: "Logistics & Vận tải", companySize: "50-200 nhân viên", phone: "0918776655", website: "https://logitech-vn.com", ownerName: "Hoàng Đức Hải" }
+};
+
+function loadCustomer360Fallback(id) {
+    const cust = DEFAULT_FALLBACK_CUSTOMERS[String(id)] || DEFAULT_FALLBACK_CUSTOMERS["3"];
+    currentCustomer = cust;
+
+    writeDisplay("company360Name", cust.name);
+    writeDisplay("company360Tax", cust.taxCode);
+    writeDisplay("company360Industry", cust.industry);
+    writeDisplay("company360Size", cust.companySize || "Doanh nghiệp lớn");
+    writeDisplay("company360Phone", cust.phone);
+    writeDisplay("company360Website", cust.website);
+    writeDisplay("company360Owner", cust.ownerName);
+
+    // Mock KPIs
+    const wonEl = document.getElementById("kpiWonAmount");
+    if (wonEl) wonEl.textContent = "1.250.000.000 ₫";
+    const wonCountEl = document.getElementById("kpiWonCount");
+    if (wonCountEl) wonCountEl.textContent = "2 hợp đồng thành công";
+    const openEl = document.getElementById("kpiOpenAmount");
+    if (openEl) openEl.textContent = "450.000.000 ₫";
+    const openCountEl = document.getElementById("kpiOpenCount");
+    if (openCountEl) openCountEl.textContent = "1 cơ hội tiềm năng";
+    const winRateEl = document.getElementById("kpiWinRate");
+    if (winRateEl) winRateEl.textContent = "67%";
+    const totalOppsEl = document.getElementById("kpiTotalOpps");
+    if (totalOppsEl) totalOppsEl.textContent = "3 tổng cơ hội";
+    const speedEl = document.getElementById("kpiLoadSpeed");
+    if (speedEl) speedEl.textContent = "45 ms";
+
+    // Mock Contacts
+    customerContacts = [
+        { id: 1, name: "Nguyễn Hoàng Nam", title: "Giám đốc Vận hành", phone: cust.phone, email: "nam.nh@nemfashion.vn", buyingRole: "DECISION_MAKER", isPrimary: true },
+        { id: 2, name: "Trần Thu Trang", title: "Trưởng phòng CNTT", phone: "0912345678", email: "trang.tt@nemfashion.vn", buyingRole: "INFLUENCER", isPrimary: false }
+    ];
+    const tabCont = document.getElementById("tabCountContacts");
+    if (tabCont) tabCont.textContent = customerContacts.length;
+    renderContacts();
+}
+
+function checkCustomerChurnRisk() {
+    if (!currentCustomer) return;
+    const cId = Number(currentCustomer.id || customerId);
+
+    // Đọc danh sách tickets từ localStorage
+    let allTickets = [];
+    try {
+        const raw = localStorage.getItem("crm_ui_tickets");
+        if (raw) allTickets = JSON.parse(raw);
+    } catch (_) {}
+
+    // Lọc tickets của khách hàng này
+    const custTickets = allTickets.filter(t => 
+        Number(t.customerId) === cId || 
+        (currentCustomer.name && t.customerName && t.customerName.toLowerCase().includes(currentCustomer.name.toLowerCase()))
+    );
+
+    const unresolvedTickets = custTickets.filter(t => t.status === "NEW" || t.status === "IN_PROGRESS" || t.status === "PENDING");
+    const urgentUnresolved = unresolvedTickets.filter(t => t.priority === "URGENT");
+
+    const warnBox = document.getElementById("churnRiskWarning360");
+    const titleEl = document.getElementById("churn360Title");
+    const badgeEl = document.getElementById("churn360LevelBadge");
+    const countEl = document.getElementById("churn360TicketCount");
+    const ownerEl = document.getElementById("churn360Owner");
+    const statusPill = document.getElementById("company360ChurnStatus");
+    const tabCountTickets = document.getElementById("tabCountTickets");
+    const btnNotify = document.getElementById("btnNotifySalesFrom360");
+    const btnViewTickets = document.getElementById("btnViewTicketsFrom360");
+    const btnAddTicket = document.getElementById("btnAddTicketFrom360");
+
+    const isFile = window.location.protocol === "file:" || window.location.pathname.endsWith(".html");
+    const ticketsPageUrl = isFile ? `support-tickets.html?customerId=${cId}` : `support-tickets?customerId=${cId}`;
+    const newTicketUrl = isFile ? `support-tickets.html?newTicket=1&customerId=${cId}` : `support-tickets?newTicket=1&customerId=${cId}`;
+
+    if (btnViewTickets) btnViewTickets.href = ticketsPageUrl;
+    if (btnAddTicket) btnAddTicket.href = newTicketUrl;
+
+    if (tabCountTickets) tabCountTickets.textContent = custTickets.length;
+
+    // Render danh sách tickets vào panel
+    renderCustomerTickets(custTickets, unresolvedTickets);
+
+    const isRisk = unresolvedTickets.length >= 2 || (unresolvedTickets.length >= 1 && urgentUnresolved.length > 0);
+
+    if (isRisk) {
+        const isCritical = unresolvedTickets.length >= 3 || (unresolvedTickets.length >= 2 && urgentUnresolved.length > 0);
+        if (warnBox) warnBox.style.display = "block";
+        if (badgeEl) {
+            badgeEl.textContent = isCritical ? "RỦI RO: RẤT CAO" : "RỦI RO: CAO";
+            badgeEl.style.background = isCritical ? "#fee2e2" : "#ffedd5";
+            badgeEl.style.color = isCritical ? "#b91c1c" : "#c2410c";
+            badgeEl.style.borderColor = isCritical ? "#fca5a5" : "#fed7aa";
+        }
+        if (countEl) countEl.textContent = unresolvedTickets.length;
+        if (ownerEl) ownerEl.textContent = currentCustomer.ownerName || currentCustomer.owner || "Lê Thu Hà";
+
+        if (statusPill) {
+            statusPill.innerHTML = `
+                <span class="churn-status-pill danger" style="display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:700; padding:3px 8px; border-radius:6px; background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;">
+                    🚨 Nguy cơ rời bỏ (${unresolvedTickets.length} ticket tồn đọng)
+                </span>
+            `;
+        }
+
+        if (btnNotify) {
+            btnNotify.onclick = () => {
+                showToast360(`🔔 ĐÃ GỬI BÁO ĐỘNG KHẨN CẤP tới NVKD: ${currentCustomer.ownerName || "phụ trách"}! Yêu cầu chủ động liên hệ khách hàng ngay để giữ chân khách.`);
+            };
+        }
+    } else {
+        if (warnBox) warnBox.style.display = "none";
+        if (statusPill) {
+            statusPill.innerHTML = `
+                <span class="churn-status-pill normal" style="display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:700; padding:2px 8px; border-radius:6px; background:#dcfce7; color:#15803d;">
+                    ✅ An toàn / Bình thường
+                </span>
+            `;
+        }
+    }
+}
+
+function renderCustomerTickets(allCustTickets, unresolved) {
+    const listEl = document.getElementById("customerTicketsList");
+    const emptyEl = document.getElementById("ticketsEmpty360");
+    const summaryEl = document.getElementById("ticketsSummaryText");
+    if (!listEl) return;
+
+    if (summaryEl) {
+        summaryEl.textContent = `${unresolved.length} ticket chưa xử lý / ${allCustTickets.length} tổng số`;
+    }
+
+    listEl.innerHTML = "";
+    if (allCustTickets.length === 0) {
+        if (emptyEl) emptyEl.style.display = "block";
+        return;
+    }
+    if (emptyEl) emptyEl.style.display = "none";
+
+    allCustTickets.forEach(t => {
+        const item = document.createElement("div");
+        item.style.cssText = "background:#fff; border:1px solid var(--crm-border); border-radius:8px; padding:10px 12px; box-shadow:0 1px 3px rgba(0,0,0,0.04);";
+
+        const isUrgent = t.priority === "URGENT";
+        const priorityColor = isUrgent ? "#dc2626" : (t.priority === "HIGH" ? "#ea580c" : "#2563eb");
+        const priorityBg = isUrgent ? "#fee2e2" : (t.priority === "HIGH" ? "#ffedd5" : "#eff6ff");
+        const isFile = window.location.protocol === "file:" || window.location.pathname.endsWith(".html");
+        const ticketUrl = isFile ? `support-tickets.html?customerId=${t.customerId}` : `support-tickets?customerId=${t.customerId}`;
+
+        item.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                <span style="font-family:monospace; font-weight:700; color:var(--crm-primary); font-size:12px;">#${escapeHtml(t.code || t.id)}</span>
+                <span style="font-size:11px; font-weight:700; color:${priorityColor}; background:${priorityBg}; padding:2px 6px; border-radius:4px;">${escapeHtml(t.priority)}</span>
+            </div>
+            <a href="${ticketUrl}" style="font-weight:600; font-size:13px; color:var(--crm-text); text-decoration:none; margin:4px 0 6px; display:block;">
+                ${escapeHtml(t.subject)}
+            </a>
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:11.5px; color:var(--crm-muted);">
+                <span>Xử lý: <strong>${escapeHtml(t.assignee || "—")}</strong></span>
+                <span style="font-weight:600; color:var(--crm-text);">${escapeHtml(t.status)}</span>
+            </div>
+        `;
+        listEl.appendChild(item);
+    });
+}
+
+function showToast360(msg) {
+    let region = document.querySelector(".crm-toast-region");
+    if (!region) {
+        region = document.createElement("div");
+        region.className = "crm-toast-region";
+        document.body.appendChild(region);
+    }
+    const toast = document.createElement("div");
+    toast.className = "crm-toast crm-toast-warning";
+    toast.innerHTML = `
+        <span class="crm-toast-icon">⚠️</span>
+        <div class="crm-toast-copy">${escapeHtml(msg)}</div>
+        <button class="crm-toast-close" type="button">✕</button>
+    `;
+    region.appendChild(toast);
+    toast.querySelector(".crm-toast-close")?.addEventListener("click", () => toast.remove());
+    setTimeout(() => toast.remove(), 4500);
 }
 
 /* =========================================================
@@ -715,10 +915,12 @@ document.querySelectorAll(".right-tab").forEach(tab => {
         const cPanel = document.getElementById("contactsPanel");
         const oPanel = document.getElementById("opportunitiesPanel");
         const aPanel = document.getElementById("attachmentsPanel");
+        const tPanel = document.getElementById("ticketsPanel");
 
         if (cPanel) cPanel.hidden = target !== "contacts";
         if (oPanel) oPanel.hidden = target !== "opportunities";
         if (aPanel) aPanel.hidden = target !== "attachments";
+        if (tPanel) tPanel.hidden = target !== "tickets";
     });
 });
 

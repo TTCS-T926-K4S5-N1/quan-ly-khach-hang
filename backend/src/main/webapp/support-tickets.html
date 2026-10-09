@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<script>
+(function () {
+    try {
+        var theme = localStorage.getItem("crm_ui_theme");
+        document.documentElement.setAttribute("data-theme", theme === "dark" ? "dark" : "light");
+        document.documentElement.removeAttribute("data-crm-theme");
+    } catch (e) {
+        document.documentElement.setAttribute("data-theme", "light");
+    }
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chăm sóc khách hàng & Quản lý Ticket Hỗ trợ | Corporate CRM</title>
+
+<link rel="stylesheet" href="css/design-system.css">
+<link rel="stylesheet" href="css/app-shell.css">
+<link rel="stylesheet" href="css/pages/support-tickets.css">
+<link rel="stylesheet" href="css/animations.css">
+</head>
+
+<body class="crm-private">
+
+<!-- ================= DESKTOP SIDEBAR ================= -->
+<aside class="crm-sidebar">
+    <div class="crm-brand">
+        <div class="crm-brand-mark">C</div>
+        <span class="crm-brand-name">Corporate CRM</span>
+    </div>
+
+    <nav class="crm-nav">
+        <div class="crm-nav-section">Không gian làm việc</div>
+
+        <a href="dashboard" class="crm-nav-item">
+            <span class="crm-nav-icon">
+                <svg class="crm-inline-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            </span>
+            <span class="crm-nav-label">Tổng quan</span>
+        </a>
+
+        <a href="customers" class="crm-nav-item">
+            <span class="crm-nav-icon">
+                <svg class="crm-inline-icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            </span>
+            <span class="crm-nav-label">Khách hàng</span>
+        </a>
+
+        <a href="support-tickets" class="crm-nav-item active">
+            <span class="crm-nav-icon">
+                <svg class="crm-inline-icon" viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2Z"/><path d="M13 5v2m0 4v2m0 4v2"/></svg>
+            </span>
+            <span class="crm-nav-label">Hỗ trợ & Churn Risk</span>
+        </a>
+
+        <a href="pipeline" class="crm-nav-item">
+            <span class="crm-nav-icon">
+                <svg class="crm-inline-icon" viewBox="0 0 24 24"><path d="m12 3 8 9-8 9-8-9 8-9Z"/></svg>
+            </span>
+            <span class="crm-nav-label">Cơ hội</span>
+        </a>
+
+        <a href="activities" class="crm-nav-item">
+            <span class="crm-nav-icon">
+                <svg class="crm-inline-icon" viewBox="0 0 24 24"><path d="m4 12 4 4L20 4"/><path d="M4 20h16"/></svg>
+            </span>
+            <span class="crm-nav-label">Hoạt động</span>
+        </a>
+
+        <a href="tasks" class="crm-nav-item">
+            <span class="crm-nav-icon">
+                <svg class="crm-inline-icon" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>
+            </span>
+            <span class="crm-nav-label">Công việc</span>
+        </a>
+
+        <div class="crm-nav-section">Danh mục bán hàng</div>
+
+        <a href="products" class="crm-nav-item">
+            <span class="crm-nav-icon">
+                <svg class="crm-inline-icon" viewBox="0 0 24 24"><path d="m12 3 8 4-8 4-8-4 8-4ZM4 7v10l8 4 8-4V7M12 11v10"/></svg>
+            </span>
+            <span class="crm-nav-label">Sản phẩm & Bảng giá</span>
+        </a>
+    </nav>
+</aside>
+
+<!-- ================= TOPBAR ================= -->
+<header class="crm-topbar">
+    <div class="crm-search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input id="globalSearch" type="search" placeholder="Tìm kiếm ticket, sự cố, khách hàng... (Ctrl + K)">
+        <kbd>Ctrl K</kbd>
+    </div>
+
+    <div class="crm-top-actions">
+        <button id="themeToggle" class="crm-icon-btn" type="button" title="Đổi giao diện">
+            <svg class="crm-inline-icon" viewBox="0 0 24 24"><path d="M20 15a8 8 0 1 1-11-11 7 7 0 0 0 11 11Z"/></svg>
+        </button>
+
+        <button id="notificationButton" class="crm-icon-btn" type="button" title="Thông báo">
+            <svg class="crm-inline-icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
+            <span class="crm-notification-dot"></span>
+        </button>
+
+        <div class="crm-user">
+            <button id="userButton" class="crm-user-button" type="button">
+                <div class="crm-avatar">CS</div>
+                <div class="crm-user-copy">
+                    <span id="shellUserName" class="crm-user-name">Chăm Sóc Khách Hàng</span>
+                    <span id="shellUserRole" class="crm-user-role">CSKH / Hỗ trợ sau bán</span>
+                </div>
+                <span><svg class="crm-inline-icon" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span>
+            </button>
+
+            <div id="userDropdown" class="crm-user-dropdown">
+                <a href="profile">Hồ sơ cá nhân</a>
+                <a href="change-password">Đổi mật khẩu</a>
+                <button id="logoutButton" type="button">Đăng xuất</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- ================= MAIN CONTENT ================= -->
+<main class="crm-main support-tickets-page">
+
+    <!-- PAGE HEADER -->
+    <section class="support-head">
+        <div>
+            <p class="support-kicker">CRM / Dịch vụ sau bán hàng & Giữ chân khách</p>
+            <h1>Chăm sóc khách hàng & Quản lý Ticket hỗ trợ</h1>
+            <p>Ghi nhận yêu cầu hỗ trợ, đo lường SLA và tự động phát hiện rủi ro khách hàng rời bỏ (Churn Risk) để giữ chân khách hiện có.</p>
+        </div>
+
+        <div class="support-actions">
+            <button id="btnExportTickets" class="crm-btn crm-btn-secondary" type="button">
+                <svg class="crm-inline-icon" viewBox="0 0 24 24"><path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4"/></svg>
+                <span>Xuất danh sách</span>
+            </button>
+
+            <button id="btnOpenNewTicketDrawer" class="crm-btn crm-btn-primary" type="button">
+                <svg class="crm-inline-icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                <span>+ Ghi nhận yêu cầu hỗ trợ</span>
+            </button>
+        </div>
+    </section>
+
+    <!-- KPI SUMMARY CARDS -->
+    <section class="support-kpis">
+        <div class="kpi-stat-card">
+            <div class="kpi-icon-wrap total">🎫</div>
+            <div class="kpi-content">
+                <span class="kpi-label">Tổng ticket hỗ trợ</span>
+                <span id="kpiTotalTickets" class="kpi-num">0</span>
+                <span id="kpiResolvedRate" class="kpi-hint">Tỷ lệ giải quyết: 0%</span>
+            </div>
+        </div>
+
+        <div class="kpi-stat-card">
+            <div class="kpi-icon-wrap pending">⏳</div>
+            <div class="kpi-content">
+                <span class="kpi-label">Đang chờ xử lý / Tồn đọng</span>
+                <span id="kpiPendingTickets" class="kpi-num">0</span>
+                <span id="kpiNewCount" class="kpi-hint">0 ticket mới tiếp nhận</span>
+            </div>
+        </div>
+
+        <div class="kpi-stat-card">
+            <div class="kpi-icon-wrap urgent">🔥</div>
+            <div class="kpi-content">
+                <span class="kpi-label">Sự cố khẩn cấp (Urgent)</span>
+                <span id="kpiUrgentTickets" class="kpi-num">0</span>
+                <span id="kpiSlaWarning" class="kpi-hint danger-text">Cần can thiệp theo SLA</span>
+            </div>
+        </div>
+
+        <div id="kpiChurnCard" class="kpi-stat-card churn-highlight" title="Nhấn để lọc các ticket của khách hàng có nguy cơ rời bỏ">
+            <div class="kpi-icon-wrap churn">🚨</div>
+            <div class="kpi-content">
+                <span class="kpi-label">Khách có nguy cơ rời bỏ</span>
+                <span id="kpiChurnAccounts" class="kpi-num">0</span>
+                <span class="kpi-hint danger-text">⚠️ Tự động gắn cờ Churn Risk</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- CHURN RISK WARNING RADAR SECTION -->
+    <section id="churnRadarSection" class="churn-radar-section">
+        <div class="churn-radar-head">
+            <div class="churn-radar-title-group">
+                <span class="churn-radar-pulse-icon">🚨</span>
+                <div>
+                    <h2>
+                        Radar cảnh báo nguy cơ rời bỏ (Churn Risk Accounts)
+                        <span id="churnBadgeCount" class="churn-badge-count">0 công ty</span>
+                    </h2>
+                    <p class="churn-radar-subtitle">
+                        Tự động gắn cờ khách hàng có nhiều ticket tồn đọng chưa giải quyết. Hãy kết nối ngay với Nhân viên kinh doanh phụ trách để giữ chân khách!
+                    </p>
+                </div>
+            </div>
+
+            <button id="btnToggleChurnRadar" class="crm-btn crm-btn-secondary" type="button" style="font-size:12px; padding:6px 12px;">
+                Thu gọn radar
+            </button>
+        </div>
+
+        <div id="churnAccountsGrid" class="churn-radar-grid">
+            <!-- Dynamic Churn Risk Account Cards -->
+        </div>
+    </section>
+
+    <!-- FILTER & TOOLBAR -->
+    <section class="support-toolbar">
+        <div class="support-filters-group">
+            <div class="filter-search-box">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+                <input id="ticketSearch" class="crm-input" type="search" placeholder="Tìm theo mã (#TK), tiêu đề, tên khách hàng...">
+            </div>
+
+            <select id="priorityFilter" class="support-select">
+                <option value="">Tất cả mức độ ưu tiên</option>
+                <option value="URGENT">🔴 Khẩn cấp (Urgent)</option>
+                <option value="HIGH">🟠 Cao (High)</option>
+                <option value="MEDIUM">🔵 Trung bình (Medium)</option>
+                <option value="LOW">⚪ Thấp (Low)</option>
+            </select>
+
+            <select id="statusFilter" class="support-select">
+                <option value="">Tất cả trạng thái</option>
+                <option value="NEW">Mới tiếp nhận</option>
+                <option value="IN_PROGRESS">Đang xử lý</option>
+                <option value="PENDING">Chờ phản hồi</option>
+                <option value="RESOLVED">Đã giải quyết</option>
+                <option value="CLOSED">Đã đóng</option>
+            </select>
+
+            <select id="categoryFilter" class="support-select">
+                <option value="">Tất cả phân loại</option>
+                <option value="BUG">Lỗi phần mềm / Kỹ thuật</option>
+                <option value="COMPLAINT">Khiếu nại dịch vụ</option>
+                <option value="HOW_TO">Hướng dẫn sử dụng</option>
+                <option value="FEATURE">Yêu cầu tính năng</option>
+                <option value="WARRANTY">Bảo hành & Hợp đồng</option>
+            </select>
+
+            <button id="btnFilterChurnRisk" class="filter-chip-btn" type="button" title="Lọc các ticket thuộc khách hàng bị gắn cờ Churn Risk">
+                <span>🚨 Khách có rủi ro rời bỏ</span>
+                <span id="churnFilterBadge" style="font-size:11px; font-weight:700; background:rgba(220,38,38,0.15); padding:1px 6px; border-radius:999px;">0</span>
+            </button>
+        </div>
+
+        <button id="btnResetFilters" class="crm-btn crm-btn-secondary" type="button" style="font-size:12.5px; height:38px;">
+            ⟳ Đặt lại bộ lọc
+        </button>
+    </section>
+
+    <!-- DESKTOP TICKETS TABLE -->
+    <div class="support-table-container">
+        <table class="support-table">
+            <thead>
+                <tr>
+                    <th style="width: 100px;">Mã ticket</th>
+                    <th>Yêu cầu hỗ trợ & Phân loại</th>
+                    <th>Khách hàng & Cờ rủi ro</th>
+                    <th style="width: 130px;">Mức ưu tiên</th>
+                    <th style="width: 160px;">Người xử lý</th>
+                    <th style="width: 130px;">Trạng thái</th>
+                    <th style="width: 130px;">Hạn SLA</th>
+                    <th style="width: 100px; text-align: right;">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody id="ticketsTableBody">
+                <!-- Dynamic Rows -->
+            </tbody>
+        </table>
+
+        <div id="ticketsEmptyState" class="support-empty-state" style="display: none;">
+            <div class="support-empty-icon">📭</div>
+            <strong>Không tìm thấy yêu cầu hỗ trợ nào phù hợp</strong>
+            <span>Hãy thử tìm kiếm với từ khóa khác hoặc xóa bộ lọc hiện tại.</span>
+            <button id="btnEmptyReset" class="crm-btn crm-btn-secondary" type="button" style="margin-top: 8px;">
+                Xóa bộ lọc
+            </button>
+        </div>
+    </div>
+
+    <!-- MOBILE TICKETS CARDS -->
+    <div id="ticketsMobileList" class="support-mobile-cards">
+        <!-- Dynamic Mobile Cards -->
+    </div>
+
+</main>
+
+<!-- ================= DRAWER: GHI NHẬN / SỬA TICKET ================= -->
+<div id="ticketDrawerOverlay" class="ticket-modal-overlay"></div>
+
+<aside id="ticketDrawer" class="ticket-drawer">
+    <div class="drawer-header">
+        <h2 id="drawerTitle">+ Ghi nhận yêu cầu hỗ trợ mới</h2>
+        <button id="btnCloseDrawer" class="drawer-close-btn" type="button" aria-label="Đóng">✕</button>
+    </div>
+
+    <form id="ticketForm" class="drawer-body">
+        <input type="hidden" id="editingTicketId" value="">
+
+        <!-- REALTIME CHURN WARNING WHEN PICKING CUSTOMER -->
+        <div id="formChurnWarning" class="form-churn-alert" style="display: none;">
+            <span style="font-size: 18px;">⚠️</span>
+            <div>
+                <strong id="formChurnWarningTitle">Cảnh báo rủi ro rời bỏ (Churn Risk)</strong>
+                <div id="formChurnWarningDesc">Khách hàng này đang có nhiều yêu cầu tồn đọng. Thêm ticket chưa xử lý sẽ làm tăng cờ nguy cơ rời bỏ!</div>
+            </div>
+        </div>
+
+        <div>
+            <label class="form-label" for="ticketCustomerSelect">
+                Khách hàng <span class="required">*</span>
+            </label>
+            <select id="ticketCustomerSelect" class="crm-input" required>
+                <option value="">-- Chọn khách hàng doanh nghiệp --</option>
+            </select>
+            <div id="selectedCustomerMeta" class="form-hint" style="display: none;">
+                Người phụ trách kinh doanh: <strong id="formCustomerOwner">Chưa rõ</strong>
+            </div>
+        </div>
+
+        <div>
+            <label class="form-label" for="ticketSubject">
+                Tiêu đề yêu cầu hỗ trợ <span class="required">*</span>
+            </label>
+            <input id="ticketSubject" class="crm-input" type="text" placeholder="VD: Lỗi đồng bộ dữ liệu POS / Khách phàn nàn thời gian phản hồi..." required>
+        </div>
+
+        <div class="form-group-row">
+            <div>
+                <label class="form-label" for="ticketCategory">
+                    Phân loại sự cố <span class="required">*</span>
+                </label>
+                <select id="ticketCategory" class="crm-input" required>
+                    <option value="BUG">Lỗi phần mềm / Kỹ thuật</option>
+                    <option value="COMPLAINT">Khiếu nại dịch vụ</option>
+                    <option value="HOW_TO">Hướng dẫn sử dụng</option>
+                    <option value="FEATURE">Yêu cầu tính năng</option>
+                    <option value="WARRANTY">Bảo hành & Hợp đồng</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="form-label" for="ticketPriority">
+                    Mức độ ưu tiên <span class="required">*</span>
+                </label>
+                <select id="ticketPriority" class="crm-input" required>
+                    <option value="URGENT">🔴 Khẩn cấp (Urgent - SLA 4h)</option>
+                    <option value="HIGH" selected>🟠 Cao (High - SLA 24h)</option>
+                    <option value="MEDIUM">🔵 Trung bình (Medium - SLA 48h)</option>
+                    <option value="LOW">⚪ Thấp (Low - SLA 72h)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group-row">
+            <div>
+                <label class="form-label" for="ticketAssignee">
+                    Người xử lý (CSKH / Tech) <span class="required">*</span>
+                </label>
+                <select id="ticketAssignee" class="crm-input" required>
+                    <option value="Phạm Minh Trang (CSKH)">Phạm Minh Trang (CSKH)</option>
+                    <option value="Nguyễn Tuấn Anh (Tech)">Nguyễn Tuấn Anh (Tech Support)</option>
+                    <option value="Vũ Đình Trọng (Tech)">Vũ Đình Trọng (Tech Support)</option>
+                    <option value="Nguyễn Thị Mai (CSKH)">Nguyễn Thị Mai (CSKH)</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="form-label" for="ticketStatus">
+                    Trạng thái ban đầu <span class="required">*</span>
+                </label>
+                <select id="ticketStatus" class="crm-input" required>
+                    <option value="NEW" selected>Mới tiếp nhận</option>
+                    <option value="IN_PROGRESS">Đang xử lý</option>
+                    <option value="PENDING">Chờ phản hồi</option>
+                    <option value="RESOLVED">Đã giải quyết</option>
+                    <option value="CLOSED">Đã đóng</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group-row">
+            <div>
+                <label class="form-label" for="ticketChannel">
+                    Kênh tiếp nhận
+                </label>
+                <select id="ticketChannel" class="crm-input">
+                    <option value="HOTLINE">📞 Hotline / Điện thoại</option>
+                    <option value="EMAIL">✉️ Email hỗ trợ</option>
+                    <option value="DIRECT">🤝 Gặp trực tiếp</option>
+                    <option value="ZALO">💬 Zalo / Chat</option>
+                    <option value="PORTAL">🌐 Portal khách hàng</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="form-label" for="ticketDeadline">
+                    Hạn xử lý SLA
+                </label>
+                <input id="ticketDeadline" class="crm-input" type="date">
+            </div>
+        </div>
+
+        <div>
+            <label class="form-label" for="ticketDescription">
+                Mô tả chi tiết nội dung sự cố & Khiếu nại
+            </label>
+            <textarea id="ticketDescription" class="crm-input" rows="4" placeholder="Ghi nhận chi tiết phàn nàn của khách hàng, mức độ ảnh hưởng đến vận hành, các bước đã thực hiện..."></textarea>
+        </div>
+    </form>
+
+    <div class="drawer-footer">
+        <button id="btnCancelDrawer" class="crm-btn crm-btn-secondary" type="button">Hủy</button>
+        <button id="btnSaveTicket" class="crm-btn crm-btn-primary" type="submit" form="ticketForm">
+            💾 Lưu yêu cầu hỗ trợ
+        </button>
+    </div>
+</aside>
+
+<!-- ================= MODAL: CHI TIẾT TICKET & CẬP NHẬT ================= -->
+<div id="detailModalOverlay" class="ticket-modal-overlay"></div>
+
+<div id="ticketDetailModal" class="ticket-detail-modal">
+    <div class="drawer-header">
+        <div>
+            <span id="detailTicketCode" class="ticket-code-cell" style="font-size:14px;">#TK-000</span>
+            <h2 id="detailTicketSubject" style="margin-top:2px; font-size:16px;">Tiêu đề yêu cầu</h2>
+        </div>
+        <button id="btnCloseDetailModal" class="drawer-close-btn" type="button" aria-label="Đóng">✕</button>
+    </div>
+
+    <div class="detail-modal-body">
+        <!-- Churn Alert inside Detail Modal if this customer is in risk -->
+        <div id="detailChurnAlert" class="form-churn-alert critical" style="display: none;">
+            <span style="font-size: 22px;">🚨</span>
+            <div style="flex:1;">
+                <strong>KHÁCH HÀNG ĐANG CÓ NGUY CƠ RỜI BỎ CAO!</strong>
+                <div id="detailChurnDesc" style="margin-top:2px;">Khách hàng có nhiều yêu cầu chưa xử lý. Nhân viên kinh doanh cần can thiệp ngay!</div>
+            </div>
+            <button id="btnNotifySalesFromModal" type="button" class="crm-btn crm-btn-secondary" style="border-color:#fca5a5; color:#991b1b; font-size:12px; padding:4px 10px; background:#fff;">
+                🔔 Báo NVKD
+            </button>
+        </div>
+
+        <div class="detail-info-grid">
+            <div>
+                <div class="detail-item-dt">Khách hàng</div>
+                <div class="detail-item-dd">
+                    <a id="detailCustomerLink" href="#" class="customer-name-link">—</a>
+                </div>
+            </div>
+
+            <div>
+                <div class="detail-item-dt">Nhân viên kinh doanh phụ trách</div>
+                <div id="detailCustomerOwner" class="detail-item-dd">—</div>
+            </div>
+
+            <div>
+                <div class="detail-item-dt">Mức độ ưu tiên</div>
+                <div id="detailPriority" class="detail-item-dd">—</div>
+            </div>
+
+            <div>
+                <div class="detail-item-dt">Phân loại sự cố</div>
+                <div id="detailCategory" class="detail-item-dd">—</div>
+            </div>
+
+            <div>
+                <div class="detail-item-dt">Người phụ trách xử lý</div>
+                <div id="detailAssignee" class="detail-item-dd">—</div>
+            </div>
+
+            <div>
+                <div class="detail-item-dt">Hạn cam kết SLA</div>
+                <div id="detailDeadline" class="detail-item-dd">—</div>
+            </div>
+        </div>
+
+        <div>
+            <div class="detail-item-dt" style="margin-bottom: 6px;">Cập nhật nhanh trạng thái</div>
+            <div class="quick-status-selector">
+                <button type="button" class="quick-status-btn" data-set-status="NEW">🆕 Mới tiếp nhận</button>
+                <button type="button" class="quick-status-btn" data-set-status="IN_PROGRESS">⚙️ Đang xử lý</button>
+                <button type="button" class="quick-status-btn" data-set-status="PENDING">⏳ Chờ phản hồi</button>
+                <button type="button" class="quick-status-btn" data-set-status="RESOLVED">✅ Đã giải quyết</button>
+                <button type="button" class="quick-status-btn" data-set-status="CLOSED">🔒 Đóng ticket</button>
+            </div>
+        </div>
+
+        <div>
+            <div class="detail-item-dt" style="margin-bottom: 6px;">Mô tả & Ý kiến khách hàng</div>
+            <div id="detailDescription" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; font-size:13px; line-height:1.5; color:var(--crm-text); white-space:pre-wrap;">
+                —
+            </div>
+        </div>
+
+        <div>
+            <div class="detail-item-dt" style="margin-bottom: 6px;">Ghi chú tiến độ sau bán hàng</div>
+            <div style="display:flex; gap:8px;">
+                <input id="newResolutionNote" class="crm-input" type="text" placeholder="Thêm ghi chú cập nhật tiến độ giải quyết...">
+                <button id="btnAddNote" class="crm-btn crm-btn-secondary" type="button">Gửi ghi chú</button>
+            </div>
+            <div id="detailNotesList" style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
+                <!-- dynamic notes -->
+            </div>
+        </div>
+    </div>
+
+    <div class="drawer-footer">
+        <button id="btnEditFromDetail" class="crm-btn crm-btn-secondary" type="button">
+            ✏️ Chỉnh sửa thông tin
+        </button>
+        <button id="btnCloseDetailModalBottom" class="crm-btn crm-btn-primary" type="button">
+            Đóng cửa sổ
+        </button>
+    </div>
+</div>
+
+<!-- SCRIPTS -->
+<script src="js/pages/support-tickets.js"></script>
+<script src="js/page-transition.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/shared-shell.js"></script>
+<script src="js/ui-core.js"></script>
+<script src="js/ui-effects.js"></script>
+
+</body>
+</html>
