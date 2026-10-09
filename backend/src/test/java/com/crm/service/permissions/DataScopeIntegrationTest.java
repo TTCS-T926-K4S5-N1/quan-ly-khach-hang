@@ -24,7 +24,7 @@ class DataScopeIntegrationTest {
     void setUp() throws Exception {
         String url = System.getenv("CRM_DB_URL");
         assertNotNull(url, "Set CRM_DB_URL to the isolated test database");
-        assertTrue(url.contains("/crm_sprint1_test"), "Tests must not use crm_db");
+        assertEquals("/crm_sprint1_test", java.net.URI.create(url.substring(5)).getPath(), "Tests must not use crm_db");
         parentTeam = team("Scope parent", null);
         childTeam = team("Scope child", parentTeam);
         otherTeam = team("Scope outside", null);
@@ -38,6 +38,7 @@ class DataScopeIntegrationTest {
 
     @AfterEach
     void tearDown() throws Exception {
+        if (users.isEmpty() && teams.isEmpty()) return;
         try (Connection c = DatabaseConfig.getConnection()) {
             for (Long id : users) {
                 try (PreparedStatement s = c.prepareStatement("DELETE FROM customers WHERE owner_user_id = ?")) {
@@ -97,8 +98,8 @@ class DataScopeIntegrationTest {
 
         // Sales A searches customers -> Customer of B is not present in list
         var listForA = customerService.search(salesA, null, null, 1, 50);
-        List<Map<String, Object>> itemsA = (List<Map<String, Object>>) listForA.get("items");
-        boolean containsB = itemsA.stream().anyMatch(c -> Objects.equals(c.get("id"), customerBId));
+        List<?> itemsA = assertInstanceOf(List.class, listForA.get("items"));
+        boolean containsB = itemsA.stream().anyMatch(c -> Objects.equals(assertInstanceOf(Map.class, c).get("id"), customerBId));
         assertFalse(containsB, "Sales A must not see customer of Sales B in list");
     }
 

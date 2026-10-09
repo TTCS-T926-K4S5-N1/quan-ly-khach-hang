@@ -138,7 +138,7 @@ public class AuditLogServlet
                     com.crm.util.JsonUtil.getGson()
                             .fromJson(
                                     request.getReader(),
-                                    java.util.Map.class
+                                    com.crm.util.JsonUtil.OBJECT_MAP_TYPE
                             );
 
             if (body == null) {

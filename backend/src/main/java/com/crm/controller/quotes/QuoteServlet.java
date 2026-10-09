@@ -53,7 +53,7 @@ public class QuoteServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
-            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ: " + e.getMessage(), null));
+            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));
         }
     }
 
@@ -63,7 +63,7 @@ public class QuoteServlet extends HttpServlet {
             long currentUserId = requireUser(req);
             String path = req.getPathInfo();
 
-            Map<String, Object> body = JsonUtil.getGson().fromJson(req.getReader(), Map.class);
+            Map<String, Object> body = JsonUtil.getGson().fromJson(req.getReader(), com.crm.util.JsonUtil.OBJECT_MAP_TYPE);
             if (body == null) {
                 throw new IllegalArgumentException("Thiếu dữ liệu");
             }
@@ -81,7 +81,7 @@ public class QuoteServlet extends HttpServlet {
             Long customerId = body.get("customerId") != null ? ((Number) body.get("customerId")).longValue() : null;
             Long opportunityId = body.get("opportunityId") != null ? ((Number) body.get("opportunityId")).longValue() : null;
             BigDecimal discountPercent = body.get("discountPercent") != null ? new BigDecimal(String.valueOf(body.get("discountPercent"))) : BigDecimal.ZERO;
-            List<Map<String, Object>> items = (List<Map<String, Object>>) body.get("items");
+            List<Map<String, Object>> items = JsonUtil.objectList(body.get("items"));
 
             var created = quoteService.create(currentUserId, title, customerId, opportunityId, discountPercent, items);
             ResponseUtil.json(resp, 201, ApiResponse.success("Tạo báo giá thành công", created));
@@ -90,7 +90,7 @@ public class QuoteServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
-            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ: " + e.getMessage(), null));
+            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));
         }
     }
 
@@ -109,7 +109,7 @@ public class QuoteServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
-            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ: " + e.getMessage(), null));
+            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));
         }
     }
 

@@ -21,7 +21,11 @@ import java.util.NoSuchElementException;
 })
 public class CustomerServlet extends HttpServlet {
 
-    private final CustomerService customerService = new CustomerService();
+    private final CustomerService customerService;
+
+    public CustomerServlet() { this(new CustomerService()); }
+
+    CustomerServlet(CustomerService customerService) { this.customerService = customerService; }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -80,6 +84,8 @@ public class CustomerServlet extends HttpServlet {
 
             // 4. Khách hàng 360
             if (path.endsWith("/360")) {
+                if (!path.matches("/[1-9][0-9]*/360")) throw new IllegalArgumentException("ID không hợp lệ");
+                resp.setHeader("Cache-Control", "no-store");
                 long id = parseId(path);
                 var data = customerService.getCustomer360(currentUserId, id);
                 if (data == null) {
@@ -114,12 +120,14 @@ public class CustomerServlet extends HttpServlet {
             }
 
             ResponseUtil.json(resp, 200, ApiResponse.success("Lấy thông tin khách hàng thành công", customer));
+        } catch (UnauthenticatedException e) {
+            ResponseUtil.json(resp, 401, ApiResponse.error(e.getMessage(), null));
         } catch (SecurityException e) {
             ResponseUtil.json(resp, 403, ApiResponse.error(e.getMessage(), null));
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
-            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ: " + e.getMessage(), null));
+            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));
         }
     }
 
@@ -143,12 +151,14 @@ public class CustomerServlet extends HttpServlet {
 
             var created = customerService.create(currentUserId, body);
             ResponseUtil.json(resp, 201, ApiResponse.success("Tạo khách hàng thành công", created));
+        } catch (UnauthenticatedException e) {
+            ResponseUtil.json(resp, 401, ApiResponse.error(e.getMessage(), null));
         } catch (SecurityException e) {
             ResponseUtil.json(resp, 403, ApiResponse.error(e.getMessage(), null));
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
-            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ: " + e.getMessage(), null));
+            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));
         }
     }
 
@@ -167,12 +177,14 @@ public class CustomerServlet extends HttpServlet {
             }
 
             ResponseUtil.json(resp, 200, ApiResponse.success("Cập nhật khách hàng thành công", updated));
+        } catch (UnauthenticatedException e) {
+            ResponseUtil.json(resp, 401, ApiResponse.error(e.getMessage(), null));
         } catch (SecurityException e) {
             ResponseUtil.json(resp, 403, ApiResponse.error(e.getMessage(), null));
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
-            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ: " + e.getMessage(), null));
+            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));
         }
     }
 
@@ -184,6 +196,8 @@ public class CustomerServlet extends HttpServlet {
 
             customerService.delete(currentUserId, id);
             ResponseUtil.json(resp, 200, ApiResponse.success("Xóa khách hàng thành công", null));
+        } catch (UnauthenticatedException e) {
+            ResponseUtil.json(resp, 401, ApiResponse.error(e.getMessage(), null));
         } catch (SecurityException e) {
             ResponseUtil.json(resp, 403, ApiResponse.error(e.getMessage(), null));
         } catch (NoSuchElementException e) {
@@ -191,16 +205,25 @@ public class CustomerServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
-            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ: " + e.getMessage(), null));
+            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));
         }
+    }
+
+    private static final class UnauthenticatedException extends SecurityException {
+        private static final long serialVersionUID = 1L;
+        UnauthenticatedException(String message) { super(message); }
     }
 
     private long requireUser(HttpServletRequest req) {
         HttpSession session = req.getSession(false);
         if (session == null || session.getAttribute("userId") == null) {
-            throw new SecurityException("Phiên đăng nhập không hợp lệ hoặc đã hết hạn.");
+            throw new UnauthenticatedException("Phiên đăng nhập không hợp lệ hoặc đã hết hạn.");
         }
-        return (Long) session.getAttribute("userId");
+        Object identity = session.getAttribute("userId");
+        if (!(identity instanceof Number number) || number.longValue() <= 0) {
+            throw new UnauthenticatedException("Phiên đăng nhập không hợp lệ");
+        }
+        return number.longValue();
     }
 
     private long parseId(String pathInfo) {
