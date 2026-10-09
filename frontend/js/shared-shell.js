@@ -48,6 +48,9 @@
             quote:
                 `<svg viewBox="0 0 24 24"><path d="M5 3h14v18H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>`,
 
+            ticket:
+                `<svg viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2Z"/><path d="M13 5v2m0 4v2m0 4v2"/></svg>`,
+
             product:
                 `<svg viewBox="0 0 24 24"><path d="m12 3 8 4-8 4-8-4 8-4Z"/><path d="m4 7 8 4 8-4v10l-8 4-8-4V7Z"/></svg>`,
 
@@ -681,6 +684,17 @@
                 [];
 
 
+            if (!currentMenu.some(item => item.path === "support-tickets" || item.code === "SUPPORT_TICKETS")) {
+                currentMenu.splice(2, 0, {
+                    code: "SUPPORT_TICKETS",
+                    label: "Hỗ trợ & Churn Risk",
+                    path: "support-tickets",
+                    section: "workspace",
+                    icon: "ticket"
+                });
+            }
+
+
             renderUser();
 
 
@@ -719,6 +733,33 @@
                 "CRM shell load error:",
                 error
             );
+
+            // Fallback shell for direct browser / offline opening
+            if (!currentSession) {
+                currentSession = {
+                    fullName: "Chăm Sóc Khách Hàng",
+                    email: "cskh@crm.local",
+                    roles: [{ name: "Chăm sóc khách hàng", code: "CSKH" }]
+                };
+            }
+            if (!currentMenu || currentMenu.length === 0) {
+                currentMenu = [
+                    { code: "DASHBOARD", label: "Tổng quan", path: "dashboard", section: "workspace", icon: "dashboard" },
+                    { code: "CUSTOMERS", label: "Khách hàng", path: "customers", section: "workspace", icon: "customer" },
+                    { code: "SUPPORT_TICKETS", label: "Hỗ trợ & Churn Risk", path: "support-tickets", section: "workspace", icon: "ticket" },
+                    { code: "OPPORTUNITIES", label: "Cơ hội", path: "pipeline", section: "workspace", icon: "opportunity" },
+                    { code: "ACTIVITIES", label: "Hoạt động", path: "activities", section: "workspace", icon: "activity" },
+                    { code: "CALENDAR", label: "Lịch", path: "calendar", section: "workspace", icon: "calendar" },
+                    { code: "TASKS", label: "Công việc", path: "tasks", section: "workspace", icon: "task" },
+                    { code: "PRODUCTS", label: "Sản phẩm", path: "products", section: "workspace", icon: "product" },
+                    { code: "USERS", label: "Người dùng", path: "users", section: "admin", icon: "users" },
+                    { code: "ORGANIZATION", label: "Tổ chức", path: "organization", section: "admin", icon: "organization" },
+                    { code: "AUDIT", label: "Nhật ký hệ thống", path: "audit-log", section: "admin", icon: "audit" }
+                ];
+            }
+            renderUser();
+            renderNavigation(document.getElementById("desktopNavigation"));
+            renderNavigation(document.getElementById("mobileNavigation"));
         }
     }
 

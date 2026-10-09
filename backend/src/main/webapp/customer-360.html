@@ -68,7 +68,12 @@
             <span class="crm-nav-label">Khách hàng</span>
         </a>
 
-        <a href="#" class="crm-nav-item">
+        <a href="support-tickets" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2Z"/><path d="M13 5v2m0 4v2m0 4v2"/></svg></span>
+            <span class="crm-nav-label">Hỗ trợ & Churn Risk</span>
+        </a>
+
+        <a href="pipeline" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 9-8 9-8-9 8-9Z"/></svg></span>
             <span class="crm-nav-label">Cơ hội</span>
         </a>
@@ -254,6 +259,33 @@
         </div>
     </div>
 
+    <!-- CHURN RISK WARNING BANNER (CỜ RỦI RO RỜI BỎ) -->
+    <div id="churnRiskWarning360" class="churn-risk-banner" style="display:none; margin-bottom: 18px; padding: 16px 20px; border-radius: 12px; background: linear-gradient(135deg, #fff7ed 0%, #fef2f2 100%); border: 1.5px solid #f87171; color: #991b1b; box-shadow: 0 4px 16px rgba(239,68,68,0.12);">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+            <div style="display:flex; align-items:flex-start; gap:12px; flex:1; min-width:300px;">
+                <span style="font-size:26px; line-height:1; padding-top:2px;" class="churn-beacon">🚨</span>
+                <div>
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <strong style="font-size:15px; color:#b91c1c;" id="churn360Title">CẢNH BÁO NGUY CƠ RỜI BỎ (CHURN RISK DETECTED)</strong>
+                        <span id="churn360LevelBadge" style="background:#fee2e2; border:1px solid #fca5a5; color:#b91c1c; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;">RỦI RO: RẤT CAO</span>
+                    </div>
+                    <div style="font-size:13px; margin-top:4px; color:#7f1d1d; line-height:1.45;" id="churn360Desc">
+                        Khách hàng đang có <strong id="churn360TicketCount">0</strong> yêu cầu hỗ trợ tồn đọng chưa giải quyết (bao gồm sự cố khẩn cấp).
+                        Cảnh báo gửi tới Nhân viên kinh doanh phụ trách: <strong id="churn360Owner">...</strong> cần chủ động can thiệp và liên hệ chăm sóc khách hàng ngay lập tức!
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <button id="btnNotifySalesFrom360" type="button" class="crm-btn crm-btn-secondary" style="background:#fff; border-color:#fca5a5; color:#991b1b; font-size:12.5px; padding:7px 14px;">
+                    🔔 Báo động NVKD phụ trách
+                </button>
+                <a id="btnViewTicketsFrom360" href="support-tickets" class="crm-btn crm-btn-primary" style="background:#dc2626; border-color:#dc2626; font-size:12.5px; padding:7px 14px; text-decoration:none;">
+                    🎫 Xem các ticket tồn đọng
+                </a>
+            </div>
+        </div>
+    </div>
+
     <section class="customer360-grid">
 
         <!-- COMPANY -->
@@ -312,6 +344,15 @@
                 <div>
                     <dt>Người phụ trách</dt>
                     <dd id="company360Owner">—</dd>
+                </div>
+
+                <div>
+                    <dt>Nguy cơ rời bỏ</dt>
+                    <dd id="company360ChurnStatus">
+                        <span class="churn-status-pill normal" style="display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:700; padding:2px 8px; border-radius:6px; background:#dcfce7; color:#15803d;">
+                            ✅ An toàn / Bình thường
+                        </span>
+                    </dd>
                 </div>
 
             </dl>
@@ -434,6 +475,14 @@
                         Tệp đính kèm (<span id="tabCountAttachments">0</span>)
                     </button>
 
+                    <button
+                        type="button"
+                        class="right-tab"
+                        data-tab="tickets"
+                    >
+                        Hỗ trợ & Khiếu nại (<span id="tabCountTickets">0</span>)
+                    </button>
+
                 </div>
 
 
@@ -514,6 +563,29 @@
                         + Thêm tệp đính kèm
                     </button>
 
+                </div>
+
+
+                <!-- TICKETS TAB -->
+                <div
+                    id="ticketsPanel"
+                    class="right-content"
+                    hidden
+                >
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid var(--crm-border);">
+                        <span style="font-size:12.5px; color:var(--crm-muted); font-weight:600;" id="ticketsSummaryText">
+                            0 ticket tồn đọng
+                        </span>
+                        <a id="btnAddTicketFrom360" href="support-tickets" class="crm-btn crm-btn-primary" style="font-size:11.5px; padding:4px 10px; text-decoration:none;">
+                            + Tạo ticket mới
+                        </a>
+                    </div>
+
+                    <div id="customerTicketsList" style="display:flex; flex-direction:column; gap:10px;"></div>
+
+                    <div id="ticketsEmpty360" class="empty-small" style="display:none; text-align:center; padding:20px; color:var(--crm-muted);">
+                        Chưa có yêu cầu hỗ trợ nào cho khách hàng này.
+                    </div>
                 </div>
 
             </section>

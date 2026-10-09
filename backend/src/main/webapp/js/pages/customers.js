@@ -564,14 +564,29 @@ function render() {
 function renderDesktopRow(record, index) {
     const tr = document.createElement("tr");
 
+    let isChurn = false;
+    try {
+        const churnRaw = localStorage.getItem("crm_ui_churn_risk_customers");
+        if (churnRaw) {
+            const map = JSON.parse(churnRaw);
+            isChurn = !!map[record.id];
+        }
+    } catch (_) {}
+
+    const isFile = window.location.protocol === "file:" || window.location.pathname.endsWith(".html");
+    const link360 = isFile ? `customer-360.html?id=${record.id}` : `customer-360?id=${record.id}`;
+
     tr.innerHTML = `
         <td>
             <input type="checkbox">
         </td>
         <td>
-            <a class="customer-name" href="customer-360?id=${record.id}">
-                ${escapeHtml(record.companyName || record.name)}
-            </a>
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                <a class="customer-name" href="${link360}">
+                    ${escapeHtml(record.companyName || record.name)}
+                </a>
+                ${isChurn ? '<span style="display:inline-flex; align-items:center; gap:3px; background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; font-size:11px; font-weight:700; padding:1px 6px; border-radius:4px;" title="Khách hàng có nhiều yêu cầu hỗ trợ tồn đọng!">🚨 Nguy cơ rời bỏ</span>' : ""}
+            </div>
             <span class="customer-sub">
                 ${escapeHtml(record.taxCode || "—")}
             </span>
@@ -596,7 +611,7 @@ function renderDesktopRow(record, index) {
                     ⋮
                 </button>
                 <div class="row-action-menu" data-menu="${index}">
-                    <a href="customer-360?id=${record.id}">
+                    <a href="${link360}">
                         Xem chi tiết (360)
                     </a>
                     <button type="button" data-edit="${index}">
@@ -617,12 +632,25 @@ function renderMobileCard(record, index) {
     const card = document.createElement("article");
     card.className = "customer-mobile-card";
 
+    let isChurn = false;
+    try {
+        const churnRaw = localStorage.getItem("crm_ui_churn_risk_customers");
+        if (churnRaw) {
+            const map = JSON.parse(churnRaw);
+            isChurn = !!map[record.id];
+        }
+    } catch (_) {}
+
+    const isFile = window.location.protocol === "file:" || window.location.pathname.endsWith(".html");
+    const link360 = isFile ? `customer-360.html?id=${record.id}` : `customer-360?id=${record.id}`;
+
     card.innerHTML = `
         <div class="mobile-card-head">
             <div>
                 <strong>
                     ${escapeHtml(record.companyName || record.name)}
                 </strong>
+                ${isChurn ? '<div style="margin-top:4px;"><span style="display:inline-flex; align-items:center; gap:3px; background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; font-size:11px; font-weight:700; padding:1px 6px; border-radius:4px;">🚨 Nguy cơ rời bỏ</span></div>' : ""}
                 <div style="margin-top:6px">
                     <span class="status-pill ${statusClass(record.status)}">
                         ${escapeHtml(record.status)}
@@ -638,7 +666,7 @@ function renderMobileCard(record, index) {
             <span>☎ ${escapeHtml(record.phone || "—")}</span>
             <span>Người sở hữu: ${escapeHtml(record.ownerName || record.owner || "—")}</span>
         </div>
-        <a href="customer-360?id=${record.id}" class="crm-btn crm-btn-secondary" style="margin-top:12px; width:100%; text-decoration:none;">
+        <a href="${link360}" class="crm-btn crm-btn-secondary" style="margin-top:12px; width:100%; text-decoration:none;">
             Xem chi tiết (360)
         </a>
     `;

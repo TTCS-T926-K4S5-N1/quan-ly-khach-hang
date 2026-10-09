@@ -1049,4 +1049,23 @@
     color: #fff;
     border-color: var(--crm-primary);
 }
+
+/* =========================================================
+   CHURN RISK WARNING BANNER & TICKETS TAB (SCRUM-167)
+========================================================= */
+.churn-beacon {
+    animation: beacon-pulse 2s infinite ease-in-out;
+    display: inline-block;
+}
+
+@keyframes beacon-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.18); }
+}
+
+@keyframes flag-glow {
+    0%, 100% { border-color: #fca5a5; }
+    50% { border-color: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.35); }
+}
+
 
