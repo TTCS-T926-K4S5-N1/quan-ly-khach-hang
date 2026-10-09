@@ -362,7 +362,9 @@
                     class="right-content"
                 >
 
-                    <div class="empty-small">
+                    <div id="contactsList" class="contacts-list"></div>
+
+                    <div id="contactsEmpty" class="empty-small">
                         Chưa có người liên hệ.
                     </div>
 
@@ -370,6 +372,7 @@
                         id="addContact"
                         class="crm-btn crm-btn-secondary full-button"
                         type="button"
+                        style="margin-top: 10px;"
                     >
                         + Thêm người liên hệ
                     </button>
@@ -496,6 +499,157 @@
                 class="crm-btn crm-btn-primary"
             >
                 Lưu
+            </button>
+
+        </footer>
+
+    </form>
+
+</section>
+
+
+<!-- CONTACT MODAL -->
+
+<div
+    id="contactModalOverlay"
+    class="modal-overlay"
+></div>
+
+<section
+    id="contactModal"
+    class="company-modal crm-card"
+    style="width: min(520px, calc(100% - 32px));"
+>
+
+    <header class="modal-head">
+
+        <strong id="contactModalTitle">
+            Thêm người liên hệ
+        </strong>
+
+        <button
+            id="closeContactModal"
+            type="button"
+        >
+            <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+
+    </header>
+
+
+    <form id="contactForm" style="padding: 16px;">
+
+        <input type="hidden" id="editContactId">
+
+        <label>
+            Họ và tên <span style="color:var(--crm-danger,#ef4444)">*</span>
+            <input
+                id="contactName"
+                class="crm-input"
+                type="text"
+                required
+                placeholder="Ví dụ: Nguyễn Văn Phát"
+            >
+        </label>
+
+        <label style="margin-top:10px;">
+            Chức danh
+            <input
+                id="contactTitle"
+                class="crm-input"
+                type="text"
+                placeholder="Ví dụ: Giám đốc CNTT, Kế toán trưởng..."
+            >
+        </label>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:10px;">
+
+            <label>
+                Số điện thoại
+                <input
+                    id="contactPhone"
+                    class="crm-input"
+                    type="tel"
+                    placeholder="0912345678"
+                >
+            </label>
+
+            <label>
+                Email
+                <input
+                    id="contactEmail"
+                    class="crm-input"
+                    type="email"
+                    placeholder="email@company.com"
+                >
+            </label>
+
+        </div>
+
+        <label style="margin-top:10px;">
+            Vai trò trong quyết định mua <span style="color:var(--crm-danger,#ef4444)">*</span>
+            <select
+                id="contactBuyingRole"
+                class="crm-input"
+                required
+            >
+                <option value="DECISION_MAKER">👑 Người quyết định (Duyệt ngân sách, ký HĐ)</option>
+                <option value="INFLUENCER" selected>💡 Người ảnh hưởng (Đánh giá kỹ thuật & giải pháp)</option>
+                <option value="END_USER">👤 Người dùng cuối (Trực tiếp vận hành phần mềm)</option>
+                <option value="BLOCKER">⚠️ Người cản trở (Lo ngại rủi ro, chi phí)</option>
+            </select>
+        </label>
+
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:12px; font-weight:500; font-size:13px;">
+            <input
+                id="contactIsPrimary"
+                type="checkbox"
+                style="width:16px; height:16px; cursor:pointer;"
+            >
+            <span>Đánh dấu là đầu mối liên hệ chính của công ty</span>
+        </label>
+
+        <!-- Chuyển công ty (giữ nguyên lịch sử) -->
+        <div id="transferCompanySection" style="margin-top:14px; padding:12px; border-radius:8px; background:var(--crm-bg-soft, #f8fafc); border:1px solid var(--crm-border); display:none;">
+            <label style="font-weight:600; font-size:12.5px; color:var(--crm-text);">
+                🏢 Gắn sang công ty khác (Chuyển việc / giữ nguyên lịch sử)
+                <select id="contactCustomerSelect" class="crm-input" style="margin-top:6px;"></select>
+            </label>
+
+            <label style="font-size:12px; margin-top:8px;">
+                Lý do / Ghi chú chuyển công tác:
+                <input id="contactTransferReason" class="crm-input" type="text" placeholder="Ví dụ: Chuyển sang công tác tại công ty mới từ tháng này...">
+            </label>
+
+            <div id="contactHistoryBox" style="display:none; margin-top:10px; font-size:12px; color:var(--crm-muted); border-top:1px dashed var(--crm-border); padding-top:8px;"></div>
+        </div>
+
+        <label style="margin-top:12px;">
+            Ghi chú / Đặc điểm liên hệ
+            <textarea
+                id="contactNotes"
+                class="crm-input"
+                rows="2"
+                placeholder="Ghi chú về phong cách làm việc, sở thích, hoặc rào cản cần giải quyết..."
+                style="resize:vertical;"
+            ></textarea>
+        </label>
+
+        <footer class="modal-footer" style="margin-top:16px;">
+
+            <button
+                id="cancelContactEdit"
+                type="button"
+                class="crm-btn crm-btn-secondary"
+            >
+                Hủy
+            </button>
+
+            <button
+                type="submit"
+                class="crm-btn crm-btn-primary"
+            >
+                Lưu người liên hệ
             </button>
 
         </footer>

@@ -52,6 +52,15 @@ public class CustomerService {
 
         Map<String, Object> customFields = customFieldValueDAO.getValues("CUSTOMER", id);
         customer.put("customFields", customFields);
+
+        try {
+            com.crm.dao.contacts.ContactDAO contactDAO = new com.crm.dao.contacts.ContactDAO();
+            List<Map<String, Object>> contacts = contactDAO.findByCustomerId(id);
+            customer.put("contacts", contacts);
+        } catch (Exception ignored) {
+            customer.put("contacts", Collections.emptyList());
+        }
+
         return customer;
     }
 
