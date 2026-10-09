@@ -2,6 +2,7 @@ package com.crm.dao.customers;
 
 import com.crm.config.DatabaseConfig;
 import com.crm.dao.contacts.ContactDAO;
+import com.crm.service.permissions.DataScopeContext;
 
 import java.math.BigDecimal;
 import java.sql.*;
@@ -11,8 +12,9 @@ public class Customer360DAO {
 
     private final ContactDAO contactDAO = new ContactDAO();
 
-    public Map<String, Object> getCustomer360(long customerId) throws SQLException {
-        long startTime = System.currentTimeMillis();
+    public Map<String, Object> getCustomer360(long customerId, DataScopeContext scope) throws SQLException {
+        Objects.requireNonNull(scope, "Resolved customer read scope is required");
+        long startTime = System.nanoTime();
         Map<String, Object> result = new LinkedHashMap<>();
 
         try (Connection conn = DatabaseConfig.getConnection()) {
@@ -21,6 +23,10 @@ public class Customer360DAO {
             if (customer == null) {
                 return null;
             }
+            if (!scope.canAccessOwner(((Number) customer.get("ownerUserId")).longValue())) {
+                throw new SecurityException("Bạn không có quyền truy cập dữ liệu này do giới hạn phạm vi sở hữu.");
+            }
+            customer.put("customFields", new com.crm.dao.customfields.CustomFieldValueDAO().getValues("CUSTOMER", customerId));
             result.put("customer", customer);
 
             // 2. Tổng giá trị đã ký và giá trị cơ hội đang mở (KPIs)
@@ -28,7 +34,7 @@ public class Customer360DAO {
             result.put("kpis", kpis);
 
             // 3. Danh sách người liên hệ & vai trò
-            List<Map<String, Object>> contacts = contactDAO.findByCustomerId(customerId);
+            List<Map<String, Object>> contacts = contactDAO.findByCustomerId(conn, customerId);
             result.put("contacts", contacts);
 
             // 4. Cơ hội đang mở và đã đóng
@@ -38,16 +44,17 @@ public class Customer360DAO {
             // 5. Dòng thời gian hoạt động (500 hoạt động tối ưu index)
             List<Map<String, Object>> activities = getActivities(conn, customerId, 500);
             result.put("activities", activities);
+            kpis.put("activitiesCount", activities.size());
 
             // 6. Tệp đính kèm
             List<Map<String, Object>> attachments = getAttachments(conn, customerId);
             result.put("attachments", attachments);
 
-            long duration = System.currentTimeMillis() - startTime;
+            long duration = (System.nanoTime() - startTime) / 1_000_000;
             Map<String, Object> performance = new LinkedHashMap<>();
             performance.put("executionTimeMs", duration);
             performance.put("activitiesLoaded", activities.size());
-            performance.put("benchmarkStatus", duration < 1500 ? "PASSED (< 1.5s)" : "WARNING");
+            performance.put("benchmarkStatus", "NOT_MEASURED_HTTP");
             result.put("performance", performance);
         }
 
@@ -95,6 +102,8 @@ public class Customer360DAO {
                     map.put("address", rs.getString("address"));
                     map.put("industry", rs.getString("industry_name") != null ? rs.getString("industry_name") : "—");
                     map.put("companySize", rs.getString("company_size_name") != null ? rs.getString("company_size_name") : "—");
+                    map.put("industryId", rs.getObject("industry_id"));
+                    map.put("companySizeId", rs.getObject("company_size_id"));
                     map.put("ownerUserId", rs.getLong("owner_user_id"));
                     map.put("ownerName", rs.getString("owner_name") != null ? rs.getString("owner_name") : "CRM Administrator");
                     map.put("createdAt", rs.getTimestamp("created_at"));
@@ -141,6 +150,17 @@ public class Customer360DAO {
                     kpi.put("totalOpportunities", totalCount);
                     kpi.put("winRate", winRate);
                 }
+            }
+        }
+        try (PreparedStatement stmt = conn.prepareStatement("""
+                SELECT COALESCE(SUM(amount), 0), COUNT(*) FROM customer_360_contracts
+                WHERE customer_id = ? AND status = 'SIGNED'
+                """)) {
+            stmt.setLong(1, customerId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                rs.next();
+                kpi.put("totalSignedAmount", rs.getBigDecimal(1));
+                kpi.put("signedContractsCount", rs.getLong(2));
             }
         }
         return kpi;
@@ -218,7 +238,7 @@ public class Customer360DAO {
                 FROM activities a
                 LEFT JOIN users u ON u.id = a.owner_user_id
                 WHERE a.customer_id = ? AND a.is_deleted = 0
-                ORDER BY a.created_at DESC
+                ORDER BY a.created_at DESC, a.id DESC
                 LIMIT ?
                 """;
 

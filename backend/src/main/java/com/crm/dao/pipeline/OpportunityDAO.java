@@ -4,7 +4,6 @@ import com.crm.config.DatabaseConfig;
 import com.crm.dto.pipeline.OpportunityWriteRequest;
 import com.crm.service.permissions.DataScopeContext;
 
-import java.math.BigDecimal;
 import java.sql.*;
 import java.util.*;
 
@@ -37,7 +36,7 @@ public class OpportunityDAO {
                     o.created_at,
                     c.name AS customer_name,
                     ps.name AS stage_name,
-                    ps.stage_order,
+                    ps.order_no AS stage_order,
                     u.full_name AS owner_name,
                     comp.name AS competitor_name
                 FROM opportunities o
@@ -113,7 +112,7 @@ public class OpportunityDAO {
                     o.created_at,
                     c.name AS customer_name,
                     ps.name AS stage_name,
-                    ps.stage_order,
+                    ps.order_no AS stage_order,
                     u.full_name AS owner_name,
                     comp.name AS competitor_name
                 FROM opportunities o

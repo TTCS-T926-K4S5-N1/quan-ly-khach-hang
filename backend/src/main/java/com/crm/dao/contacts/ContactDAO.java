@@ -9,6 +9,12 @@ import java.util.*;
 public class ContactDAO {
 
     public List<Map<String, Object>> findByCustomerId(long customerId) throws SQLException {
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            return findByCustomerId(conn, customerId);
+        }
+    }
+
+    public List<Map<String, Object>> findByCustomerId(Connection conn, long customerId) throws SQLException {
         String sql = """
                 SELECT
                     ct.id,
@@ -31,16 +37,43 @@ public class ContactDAO {
                 """;
 
         List<Map<String, Object>> list = new ArrayList<>();
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, customerId);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     Map<String, Object> item = mapContact(rs);
-                    List<Map<String, Object>> history = getCompanyHistory(item.get("id") != null ? (Long) item.get("id") : 0L);
-                    item.put("companyHistory", history);
+                    item.put("companyHistory", new ArrayList<Map<String, Object>>());
                     list.add(item);
                 }
+            }
+        }
+        Map<Long, List<Map<String, Object>>> histories = new HashMap<>();
+        if (!list.isEmpty()) {
+            try (PreparedStatement stmt = conn.prepareStatement("""
+                    SELECT h.*, c.name AS customer_name FROM contact_company_history h
+                    JOIN contacts ct ON ct.id = h.contact_id
+                    JOIN customers c ON c.id = h.customer_id
+                    WHERE ct.customer_id = ? AND ct.is_deleted = 0 ORDER BY h.id DESC
+                    """)) {
+                stmt.setLong(1, customerId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        Map<String, Object> row = new LinkedHashMap<>();
+                        row.put("id", rs.getLong("id"));
+                        row.put("contactId", rs.getLong("contact_id"));
+                        row.put("customerId", rs.getLong("customer_id"));
+                        row.put("customerName", rs.getString("customer_name"));
+                        row.put("jobTitle", rs.getString("job_title"));
+                        row.put("startDate", rs.getDate("start_date"));
+                        row.put("endDate", rs.getDate("end_date"));
+                        row.put("notes", rs.getString("notes"));
+                        row.put("createdAt", rs.getTimestamp("created_at"));
+                        histories.computeIfAbsent(rs.getLong("contact_id"), key -> new ArrayList<>()).add(row);
+                    }
+                }
+            }
+            for (Map<String, Object> contact : list) {
+                contact.put("companyHistory", histories.getOrDefault((Long) contact.get("id"), List.of()));
             }
         }
         return list;

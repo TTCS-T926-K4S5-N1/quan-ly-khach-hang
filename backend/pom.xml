@@ -28,6 +28,13 @@
     <dependencies>
 
         <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-to-jul</artifactId>
+            <version>2.24.3</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
             <groupId>jakarta.servlet</groupId>
             <artifactId>jakarta.servlet-api</artifactId>
             <version>6.0.0</version>
@@ -92,6 +99,8 @@
 
                 <configuration>
                     <release>21</release>
+                    <showWarnings>true</showWarnings>
+                    <compilerArgs><arg>-Xlint:unchecked,rawtypes</arg><arg>-Werror</arg></compilerArgs>
                 </configuration>
 
             </plugin>

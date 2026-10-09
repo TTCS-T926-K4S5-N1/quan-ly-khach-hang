@@ -7,7 +7,6 @@ import com.crm.dto.customers.CustomerWriteRequest;
 import com.crm.service.permissions.DataScopeContext;
 import com.crm.service.permissions.DataScopeService;
 
-import java.sql.SQLException;
 import java.util.*;
 
 public class CustomerService {
@@ -66,19 +65,10 @@ public class CustomerService {
     }
 
     public Map<String, Object> getCustomer360(long currentUserId, long id) throws Exception {
+        if (id <= 0) throw new IllegalArgumentException("ID không hợp lệ");
         DataScopeContext scope = dataScopeService.resolve(currentUserId, "customer", "read");
-        Map<String, Object> existing = customerDAO.findById(id);
-        if (existing == null) {
-            return null;
-        }
-
-        long ownerId = (Long) existing.get("ownerUserId");
-        if (!scope.canAccessOwner(ownerId)) {
-            throw new SecurityException("Bạn không có quyền truy cập dữ liệu này do giới hạn phạm vi sở hữu.");
-        }
-
         Customer360DAO customer360DAO = new Customer360DAO();
-        return customer360DAO.getCustomer360(id);
+        return customer360DAO.getCustomer360(id, scope);
     }
 
     public Map<String, Object> create(long currentUserId, CustomerWriteRequest req) throws Exception {

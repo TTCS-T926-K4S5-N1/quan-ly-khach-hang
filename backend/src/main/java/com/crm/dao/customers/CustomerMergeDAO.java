@@ -378,6 +378,14 @@ public class CustomerMergeDAO {
                     attachmentsMerged = ps.executeUpdate();
                 }
 
+                // Keep signed-contract KPIs attached to the surviving customer.
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "UPDATE customer_360_contracts SET customer_id = ? WHERE customer_id = ?")) {
+                    ps.setLong(1, masterId);
+                    ps.setLong(2, duplicateId);
+                    ps.executeUpdate();
+                }
+
                 // 6. Chuyển báo giá (quotes)
                 int quotesMerged = 0;
                 String updateQuotesSql = "UPDATE quotes SET customer_id = ? WHERE customer_id = ?";

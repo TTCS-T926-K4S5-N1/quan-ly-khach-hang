@@ -99,22 +99,22 @@ async function initCustomer360() {
             if (data.kpis) {
                 const kpis = data.kpis;
                 const wonEl = document.getElementById("kpiWonAmount");
-                if (wonEl) wonEl.textContent = formatMoney(kpis.totalWonAmount || 0);
+                if (wonEl) wonEl.textContent = formatMoney(kpis.totalSignedAmount || 0);
 
                 const wonCountEl = document.getElementById("kpiWonCount");
-                if (wonCountEl) wonCountEl.textContent = `${kpis.wonOpportunitiesCount || 0} hợp đồng thành công`;
+                if (wonCountEl) wonCountEl.textContent = `${kpis.signedContractsCount || 0} hợp đồng thành công`;
 
                 const openEl = document.getElementById("kpiOpenAmount");
                 if (openEl) openEl.textContent = formatMoney(kpis.openPipelineAmount || 0);
 
                 const openCountEl = document.getElementById("kpiOpenCount");
-                if (openCountEl) openCountEl.textContent = `${kpis.openOpportunitiesCount || 0} cơ hội tiềm năng`;
+                if (openCountEl) openCountEl.textContent = `${kpis.openCount || 0} cơ hội tiềm năng`;
 
                 const winRateEl = document.getElementById("kpiWinRate");
                 if (winRateEl) winRateEl.textContent = `${kpis.winRate || 0}%`;
 
                 const totalOppsEl = document.getElementById("kpiTotalOpps");
-                if (totalOppsEl) totalOppsEl.textContent = `${kpis.totalOpportunitiesCount || 0} tổng cơ hội`;
+                if (totalOppsEl) totalOppsEl.textContent = `${kpis.totalOpportunities || 0} tổng cơ hội`;
 
                 const speedEl = document.getElementById("kpiLoadSpeed");
                 if (speedEl) speedEl.textContent = `${totalElapsedMs} ms`;
