@@ -2,10 +2,14 @@
 
 const API_BASE = "http://localhost:8080/crm";
 
-const timeline = [];
+let timeline = [];
 let currentCustomer = null;
 let customerContacts = [];
+let customerOpportunities = { all: [], open: [], closed: [] };
+let customerAttachments = [];
 let allCustomersCache = [];
+let currentOppFilter = "all";
+let currentActFilter = "all";
 
 const timelineList = document.getElementById("timelineList");
 const timelineEmpty = document.getElementById("timelineEmpty");
@@ -19,6 +23,11 @@ const modalOverlay = document.getElementById("companyModalOverlay");
 const contactModal = document.getElementById("contactModal");
 const contactModalOverlay = document.getElementById("contactModalOverlay");
 const contactForm = document.getElementById("contactForm");
+
+// Attachment Modal elements
+const attachmentModal = document.getElementById("attachmentModal");
+const attachmentModalOverlay = document.getElementById("attachmentModalOverlay");
+const attachmentForm = document.getElementById("attachmentForm");
 
 const params = new URLSearchParams(window.location.search);
 const customerId = params.get("id");
@@ -62,66 +71,139 @@ async function api(path, options = {}) {
 }
 
 /* =========================================================
-   INITIALIZATION
+   INITIALIZATION (CUSTOMER 360 COMPLETE)
 ========================================================= */
 async function initCustomer360() {
     if (!customerId) return;
 
+    const startTime = performance.now();
+
     try {
-        const data = await api(`/api/customers/${customerId}`);
+        const data = await api(`/api/customers/${customerId}/360`);
+        const totalElapsedMs = Math.round(performance.now() - startTime);
+
         if (data) {
-            currentCustomer = data;
-            writeDisplay("company360Name", data.name);
-            writeDisplay("company360Tax", data.taxCode);
-            writeDisplay("company360Industry", data.industry);
-            writeDisplay("company360Phone", data.phone);
-            writeDisplay("company360Website", data.website);
-        }
-    } catch (err) {
-        console.warn("Could not load customer info:", err);
-    }
+            // 1. COMPANY INFORMATION
+            if (data.customer) {
+                currentCustomer = data.customer;
+                writeDisplay("company360Name", data.customer.name);
+                writeDisplay("company360Tax", data.customer.taxCode);
+                writeDisplay("company360Industry", data.customer.industry);
+                writeDisplay("company360Size", data.customer.companySize || data.customer.type || "Doanh nghiệp lớn");
+                writeDisplay("company360Phone", data.customer.phone);
+                writeDisplay("company360Website", data.customer.website);
+                writeDisplay("company360Owner", data.customer.ownerName || "Chưa phân công");
+            }
 
-    // Load contacts
-    await loadContacts();
+            // 2. KPIS SUMMARY
+            if (data.kpis) {
+                const kpis = data.kpis;
+                const wonEl = document.getElementById("kpiWonAmount");
+                if (wonEl) wonEl.textContent = formatMoney(kpis.totalWonAmount || 0);
 
-    // Load activities for timeline
-    try {
-        const acts = await api(`/api/activities?customerId=${customerId}`);
-        if (Array.isArray(acts)) {
-            acts.forEach(a => {
-                timeline.push({
-                    type: (a.type || "note").toLowerCase(),
-                    text: a.description || a.subject || "",
-                    time: a.createdAt ? new Date(a.createdAt) : new Date()
+                const wonCountEl = document.getElementById("kpiWonCount");
+                if (wonCountEl) wonCountEl.textContent = `${kpis.wonOpportunitiesCount || 0} hợp đồng thành công`;
+
+                const openEl = document.getElementById("kpiOpenAmount");
+                if (openEl) openEl.textContent = formatMoney(kpis.openPipelineAmount || 0);
+
+                const openCountEl = document.getElementById("kpiOpenCount");
+                if (openCountEl) openCountEl.textContent = `${kpis.openOpportunitiesCount || 0} cơ hội tiềm năng`;
+
+                const winRateEl = document.getElementById("kpiWinRate");
+                if (winRateEl) winRateEl.textContent = `${kpis.winRate || 0}%`;
+
+                const totalOppsEl = document.getElementById("kpiTotalOpps");
+                if (totalOppsEl) totalOppsEl.textContent = `${kpis.totalOpportunitiesCount || 0} tổng cơ hội`;
+
+                const speedEl = document.getElementById("kpiLoadSpeed");
+                if (speedEl) speedEl.textContent = `${totalElapsedMs} ms`;
+
+                const speedHintEl = document.getElementById("kpiLoadHint");
+                if (speedHintEl) {
+                    speedHintEl.textContent = `DB: ${data.performance?.executionTimeMs || 0} ms (${kpis.activitiesCount || 0} hoạt động)`;
+                }
+            }
+
+            // 3. CONTACTS
+            customerContacts = Array.isArray(data.contacts) ? data.contacts : [];
+            const tabCont = document.getElementById("tabCountContacts");
+            if (tabCont) tabCont.textContent = customerContacts.length;
+            renderContacts();
+
+            // 4. OPPORTUNITIES
+            if (data.opportunities) {
+                customerOpportunities = {
+                    all: data.opportunities.all || [],
+                    open: data.opportunities.open || [],
+                    closed: data.opportunities.closed || []
+                };
+            }
+            const tabOpp = document.getElementById("tabCountOpportunities");
+            if (tabOpp) tabOpp.textContent = customerOpportunities.all.length;
+            renderOpportunities();
+
+            // 5. ATTACHMENTS
+            customerAttachments = Array.isArray(data.attachments) ? data.attachments : [];
+            const tabAtt = document.getElementById("tabCountAttachments");
+            if (tabAtt) tabAtt.textContent = customerAttachments.length;
+            renderAttachments();
+
+            // 6. 500 ACTIVITIES TIMELINE
+            timeline = [];
+            if (Array.isArray(data.activities)) {
+                data.activities.forEach(a => {
+                    timeline.push({
+                        id: a.id,
+                        type: (a.type || "note").toLowerCase(),
+                        text: a.description || a.subject || "",
+                        time: a.createdAt ? new Date(a.createdAt) : new Date(),
+                        user: a.userName || ""
+                    });
                 });
-            });
+            }
+            updateTimelineCounters();
             renderTimeline();
         }
     } catch (err) {
-        console.warn("Could not load activities:", err);
+        console.warn("Could not load customer 360 data:", err);
     }
 
-    // Load opportunities
+    // Kiểm tra xem khách hàng này có trùng lặp với công ty nào không
+    checkCustomerDuplicates();
+}
+
+/* =========================================================
+   DUPLICATE DETECTION WARNING ON 360 PAGE
+========================================================= */
+async function checkCustomerDuplicates() {
+    if (!currentCustomer) return;
     try {
-        const opps = await api(`/api/opportunities?customerId=${customerId}`);
-        const panel = document.getElementById("opportunitiesPanel");
-        if (panel && Array.isArray(opps)) {
-            panel.innerHTML = opps.length ? "" : '<p style="color:#64748b;padding:12px;">Chưa có cơ hội bán hàng nào.</p>';
-            opps.forEach(o => {
-                const item = document.createElement("div");
-                item.style.padding = "10px";
-                item.style.borderBottom = "1px solid var(--crm-border)";
-                item.innerHTML = `
-                    <strong>${escapeHtml(o.name)}</strong>
-                    <div style="font-size:12px;color:#64748b;margin-top:4px;">
-                        ${formatMoney(o.amount || 0)} · ${escapeHtml(o.stageName || "Giai đoạn")} · ${o.probability || 0}%
-                    </div>
-                `;
-                panel.appendChild(item);
-            });
+        const dupes = await api(`/api/customers/check-duplicate?excludeId=${currentCustomer.id}&name=${encodeURIComponent(currentCustomer.name || "")}&taxCode=${encodeURIComponent(currentCustomer.taxCode || "")}&website=${encodeURIComponent(currentCustomer.website || "")}`);
+        const warnBox = document.getElementById("duplicateWarning360");
+        const titleEl = document.getElementById("dupWarningTitle");
+        const descEl = document.getElementById("dupWarningDesc");
+        const btnMerge = document.getElementById("btnOpenMergeFrom360");
+
+        if (Array.isArray(dupes) && dupes.length > 0) {
+            const first = dupes[0];
+            if (warnBox) warnBox.style.display = "block";
+            if (titleEl) {
+                titleEl.textContent = `⚠️ Cảnh báo trùng lặp: Phát hiện công ty '${first.name}' (Mã: #${first.id}) có thông tin trùng!`;
+            }
+            if (descEl) {
+                descEl.textContent = `Lý do nghi ngờ: ${first.matchReasons?.join(", ") || "Trùng thông tin"}. Người phụ trách: ${first.ownerName || "Chưa rõ"}. Tránh tình trạng hai nhân viên cùng chào một công ty!`;
+            }
+            if (btnMerge) {
+                btnMerge.onclick = () => {
+                    window.location.href = `customers?mergeMaster=${currentCustomer.id}&mergeDuplicate=${first.id}`;
+                };
+            }
+        } else {
+            if (warnBox) warnBox.style.display = "none";
         }
-    } catch (err) {
-        console.warn("Could not load opportunities:", err);
+    } catch (e) {
+        console.warn("Could not check duplicate for 360 page:", e);
     }
 }
 
@@ -133,11 +215,11 @@ async function loadContacts() {
     try {
         const data = await api(`/api/contacts?customerId=${customerId}`);
         customerContacts = Array.isArray(data) ? data : [];
+        const tabCont = document.getElementById("tabCountContacts");
+        if (tabCont) tabCont.textContent = customerContacts.length;
         renderContacts();
     } catch (err) {
         console.warn("Could not load contacts:", err);
-        customerContacts = [];
-        renderContacts();
     }
 }
 
@@ -270,7 +352,6 @@ async function openContactModal(contactId = null) {
             const isPrimaryCb = document.getElementById("contactIsPrimary");
             if (isPrimaryCb) isPrimaryCb.checked = Boolean(contact.isPrimary);
 
-            // Nạp danh sách khách hàng để hỗ trợ chuyển công ty
             if (transferSec) {
                 transferSec.style.display = "block";
                 await loadCustomersDropdown(contact.customerId);
@@ -334,7 +415,6 @@ async function loadCustomersDropdown(selectedId) {
     });
 }
 
-// Bắt sự kiện form liên hệ
 contactForm?.addEventListener("submit", async event => {
     event.preventDefault();
 
@@ -395,7 +475,6 @@ contactForm?.addEventListener("submit", async event => {
     }
 });
 
-// Event delegation cho Sửa / Xóa người liên hệ
 document.getElementById("contactsList")?.addEventListener("click", async event => {
     const editBtn = event.target.closest("[data-edit-contact]");
     if (editBtn) {
@@ -426,7 +505,206 @@ document.getElementById("cancelContactEdit")?.addEventListener("click", closeCon
 contactModalOverlay?.addEventListener("click", closeContactModal);
 
 /* =========================================================
-   TABS & ACTIVITIES
+   OPPORTUNITIES MANAGEMENT (OPEN & CLOSED)
+========================================================= */
+function renderOpportunities() {
+    const listEl = document.getElementById("opportunitiesList");
+    const emptyEl = document.getElementById("opportunitiesEmpty");
+    if (!listEl) return;
+
+    listEl.innerHTML = "";
+    let items = [];
+    if (currentOppFilter === "open") {
+        items = customerOpportunities.open;
+    } else if (currentOppFilter === "closed") {
+        items = customerOpportunities.closed;
+    } else {
+        items = customerOpportunities.all;
+    }
+
+    // Cập nhật số đếm trên nút lọc
+    const cAll = document.getElementById("countOppAll");
+    const cOpen = document.getElementById("countOppOpen");
+    const cClosed = document.getElementById("countOppClosed");
+    if (cAll) cAll.textContent = customerOpportunities.all.length;
+    if (cOpen) cOpen.textContent = customerOpportunities.open.length;
+    if (cClosed) cClosed.textContent = customerOpportunities.closed.length;
+
+    if (!items || items.length === 0) {
+        if (emptyEl) emptyEl.style.display = "block";
+        return;
+    }
+
+    if (emptyEl) emptyEl.style.display = "none";
+
+    items.forEach(opp => {
+        const card = document.createElement("div");
+        const category = (opp.stageCategory || "").toUpperCase();
+        let statusCls = "opp-open";
+        let badgeCls = "stage-open";
+        if (category === "WON") {
+            statusCls = "opp-won";
+            badgeCls = "stage-won";
+        } else if (category === "LOST") {
+            statusCls = "opp-lost";
+            badgeCls = "stage-lost";
+        }
+
+        card.className = `opp-card ${statusCls}`;
+        card.innerHTML = `
+            <div class="opp-card-head">
+                <span class="opp-title">${escapeHtml(opp.name)}</span>
+                <span class="opp-amount">${formatMoney(opp.amount || 0)}</span>
+            </div>
+            <div class="opp-meta">
+                <span class="opp-stage-badge ${badgeCls}">${escapeHtml(opp.stageName || "Giai đoạn")}</span>
+                <span>· Xác suất: <strong>${opp.probability || 0}%</strong></span>
+                ${opp.expectedCloseDate ? `<span>· Dự kiến chốt: ${opp.expectedCloseDate}</span>` : ""}
+                ${opp.actualCloseDate ? `<span>· Đã đóng: ${opp.actualCloseDate}</span>` : ""}
+            </div>
+            ${opp.lostReason ? `
+                <div class="opp-lost-reason">
+                    <strong>Lý do thất bại:</strong> ${escapeHtml(opp.lostReason)}
+                </div>
+            ` : ""}
+        `;
+        listEl.appendChild(card);
+    });
+}
+
+document.querySelectorAll("[data-opp-filter]").forEach(btn => {
+    btn.addEventListener("click", () => {
+        document.querySelectorAll("[data-opp-filter]").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentOppFilter = btn.dataset.oppFilter;
+        renderOpportunities();
+    });
+});
+
+/* =========================================================
+   ATTACHMENTS MANAGEMENT
+========================================================= */
+function renderAttachments() {
+    const listEl = document.getElementById("attachmentsList");
+    const emptyEl = document.getElementById("attachmentsEmpty");
+    if (!listEl) return;
+
+    listEl.innerHTML = "";
+    if (!customerAttachments || customerAttachments.length === 0) {
+        if (emptyEl) emptyEl.style.display = "block";
+        return;
+    }
+
+    if (emptyEl) emptyEl.style.display = "none";
+
+    customerAttachments.forEach(att => {
+        const card = document.createElement("div");
+        card.className = "attachment-card";
+
+        const type = (att.fileType || "file").toLowerCase();
+        let iconClass = "file";
+        let iconText = "FILE";
+        if (type.includes("pdf")) { iconClass = "pdf"; iconText = "PDF"; }
+        else if (type.includes("xls") || type.includes("csv")) { iconClass = "xlsx"; iconText = "XLS"; }
+        else if (type.includes("doc")) { iconClass = "docx"; iconText = "DOC"; }
+        else if (type.includes("png") || type.includes("jpg") || type.includes("image")) { iconClass = "png"; iconText = "IMG"; }
+
+        card.innerHTML = `
+            <div class="attachment-info">
+                <div class="file-icon ${iconClass}">${iconText}</div>
+                <div style="min-width:0;">
+                    <div class="file-name" title="${escapeHtml(att.fileName)}">${escapeHtml(att.fileName)}</div>
+                    <div class="file-meta">
+                        ${att.fileSize ? `<span>${escapeHtml(att.fileSize)}</span> · ` : ""}
+                        ${att.createdAt ? `<span>${escapeHtml(att.createdAt)}</span>` : ""}
+                        ${att.uploadedByName ? ` · <span>Bởi: ${escapeHtml(att.uploadedByName)}</span>` : ""}
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+                ${att.filePath ? `
+                    <a href="${API_BASE}${escapeHtml(att.filePath)}" target="_blank" class="contact-action-btn" style="text-decoration:none;">
+                        Tải
+                    </a>
+                ` : ""}
+                <button type="button" class="contact-action-btn btn-delete" data-delete-attachment="${att.id}">
+                    🗑
+                </button>
+            </div>
+        `;
+        listEl.appendChild(card);
+    });
+}
+
+function openAttachmentModal() {
+    attachmentForm?.reset();
+    attachmentModal?.classList.add("open");
+    attachmentModalOverlay?.classList.add("open");
+}
+
+function closeAttachmentModal() {
+    attachmentModal?.classList.remove("open");
+    attachmentModalOverlay?.classList.remove("open");
+}
+
+document.getElementById("addAttachmentBtn")?.addEventListener("click", openAttachmentModal);
+document.getElementById("closeAttachmentModal")?.addEventListener("click", closeAttachmentModal);
+document.getElementById("cancelAttachment")?.addEventListener("click", closeAttachmentModal);
+attachmentModalOverlay?.addEventListener("click", closeAttachmentModal);
+
+attachmentForm?.addEventListener("submit", async event => {
+    event.preventDefault();
+    const fileName = value("attFileName");
+    const filePath = value("attFilePath");
+    const fileType = value("attFileType");
+    const fileSize = value("attFileSize") || "1.2 MB";
+
+    if (!fileName) {
+        alert("Vui lòng nhập tên tệp đính kèm.");
+        return;
+    }
+
+    try {
+        const created = await api("/api/attachments", {
+            method: "POST",
+            body: JSON.stringify({
+                customerId: Number(customerId),
+                fileName,
+                filePath: filePath || `/uploads/${fileName}`,
+                fileType,
+                fileSize
+            })
+        });
+
+        customerAttachments.unshift(created);
+        const tabAtt = document.getElementById("tabCountAttachments");
+        if (tabAtt) tabAtt.textContent = customerAttachments.length;
+        renderAttachments();
+        closeAttachmentModal();
+    } catch (err) {
+        alert("Lỗi khi thêm tệp đính kèm: " + err.message);
+    }
+});
+
+document.getElementById("attachmentsList")?.addEventListener("click", async event => {
+    const delBtn = event.target.closest("[data-delete-attachment]");
+    if (delBtn) {
+        const attId = delBtn.dataset.deleteAttachment;
+        if (!confirm("Bạn có chắc chắn muốn xóa tệp đính kèm này?")) return;
+        try {
+            await api(`/api/attachments/${attId}`, { method: "DELETE" });
+            customerAttachments = customerAttachments.filter(x => Number(x.id) !== Number(attId));
+            const tabAtt = document.getElementById("tabCountAttachments");
+            if (tabAtt) tabAtt.textContent = customerAttachments.length;
+            renderAttachments();
+        } catch (err) {
+            alert("Lỗi khi xóa tệp: " + err.message);
+        }
+    }
+});
+
+/* =========================================================
+   RIGHT COLUMN TABS (CONTACTS, OPPORTUNITIES, ATTACHMENTS)
 ========================================================= */
 document.querySelectorAll(".right-tab").forEach(tab => {
     tab.addEventListener("click", () => {
@@ -436,8 +714,71 @@ document.querySelectorAll(".right-tab").forEach(tab => {
         const target = tab.dataset.tab;
         const cPanel = document.getElementById("contactsPanel");
         const oPanel = document.getElementById("opportunitiesPanel");
+        const aPanel = document.getElementById("attachmentsPanel");
+
         if (cPanel) cPanel.hidden = target !== "contacts";
         if (oPanel) oPanel.hidden = target !== "opportunities";
+        if (aPanel) aPanel.hidden = target !== "attachments";
+    });
+});
+
+/* =========================================================
+   TIMELINE & ACTIVITY FILTERING
+========================================================= */
+function updateTimelineCounters() {
+    const cAll = document.getElementById("countActAll");
+    const cCall = document.getElementById("countActCall");
+    const cEmail = document.getElementById("countActEmail");
+    const cMeeting = document.getElementById("countActMeeting");
+    const cNote = document.getElementById("countActNote");
+    const badge = document.getElementById("timelineCounterBadge");
+
+    const total = timeline.length;
+    const calls = timeline.filter(a => a.type === "call").length;
+    const emails = timeline.filter(a => a.type === "email").length;
+    const meetings = timeline.filter(a => a.type === "meeting").length;
+    const notes = timeline.filter(a => a.type === "note").length;
+
+    if (cAll) cAll.textContent = total;
+    if (cCall) cCall.textContent = calls;
+    if (cEmail) cEmail.textContent = emails;
+    if (cMeeting) cMeeting.textContent = meetings;
+    if (cNote) cNote.textContent = notes;
+    if (badge) badge.textContent = `${total} hoạt động`;
+}
+
+function renderTimeline() {
+    timelineList.querySelectorAll(".timeline-item").forEach(item => item.remove());
+
+    const filtered = currentActFilter === "all"
+        ? timeline
+        : timeline.filter(a => a.type === currentActFilter);
+
+    timelineEmpty.style.display = filtered.length ? "none" : "block";
+
+    for (const item of filtered) {
+        const article = document.createElement("article");
+        article.className = "timeline-item";
+        article.innerHTML = `
+            <div class="timeline-item-head">
+                <span class="timeline-type">${typeLabel(item.type)}</span>
+                <time class="timeline-time">
+                    ${item.time.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} - ${item.time.toLocaleDateString("vi-VN")}
+                </time>
+            </div>
+            <div class="timeline-text">${escapeHtml(item.text)}</div>
+            ${item.user ? `<div style="font-size:11px;color:#94a3b8;margin-top:3px;">Người thực hiện: ${escapeHtml(item.user)}</div>` : ""}
+        `;
+        timelineList.appendChild(article);
+    }
+}
+
+document.querySelectorAll("[data-act-filter]").forEach(btn => {
+    btn.addEventListener("click", () => {
+        document.querySelectorAll("[data-act-filter]").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentActFilter = btn.dataset.actFilter;
+        renderTimeline();
     });
 });
 
@@ -470,10 +811,12 @@ composer?.addEventListener("submit", async event => {
     timeline.unshift({
         type: type,
         text,
-        time: new Date()
+        time: new Date(),
+        user: "Tôi"
     });
 
     noteInput.value = "";
+    updateTimelineCounters();
     renderTimeline();
 });
 
@@ -485,6 +828,9 @@ document.querySelectorAll("[data-quick]").forEach(button => {
     });
 });
 
+/* =========================================================
+   COMPANY MODAL EDIT
+========================================================= */
 document.getElementById("editCompanyButton")?.addEventListener("click", openCompanyModal);
 document.getElementById("closeCompanyModal")?.addEventListener("click", closeCompanyModal);
 document.getElementById("cancelCompanyEdit")?.addEventListener("click", closeCompanyModal);
@@ -534,28 +880,9 @@ document.addEventListener("keydown", event => {
     if (event.key === "Escape") {
         closeCompanyModal();
         closeContactModal();
+        closeAttachmentModal();
     }
 });
-
-function renderTimeline() {
-    timelineList.querySelectorAll(".timeline-item").forEach(item => item.remove());
-    timelineEmpty.style.display = timeline.length ? "none" : "block";
-
-    for (const item of timeline) {
-        const article = document.createElement("article");
-        article.className = "timeline-item";
-        article.innerHTML = `
-            <div class="timeline-item-head">
-                <span class="timeline-type">${typeLabel(item.type)}</span>
-                <time class="timeline-time">
-                    ${item.time.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
-                </time>
-            </div>
-            <div class="timeline-text">${escapeHtml(item.text)}</div>
-        `;
-        timelineList.appendChild(article);
-    }
-}
 
 function openCompanyModal() {
     setValue("edit360Name", displayValue("company360Name"));
@@ -618,5 +945,5 @@ function formatMoney(val) {
     }).format(Number(val) || 0);
 }
 
-// Start
+// Khởi chạy nạp dữ liệu 360
 initCustomer360();

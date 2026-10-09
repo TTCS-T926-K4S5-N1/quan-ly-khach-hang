@@ -199,6 +199,60 @@
 
     </section>
 
+    <!-- CUSTOMER 360 KPIS SUMMARY BANNER -->
+    <section class="customer360-kpis">
+        <div class="kpi-card kpi-won">
+            <div class="kpi-icon">💰</div>
+            <div class="kpi-body">
+                <span class="kpi-label">Tổng giá trị đã ký</span>
+                <span id="kpiWonAmount" class="kpi-value">0 ₫</span>
+                <span id="kpiWonCount" class="kpi-hint">0 hợp đồng thành công</span>
+            </div>
+        </div>
+
+        <div class="kpi-card kpi-open">
+            <div class="kpi-icon">🎯</div>
+            <div class="kpi-body">
+                <span class="kpi-label">Giá trị cơ hội đang mở</span>
+                <span id="kpiOpenAmount" class="kpi-value">0 ₫</span>
+                <span id="kpiOpenCount" class="kpi-hint">0 cơ hội tiềm năng</span>
+            </div>
+        </div>
+
+        <div class="kpi-card kpi-rate">
+            <div class="kpi-icon">📈</div>
+            <div class="kpi-body">
+                <span class="kpi-label">Tỷ lệ chốt hợp đồng</span>
+                <span id="kpiWinRate" class="kpi-value">0%</span>
+                <span id="kpiTotalOpps" class="kpi-hint">0 tổng cơ hội</span>
+            </div>
+        </div>
+
+        <div class="kpi-card kpi-speed">
+            <div class="kpi-icon">⚡</div>
+            <div class="kpi-body">
+                <span class="kpi-label">Tốc độ tải 360</span>
+                <span id="kpiLoadSpeed" class="kpi-value">— ms</span>
+                <span id="kpiLoadHint" class="kpi-hint">Tải xong dưới 1,5 giây với 500 hoạt động</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- DUPLICATE WARNING BANNER (NẾU CÓ TRÙNG LẶP) -->
+    <div id="duplicateWarning360" style="display:none; margin-bottom: 18px; padding: 14px 18px; border-radius: 10px; background: #fffbeb; border: 1.5px solid #f59e0b; color: #92400e; box-shadow: 0 2px 6px rgba(245,158,11,0.1);">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:22px;">⚠️</span>
+                <div>
+                    <strong style="font-size:14px; color:#b45309;" id="dupWarningTitle">Cảnh báo khách hàng trùng lặp tiềm năng</strong>
+                    <div style="font-size:12.5px; margin-top:2px;" id="dupWarningDesc">Phát hiện công ty có thông tin gần giống hoặc trùng MST/Website. Hai nhân viên không nên cùng chào một công ty!</div>
+                </div>
+            </div>
+            <button id="btnOpenMergeFrom360" type="button" class="crm-btn crm-btn-primary" style="background:#d97706; border-color:#d97706; font-size:13px; padding:7px 14px;">
+                🔍 So sánh cạnh nhau & Gộp
+            </button>
+        </div>
+    </div>
 
     <section class="customer360-grid">
 
@@ -241,6 +295,11 @@
                 </div>
 
                 <div>
+                    <dt>Quy mô / Phân khúc</dt>
+                    <dd id="company360Size">—</dd>
+                </div>
+
+                <div>
                     <dt>Số điện thoại</dt>
                     <dd id="company360Phone">—</dd>
                 </div>
@@ -248,6 +307,11 @@
                 <div>
                     <dt>Website</dt>
                     <dd id="company360Website">—</dd>
+                </div>
+
+                <div>
+                    <dt>Người phụ trách</dt>
+                    <dd id="company360Owner">—</dd>
                 </div>
 
             </dl>
@@ -264,9 +328,17 @@
                 <h2>
                     Activity Timeline
                 </h2>
+                <span id="timelineCounterBadge" style="font-size:12px; color:var(--crm-muted); font-weight:600;">500 hoạt động</span>
 
             </div>
 
+            <div class="activity-filter-bar">
+                <button type="button" class="activity-filter-btn active" data-act-filter="all">Tất cả (<span id="countActAll">0</span>)</button>
+                <button type="button" class="activity-filter-btn" data-act-filter="call">📞 Cuộc gọi (<span id="countActCall">0</span>)</button>
+                <button type="button" class="activity-filter-btn" data-act-filter="email">✉️ Email (<span id="countActEmail">0</span>)</button>
+                <button type="button" class="activity-filter-btn" data-act-filter="meeting">🤝 Cuộc gặp (<span id="countActMeeting">0</span>)</button>
+                <button type="button" class="activity-filter-btn" data-act-filter="note">📝 Ghi chú (<span id="countActNote">0</span>)</button>
+            </div>
 
             <form
                 id="activityComposer"
@@ -343,7 +415,7 @@
                         class="right-tab active"
                         data-tab="contacts"
                     >
-                        Người liên hệ
+                        Người liên hệ (<span id="tabCountContacts">0</span>)
                     </button>
 
                     <button
@@ -351,12 +423,21 @@
                         class="right-tab"
                         data-tab="opportunities"
                     >
-                        Cơ hội
+                        Cơ hội (<span id="tabCountOpportunities">0</span>)
+                    </button>
+
+                    <button
+                        type="button"
+                        class="right-tab"
+                        data-tab="attachments"
+                    >
+                        Tệp đính kèm (<span id="tabCountAttachments">0</span>)
                     </button>
 
                 </div>
 
 
+                <!-- CONTACTS TAB -->
                 <div
                     id="contactsPanel"
                     class="right-content"
@@ -380,21 +461,57 @@
                 </div>
 
 
+                <!-- OPPORTUNITIES TAB -->
                 <div
                     id="opportunitiesPanel"
                     class="right-content"
                     hidden
                 >
 
-                    <div class="empty-small">
-                        Chưa có cơ hội.
+                    <div class="opp-filter-tabs">
+                        <button type="button" class="opp-filter-btn active" data-opp-filter="all">Tất cả (<span id="countOppAll">0</span>)</button>
+                        <button type="button" class="opp-filter-btn" data-opp-filter="open">Đang mở (<span id="countOppOpen">0</span>)</button>
+                        <button type="button" class="opp-filter-btn" data-opp-filter="closed">Đã đóng (<span id="countOppClosed">0</span>)</button>
+                    </div>
+
+                    <div id="opportunitiesList" class="opportunities-list"></div>
+
+                    <div id="opportunitiesEmpty" class="empty-small" style="display:none;">
+                        Chưa có cơ hội bán hàng nào.
                     </div>
 
                     <button
+                        id="addOpportunityBtn"
                         class="crm-btn crm-btn-secondary full-button"
                         type="button"
+                        style="margin-top: 10px;"
                     >
                         + Thêm cơ hội
+                    </button>
+
+                </div>
+
+
+                <!-- ATTACHMENTS TAB -->
+                <div
+                    id="attachmentsPanel"
+                    class="right-content"
+                    hidden
+                >
+
+                    <div id="attachmentsList" class="attachments-list"></div>
+
+                    <div id="attachmentsEmpty" class="empty-small" style="display:none;">
+                        Chưa có tệp đính kèm nào.
+                    </div>
+
+                    <button
+                        id="addAttachmentBtn"
+                        class="crm-btn crm-btn-secondary full-button"
+                        type="button"
+                        style="margin-top: 10px;"
+                    >
+                        + Thêm tệp đính kèm
                     </button>
 
                 </div>
@@ -656,6 +773,49 @@
 
     </form>
 
+</section>
+
+
+<!-- ATTACHMENT MODAL -->
+<div id="attachmentModalOverlay" class="modal-overlay"></div>
+<section id="attachmentModal" class="company-modal crm-card" style="width: min(480px, calc(100% - 32px));">
+    <header class="modal-head">
+        <strong>Thêm tệp đính kèm</strong>
+        <button id="closeAttachmentModal" type="button">
+            <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+    </header>
+    <form id="attachmentForm" style="padding: 16px;">
+        <label>
+            Tên tệp / Tài liệu <span style="color:var(--crm-danger,#ef4444)">*</span>
+            <input id="attFileName" class="crm-input" type="text" required placeholder="Ví dụ: Hop_dong_nguyen_tac_2026.pdf">
+        </label>
+        <label style="margin-top:10px;">
+            Đường dẫn tệp (URL / File path)
+            <input id="attFilePath" class="crm-input" type="text" placeholder="/uploads/Hop_dong_nguyen_tac_2026.pdf">
+        </label>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:10px;">
+            <label>
+                Loại định dạng
+                <select id="attFileType" class="crm-input">
+                    <option value="pdf">PDF (Tài liệu)</option>
+                    <option value="xlsx">Excel (.xlsx, .csv)</option>
+                    <option value="docx">Word (.docx, .doc)</option>
+                    <option value="png">Ảnh PNG</option>
+                    <option value="jpg">Ảnh JPG</option>
+                    <option value="other">Định dạng khác</option>
+                </select>
+            </label>
+            <label>
+                Dung lượng tệp
+                <input id="attFileSize" class="crm-input" type="text" placeholder="2.4 MB">
+            </label>
+        </div>
+        <footer class="modal-footer" style="margin-top:18px;">
+            <button id="cancelAttachment" type="button" class="crm-btn crm-btn-secondary">Hủy</button>
+            <button type="submit" class="crm-btn crm-btn-primary">Lưu tệp đính kèm</button>
+        </footer>
+    </form>
 </section>
 
 

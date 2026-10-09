@@ -720,4 +720,333 @@
     color: #dc2626;
     border-color: #fca5a5;
     background: #fef2f2;
-}
+}
+
+/* =========================================================
+   CUSTOMER 360 KPIS BANNER
+========================================================= */
+.customer360-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.kpi-card {
+    background: #fff;
+    border: 1px solid var(--crm-border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+.kpi-icon {
+    font-size: 24px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
+.kpi-won .kpi-icon {
+    background: #ecfdf5;
+}
+
+.kpi-open .kpi-icon {
+    background: #eff6ff;
+}
+
+.kpi-rate .kpi-icon {
+    background: #fdf4ff;
+}
+
+.kpi-speed .kpi-icon {
+    background: #fefce8;
+}
+
+.kpi-body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.kpi-label {
+    font-size: 11.5px;
+    color: var(--crm-muted);
+    font-weight: 550;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 2px;
+}
+
+.kpi-value {
+    font-size: 18px;
+    font-weight: 750;
+    color: var(--crm-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.kpi-won .kpi-value {
+    color: #059669;
+}
+
+.kpi-open .kpi-value {
+    color: #2563eb;
+}
+
+.kpi-hint {
+    font-size: 11.5px;
+    color: var(--crm-muted);
+    margin-top: 2px;
+}
+
+/* =========================================================
+   OPPORTUNITIES (OPEN & CLOSED) STYLES
+========================================================= */
+.opp-filter-tabs {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 12px;
+    background: #f1f5f9;
+    padding: 3px;
+    border-radius: 7px;
+}
+
+.opp-filter-btn {
+    flex: 1;
+    border: 0;
+    background: transparent;
+    padding: 5px 8px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #64748b;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.opp-filter-btn.active {
+    background: #fff;
+    color: var(--crm-primary);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.opp-card {
+    background: #fff;
+    border: 1px solid var(--crm-border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    transition: all 0.15s ease;
+}
+
+.opp-card:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.opp-card.opp-won {
+    border-left: 3.5px solid #10b981;
+}
+
+.opp-card.opp-lost {
+    border-left: 3.5px solid #ef4444;
+}
+
+.opp-card.opp-open {
+    border-left: 3.5px solid #3b82f6;
+}
+
+.opp-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.opp-title {
+    font-size: 13px;
+    font-weight: 650;
+    color: var(--crm-text);
+}
+
+.opp-amount {
+    font-size: 13.5px;
+    font-weight: 750;
+    color: #0f172a;
+    white-space: nowrap;
+}
+
+.opp-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    font-size: 11.5px;
+    color: #64748b;
+    flex-wrap: wrap;
+}
+
+.opp-stage-badge {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.stage-open {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+.stage-won {
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.stage-lost {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+.opp-lost-reason {
+    font-size: 11px;
+    color: #b91c1c;
+    background: #fff1f2;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-top: 6px;
+}
+
+/* =========================================================
+   ATTACHMENTS STYLES
+========================================================= */
+.attachments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.attachment-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    background: #fff;
+    border: 1px solid var(--crm-border);
+    border-radius: 8px;
+    transition: all 0.15s ease;
+}
+
+.attachment-card:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+}
+
+.attachment-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.file-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 750;
+    flex-shrink: 0;
+    text-transform: uppercase;
+}
+
+.file-icon.pdf {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.file-icon.xlsx {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.file-icon.docx {
+    background: #e0e7ff;
+    color: #4f46e5;
+}
+
+.file-icon.png, .file-icon.jpg {
+    background: #f3e8ff;
+    color: #9333ea;
+}
+
+.file-icon.file {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.file-name {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--crm-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.file-meta {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+.activity-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.activity-filter-btn {
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid var(--crm-border);
+    background: #fff;
+    border-radius: 15px;
+    cursor: pointer;
+    color: #64748b;
+    transition: all 0.15s ease;
+}
+
+.activity-filter-btn:hover {
+    background: #f8fafc;
+    color: var(--crm-text);
+}
+
+.activity-filter-btn.active {
+    background: var(--crm-primary);
+    color: #fff;
+    border-color: var(--crm-primary);
+}
+

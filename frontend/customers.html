@@ -183,13 +183,24 @@
             </p>
         </div>
 
-        <button
-            id="openCustomerDrawer"
-            class="crm-btn crm-btn-primary"
-            type="button"
-        >
-            + Thêm khách hàng
-        </button>
+        <div style="display:flex; gap:10px; align-items:center;">
+            <button
+                id="btnDuplicateAlerts"
+                class="crm-btn crm-btn-secondary"
+                type="button"
+                style="display:none; border-color:#f59e0b; color:#b45309; background:#fffbeb; font-weight:600;"
+            >
+                ⚠️ Khách hàng trùng (<span id="dupCountBadge">0</span>)
+            </button>
+
+            <button
+                id="openCustomerDrawer"
+                class="crm-btn crm-btn-primary"
+                type="button"
+            >
+                + Thêm khách hàng
+            </button>
+        </div>
 
     </section>
 
@@ -339,6 +350,19 @@
 
     </header>
 
+    <!-- CẢNH BÁO TRÙNG LẶP REALTIME KHI NHẬP FORM -->
+    <div id="drawerDuplicateAlert" style="display:none; margin:16px 20px 0; padding:12px 14px; border-radius:8px; background:#fffbeb; border:1.5px solid #f59e0b; font-size:12.5px; color:#92400e; box-shadow:0 1px 3px rgba(245,158,11,0.1);">
+        <div style="display:flex; align-items:flex-start; gap:8px;">
+            <span style="font-size:18px;">⚠️</span>
+            <div style="flex:1;">
+                <strong id="drawerDupTitle" style="color:#b45309; font-size:13px;">Phát hiện khách hàng nghi vấn trùng lặp!</strong>
+                <div id="drawerDupDesc" style="margin-top:3px; line-height:1.4;"></div>
+                <button type="button" id="btnDrawerOpenCompare" style="margin-top:8px; background:#d97706; color:#fff; border:0; padding:5px 12px; border-radius:5px; font-size:11.5px; font-weight:650; cursor:pointer;">
+                    🔍 So sánh cạnh nhau & Gộp
+                </button>
+            </div>
+        </div>
+    </div>
 
     <form
         id="customerForm"
@@ -697,11 +721,179 @@
         <span>Lịch</span>
     </a>
 
-</nav>
+<!-- ================= MODAL: DANH SÁCH KHÁCH HÀNG TRÙNG LẶP ================= -->
+<div id="duplicatesModalOverlay" class="duplicates-modal-overlay"></div>
+<section id="duplicatesModal" class="duplicates-modal">
+    <header class="dup-modal-head">
+        <div>
+            <strong style="font-size:16px; color:var(--crm-text);">⚠️ Cảnh báo khách hàng trùng lặp tiềm năng</strong>
+            <div style="font-size:12px; color:var(--crm-muted); margin-top:2px;">
+                Phát hiện theo mã số thuế, tên công ty gần giống và website để tránh nhân viên chào trùng.
+            </div>
+        </div>
+        <button id="closeDuplicatesModal" type="button" class="crm-icon-btn">
+            <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+    </header>
+
+    <div id="duplicatesListContainer" class="dup-modal-body"></div>
+
+    <div id="duplicatesEmptyState" class="customer-mobile-empty" style="display:none; margin:20px;">
+        <span style="font-size:13px; color:#10b981; font-weight:600;">✅ Hiện tại không phát hiện khách hàng nào bị trùng lặp.</span>
+    </div>
+</section>
 
 
+<!-- ================= MODAL: SO SÁNH CẠNH NHAU & GỘP DỮ LIỆU ================= -->
+<div id="comparisonModalOverlay" class="duplicates-modal-overlay"></div>
+<section id="comparisonModal" class="duplicates-modal comparison-modal">
+    <header class="dup-modal-head">
+        <div>
+            <strong style="font-size:16.5px; color:var(--crm-text);">🔍 So sánh khách hàng cạnh nhau & Gộp dữ liệu</strong>
+            <div style="font-size:12px; color:var(--crm-muted); margin-top:2px;">
+                Kiểm tra thông tin chi tiết trước khi gộp. Dữ liệu con của cả 2 sẽ được bảo lưu trọn vẹn.
+            </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <button id="btnSwapSides" type="button" class="crm-btn crm-btn-secondary" style="font-size:12px; padding:6px 12px;">
+                ⇄ Đổi bản ghi chính
+            </button>
+            <button id="closeComparisonModal" type="button" class="crm-icon-btn">
+                <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+            </button>
+        </div>
+    </header>
 
+    <div class="dup-modal-body">
+        <!-- Điểm trùng khớp -->
+        <div id="comparisonMatchPoints" style="background:#fffbeb; border:1px solid #fcd34d; border-radius:8px; padding:10px 14px; font-size:12.5px; color:#92400e;">
+            <strong>Lý do phát hiện trùng:</strong> <span id="matchPointsText"></span>
+        </div>
 
+        <!-- Bảng 2 cột so sánh cạnh nhau -->
+        <div class="comparison-grid">
+            <!-- CỘT TRÁI: MASTER (GIỮ LẠI) -->
+            <div class="side-column master" id="colMaster">
+                <div class="side-header-badge">
+                    <span class="side-tag master-tag">👑 Bản ghi chính (Giữ lại)</span>
+                    <span id="masterCustId" style="font-size:12px; font-weight:700; color:#15803d;">#12</span>
+                </div>
+                <div class="side-field">
+                    <span class="side-field-label">Tên công ty</span>
+                    <span class="side-field-value" id="masterName">—</span>
+                </div>
+                <div class="side-field">
+                    <span class="side-field-label">Mã số thuế</span>
+                    <span class="side-field-value" id="masterTax">—</span>
+                </div>
+                <div class="side-field">
+                    <span class="side-field-label">Website</span>
+                    <span class="side-field-value" id="masterWeb">—</span>
+                </div>
+                <div class="side-field">
+                    <span class="side-field-label">Số điện thoại / Email</span>
+                    <span class="side-field-value" id="masterContact">—</span>
+                </div>
+                <div class="side-field">
+                    <span class="side-field-label">Địa chỉ</span>
+                    <span class="side-field-value" id="masterAddress">—</span>
+                </div>
+                <div class="side-field">
+                    <span class="side-field-label">Người sở hữu / Nhân viên</span>
+                    <span class="side-field-value" id="masterOwner" style="color:#2563eb;">—</span>
+                </div>
+
+                <div class="side-metrics-box">
+                    <div class="side-metric-item">
+                        <strong id="masterCntContacts">0</strong>
+                        <span>Người liên hệ</span>
+                    </div>
+                    <div class="side-metric-item">
+                        <strong id="masterCntOpps">0</strong>
+                        <span>Cơ hội</span>
+                    </div>
+                    <div class="side-metric-item">
+                        <strong id="masterCntActs">0</strong>
+                        <span>Hoạt động</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CỘT PHẢI: DUPLICATE (SẼ GỘP VÀO) -->
+            <div class="side-column duplicate" id="colDuplicate">
+                <div class="side-header-badge">
+                    <span class="side-tag dup-tag">⚠️ Bản ghi trùng (Sẽ gộp vào)</span>
+                    <span id="dupCustId" style="font-size:12px; font-weight:700; color:#b45309;">#13</span>
+                </div>
+                <div class="side-field">
+                    <span class="side-field-label">Tên công ty</span>
+                    <span class="side-field-value" id="dupName">—</span>
+                </div>
+                <div class="side-field">
+                    <span class="side-field-label">Mã số thuế</span>
+                    <span class="side-field-value" id="dupTax">—</span>
+                </div>
+                <div class="side-field">
+                    <span class="side-field-label">Website</span>
+                    <span class="side-field-value" id="dupWeb">—</span>
+                </div>
+                <div class="side-field">
+                    <span class="side-field-label">Số điện thoại / Email</span>
+                    <span class="side-field-value" id="dupContact">—</span>
+                </div>
+                <div class="side-field">
+                    <span class="side-field-label">Địa chỉ</span>
+                    <span class="side-field-value" id="dupAddress">—</span>
+                </div>
+                <div class="side-field">
+                    <span class="side-field-label">Người sở hữu / Nhân viên</span>
+                    <span class="side-field-value" id="dupOwner" style="color:#d97706;">—</span>
+                </div>
+
+                <div class="side-metrics-box">
+                    <div class="side-metric-item">
+                        <strong id="dupCntContacts">0</strong>
+                        <span>Người liên hệ</span>
+                    </div>
+                    <div class="side-metric-item">
+                        <strong id="dupCntOpps">0</strong>
+                        <span>Cơ hội</span>
+                    </div>
+                    <div class="side-metric-item">
+                        <strong id="dupCntActs">0</strong>
+                        <span>Hoạt động</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TỔNG HỢP SAU KHI GỘP (GIỮ LẠI TOÀN BỘ) -->
+        <div class="merge-summary-banner">
+            <strong>📦 Kết quả sau khi gộp (Bảo lưu toàn bộ dữ liệu cả 2 bản ghi):</strong>
+            <div class="merge-summary-list">
+                <span>👥 Người liên hệ: <span id="summarySumContacts" style="color:#059669; font-weight:700;">0</span></span>
+                <span>💼 Cơ hội bán hàng: <span id="summarySumOpps" style="color:#2563eb; font-weight:700;">0</span></span>
+                <span>⏱️ Lịch sử hoạt động: <span id="summarySumActs" style="color:#7c3aed; font-weight:700;">0</span></span>
+                <span>📎 Tệp đính kèm: <span id="summarySumAtts" style="color:#0891b2; font-weight:700;">0</span></span>
+            </div>
+        </div>
+
+        <!-- CẢNH BÁO QUYỀN HẠN CHO SALES REP -->
+        <div id="mergeRoleWarning" class="merge-permission-notice" style="display:none;">
+            <span>🔒</span>
+            <span>Chỉ <strong>Trưởng nhóm kinh doanh</strong> trở lên mới có quyền thực hiện gộp khách hàng. Vui lòng liên hệ Trưởng nhóm để duyệt gộp bản ghi này.</span>
+        </div>
+    </div>
+
+    <footer class="modal-footer" style="padding:14px 24px; border-top:1px solid var(--crm-border); display:flex; justify-content:flex-end; gap:10px;">
+        <button id="btnCancelMerge" type="button" class="crm-btn crm-btn-secondary">
+            Hủy
+        </button>
+        <button id="btnConfirmMerge" type="button" class="crm-btn crm-btn-primary" style="background:#059669; border-color:#059669;">
+            ✅ Xác nhận gộp khách hàng
+        </button>
+    </footer>
+</section>
 
 <script src="js/pages/customers.js"></script>
 
