@@ -63,45 +63,35 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     function showError(message) {
-
-        const box =
-            findMessageBox();
-
+        const box = findMessageBox();
         if (box) {
-
-            box.textContent =
-                message;
-
-            box.hidden =
-                false;
-
-            box.style.display =
-                "";
-
+            box.className = "login-feedback error";
+            box.innerHTML = `<span>⚠️</span> <span>${message}</span>`;
+            box.hidden = false;
+            box.style.display = "";
         } else {
-
             alert(message);
-
         }
-
     }
 
+    function showSuccess(message) {
+        const box = findMessageBox();
+        if (box) {
+            box.className = "login-feedback success";
+            box.innerHTML = `<span>✅</span> <span>${message}</span>`;
+            box.hidden = false;
+            box.style.display = "";
+        }
+    }
 
     function clearError() {
-
-        const box =
-            findMessageBox();
-
+        const box = findMessageBox();
         if (box) {
-
-            box.textContent =
-                "";
-
-            box.hidden =
-                true;
-
+            box.textContent = "";
+            box.hidden = true;
+            box.style.display = "none";
+            box.className = "login-feedback";
         }
-
     }
 
 
@@ -370,9 +360,22 @@ document.addEventListener("DOMContentLoaded", () => {
                     )
                 );
 
+                const userName = sessionResult?.data?.fullName || sessionResult?.data?.user?.fullName || "bạn";
+                showSuccess("Đăng nhập thành công! Đang chuyển hướng đến bảng điều khiển...");
 
-                window.location.href =
-                    "dashboard";
+                if (submitButton) {
+                    submitButton.disabled = true;
+                    submitButton.classList.add("success");
+                    submitButton.textContent = "✅ Đăng nhập thành công!";
+                }
+
+                try {
+                    sessionStorage.setItem("crm_login_welcome", `Chào mừng ${userName}! Đăng nhập thành công.`);
+                } catch (_) {}
+
+                setTimeout(() => {
+                    window.location.href = "dashboard";
+                }, 900);
 
             } catch (error) {
 
