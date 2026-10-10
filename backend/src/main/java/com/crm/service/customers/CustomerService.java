@@ -22,11 +22,33 @@ public class CustomerService {
             int page,
             int size
     ) throws Exception {
+        com.crm.dto.customers.CustomerFilterCriteria criteria = new com.crm.dto.customers.CustomerFilterCriteria();
+        criteria.setKeyword(keyword);
+        criteria.setStatus(status);
+        criteria.setPage(page);
+        criteria.setSize(size);
+        return search(currentUserId, criteria);
+    }
+
+    public Map<String, Object> search(
+            long currentUserId,
+            com.crm.dto.customers.CustomerFilterCriteria criteria
+    ) throws Exception {
         DataScopeContext scope = dataScopeService.resolve(currentUserId, "customer", "read");
-        long total = customerDAO.count(scope, keyword, status);
+        if (criteria == null) {
+            criteria = new com.crm.dto.customers.CustomerFilterCriteria();
+        }
+
+        if ("MINE".equalsIgnoreCase(criteria.getOwnerFilter())) {
+            criteria.setOwnerUserId(currentUserId);
+        }
+
+        long total = customerDAO.count(scope, criteria);
+        int size = criteria.getSize();
+        int page = criteria.getPage();
         int totalPages = (int) Math.ceil((double) total / size);
 
-        List<Map<String, Object>> items = customerDAO.search(scope, keyword, status, page, size);
+        List<Map<String, Object>> items = customerDAO.search(scope, criteria);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("items", items);

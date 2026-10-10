@@ -13,6 +13,7 @@ public class CustomerWriteRequest {
     private String address;
     private Long industryId;
     private Long companySizeId;
+    private Long regionId;
     private Long ownerUserId;
     private Long parentId;
     private Map<String, Object> customFields;
@@ -95,6 +96,14 @@ public class CustomerWriteRequest {
 
     public void setCompanySizeId(Long companySizeId) {
         this.companySizeId = companySizeId;
+    }
+
+    public Long getRegionId() {
+        return regionId;
+    }
+
+    public void setRegionId(Long regionId) {
+        this.regionId = regionId;
     }
 
     public Long getOwnerUserId() {
