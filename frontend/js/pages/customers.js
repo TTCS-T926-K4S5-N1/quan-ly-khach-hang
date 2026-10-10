@@ -1,6 +1,11 @@
 "use strict";
 
-const API_BASE = "http://localhost:8080/crm";
+const API_BASE = (function () {
+    if (window.location.port === "8080" || window.location.pathname.startsWith("/crm")) {
+        return "/crm";
+    }
+    return "http://localhost:8080/crm";
+})();
 
 let records = [];
 let duplicatePairs = [];
@@ -976,9 +981,6 @@ function renderMobileCard(record, index) {
     mobileList.appendChild(card);
 }
 
-    mobileList.appendChild(card);
-}
-
 document.addEventListener("click", async event => {
     const actionButton = event.target.closest("[data-action-menu]");
     if (actionButton) {
@@ -1134,7 +1136,14 @@ async function init() {
     }
 }
 
-document.addEventListener("DOMContentLoaded", init);
+let isInitialized = false;
+async function safeInit() {
+    if (isInitialized) return;
+    isInitialized = true;
+    await init();
+}
+
+document.addEventListener("DOMContentLoaded", safeInit);
 if (document.readyState === "complete" || document.readyState === "interactive") {
-    init();
+    safeInit();
 }
