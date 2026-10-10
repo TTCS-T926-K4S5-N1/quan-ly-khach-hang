@@ -1,6 +1,11 @@
 "use strict";
 
-const API_BASE = "http://localhost:8080/crm";
+const API_BASE = (function () {
+    if (window.location.port === "8080" || window.location.pathname.startsWith("/crm")) {
+        return "/crm";
+    }
+    return "http://localhost:8080/crm";
+})();
 
 let timeline = [];
 let currentCustomer = null;
