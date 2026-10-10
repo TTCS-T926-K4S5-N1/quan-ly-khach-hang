@@ -902,3 +902,83 @@
     gap: 8px;
 }
 
+/* ================= SAVED FILTERS & MULTI-CONDITION FILTER ================= */
+.saved-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--crm-text-2);
+    background: #fff;
+    border: 1px solid var(--crm-border);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.saved-filter-chip:hover {
+    border-color: var(--crm-primary);
+    color: var(--crm-primary);
+    background: #f0fdf4;
+    transform: translateY(-1px);
+}
+
+.saved-filter-chip.active {
+    background: #2563eb;
+    color: #fff;
+    border-color: #2563eb;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.25);
+}
+
+.saved-filter-chip .chip-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.08);
+    color: inherit;
+    font-size: 11px;
+    line-height: 1;
+    margin-left: 2px;
+    transition: background 0.15s ease;
+}
+
+.saved-filter-chip.active .chip-delete {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.saved-filter-chip .chip-delete:hover {
+    background: rgba(239, 68, 68, 0.8);
+    color: #fff;
+}
+
+.filter-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 550;
+    background: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid #bae6fd;
+}
+
+.filter-tag .tag-close {
+    cursor: pointer;
+    font-weight: 700;
+    margin-left: 2px;
+}
+
+.call-btn:hover {
+    text-decoration: underline !important;
+    color: #047857 !important;
+}
+
+

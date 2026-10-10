@@ -19,6 +19,28 @@ const cancelButton = document.getElementById("cancelCustomer");
 const form = document.getElementById("customerForm");
 const searchInput = document.getElementById("customerSearch");
 const statusFilter = document.getElementById("statusFilter");
+const contactPhoneFilter = document.getElementById("contactPhoneFilter");
+const industryFilter = document.getElementById("industryFilter");
+const companySizeFilter = document.getElementById("companySizeFilter");
+const regionFilter = document.getElementById("regionFilter");
+const ownerFilter = document.getElementById("ownerFilter");
+const btnResetFilters = document.getElementById("btnResetFilters");
+const savedFilterChips = document.getElementById("savedFilterChips");
+const filterResultCount = document.getElementById("filterResultCount");
+const activeFilterTags = document.getElementById("activeFilterTags");
+
+// Save Filter Modal elements
+const btnOpenSaveFilterModal = document.getElementById("btnOpenSaveFilterModal");
+const saveFilterModal = document.getElementById("saveFilterModal");
+const saveFilterModalOverlay = document.getElementById("saveFilterModalOverlay");
+const btnCloseSaveFilterModal = document.getElementById("btnCloseSaveFilterModal");
+const btnCancelSaveFilter = document.getElementById("btnCancelSaveFilter");
+const btnSubmitSaveFilter = document.getElementById("btnSubmitSaveFilter");
+const saveFilterNameInput = document.getElementById("saveFilterNameInput");
+const saveFilterCriteriaPreview = document.getElementById("saveFilterCriteriaPreview");
+
+let savedFilters = [];
+let activeSavedFilterId = null;
 
 // Duplicate elements
 const btnDuplicateAlerts = document.getElementById("btnDuplicateAlerts");
@@ -512,32 +534,285 @@ form?.addEventListener("submit", async event => {
     }
 });
 
-searchInput?.addEventListener("input", () => {
-    clearTimeout(searchDebounceTimer);
-    searchDebounceTimer = setTimeout(() => {
-        loadCustomers();
-    }, 300);
+/* =========================================================
+   SAVED FILTERS & MULTI-CONDITION SEARCH & FILTERING
+========================================================= */
+
+async function loadSavedFilters() {
+    try {
+        const data = await api("/api/saved-filters?module=CUSTOMER");
+        savedFilters = Array.isArray(data) ? data : [];
+        renderSavedFilterChips();
+    } catch (err) {
+        console.warn("Không thể tải danh sách bộ lọc đã lưu:", err);
+    }
+}
+
+function renderSavedFilterChips() {
+    if (!savedFilterChips) return;
+    savedFilterChips.innerHTML = "";
+
+    // 1. Chip "Tất cả" mặc định
+    const allChip = document.createElement("button");
+    allChip.type = "button";
+    allChip.className = `saved-filter-chip ${activeSavedFilterId === null ? "active" : ""}`;
+    allChip.innerHTML = `⭐ Tất cả khách hàng`;
+    allChip.addEventListener("click", () => {
+        resetAllFilters();
+    });
+    savedFilterChips.appendChild(allChip);
+
+    // 2. Render các chip từ database (Preset & User saved)
+    savedFilters.forEach(f => {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        const isActive = activeSavedFilterId === f.id;
+        chip.className = `saved-filter-chip ${isActive ? "active" : ""}`;
+
+        let icon = "🔖";
+        if (f.name.includes("gọi") || f.name.includes("tuần")) icon = "📞";
+        else if (f.name.includes("lớn") || f.name.includes("quy mô")) icon = "🏢";
+        else if (f.name.includes("Hà Nội") || f.name.includes("Miền Bắc") || f.name.includes("khu vực")) icon = "📍";
+        else if (f.name.includes("tôi") || f.name.includes("phụ trách")) icon = "👤";
+
+        let deleteBtnHtml = "";
+        if (f.canDelete && !f.isPreset) {
+            deleteBtnHtml = `<span class="chip-delete" title="Xóa bộ lọc này" data-del-filter="${f.id}">✕</span>`;
+        }
+
+        chip.innerHTML = `${icon} ${escapeHtml(f.name)} ${deleteBtnHtml}`;
+
+        chip.addEventListener("click", (e) => {
+            if (e.target.closest("[data-del-filter]")) {
+                e.stopPropagation();
+                deleteSavedFilter(f.id);
+                return;
+            }
+            applySavedFilter(f);
+        });
+
+        savedFilterChips.appendChild(chip);
+    });
+}
+
+function applySavedFilter(filter) {
+    if (!filter) return;
+    activeSavedFilterId = filter.id;
+
+    let crit = {};
+    try {
+        crit = typeof filter.filterCriteria === "string" ? JSON.parse(filter.filterCriteria) : filter.filterCriteria;
+    } catch (_) {
+        crit = {};
+    }
+
+    // Điền các giá trị vào inputs & selects
+    if (searchInput) searchInput.value = crit.keyword || "";
+    if (contactPhoneFilter) contactPhoneFilter.value = crit.contactPhone || "";
+    if (statusFilter) statusFilter.value = crit.status || "";
+    if (industryFilter) industryFilter.value = crit.industryId ? String(crit.industryId) : "";
+    if (companySizeFilter) companySizeFilter.value = crit.companySizeId ? String(crit.companySizeId) : "";
+    if (regionFilter) regionFilter.value = crit.regionId ? String(crit.regionId) : "";
+    if (ownerFilter) {
+        if (crit.ownerFilter) ownerFilter.value = crit.ownerFilter;
+        else if (crit.ownerUserId) ownerFilter.value = String(crit.ownerUserId);
+        else ownerFilter.value = "";
+    }
+
+    renderSavedFilterChips();
+    loadCustomers();
+}
+
+async function deleteSavedFilter(filterId) {
+    if (!confirm("Bạn có chắc chắn muốn xóa bộ lọc đã lưu này?")) return;
+    try {
+        await api(`/api/saved-filters/${filterId}`, { method: "DELETE" });
+        if (activeSavedFilterId === filterId) {
+            activeSavedFilterId = null;
+        }
+        await loadSavedFilters();
+    } catch (err) {
+        alert("Lỗi khi xóa bộ lọc: " + err.message);
+    }
+}
+
+function resetAllFilters() {
+    activeSavedFilterId = null;
+    if (searchInput) searchInput.value = "";
+    if (contactPhoneFilter) contactPhoneFilter.value = "";
+    if (statusFilter) statusFilter.value = "";
+    if (industryFilter) industryFilter.value = "";
+    if (companySizeFilter) companySizeFilter.value = "";
+    if (regionFilter) regionFilter.value = "";
+    if (ownerFilter) ownerFilter.value = "";
+
+    renderSavedFilterChips();
+    loadCustomers();
+}
+
+function openSaveFilterModal() {
+    // Thu thập các điều kiện đang chọn để preview
+    const previewItems = [];
+    if (searchInput?.value.trim()) previewItems.push(`<strong>Từ khóa:</strong> ${escapeHtml(searchInput.value.trim())}`);
+    if (contactPhoneFilter?.value.trim()) previewItems.push(`<strong>SĐT liên hệ:</strong> ${escapeHtml(contactPhoneFilter.value.trim())}`);
+    if (statusFilter?.value) previewItems.push(`<strong>Trạng thái:</strong> ${escapeHtml(statusFilter.options[statusFilter.selectedIndex]?.text)}`);
+    if (industryFilter?.value) previewItems.push(`<strong>Ngành nghề:</strong> ${escapeHtml(industryFilter.options[industryFilter.selectedIndex]?.text)}`);
+    if (companySizeFilter?.value) previewItems.push(`<strong>Quy mô:</strong> ${escapeHtml(companySizeFilter.options[companySizeFilter.selectedIndex]?.text)}`);
+    if (regionFilter?.value) previewItems.push(`<strong>Khu vực:</strong> ${escapeHtml(regionFilter.options[regionFilter.selectedIndex]?.text)}`);
+    if (ownerFilter?.value) previewItems.push(`<strong>Người sở hữu:</strong> ${escapeHtml(ownerFilter.options[ownerFilter.selectedIndex]?.text)}`);
+
+    if (saveFilterCriteriaPreview) {
+        saveFilterCriteriaPreview.innerHTML = previewItems.length > 0
+            ? previewItems.join("<br>")
+            : "<em>(Đang lưu toàn bộ khách hàng không giới hạn điều kiện)</em>";
+    }
+
+    if (saveFilterNameInput) saveFilterNameInput.value = "";
+    saveFilterModal?.style.setProperty("display", "block");
+    saveFilterModalOverlay?.classList.add("open");
+    saveFilterNameInput?.focus();
+}
+
+function closeSaveFilterModalFunc() {
+    saveFilterModal?.style.setProperty("display", "none");
+    saveFilterModalOverlay?.classList.remove("open");
+}
+
+async function submitSaveFilterFunc() {
+    const name = saveFilterNameInput?.value.trim();
+    if (!name) {
+        alert("Vui lòng nhập tên cho bộ lọc!");
+        saveFilterNameInput?.focus();
+        return;
+    }
+
+    const criteria = {};
+    if (searchInput?.value.trim()) criteria.keyword = searchInput.value.trim();
+    if (contactPhoneFilter?.value.trim()) criteria.contactPhone = contactPhoneFilter.value.trim();
+    if (statusFilter?.value) criteria.status = statusFilter.value;
+    if (industryFilter?.value) criteria.industryId = Number(industryFilter.value);
+    if (companySizeFilter?.value) criteria.companySizeId = Number(companySizeFilter.value);
+    if (regionFilter?.value) criteria.regionId = Number(regionFilter.value);
+    if (ownerFilter?.value) {
+        if (ownerFilter.value === "MINE") criteria.ownerFilter = "MINE";
+        else criteria.ownerUserId = Number(ownerFilter.value);
+    }
+
+    try {
+        btnSubmitSaveFilter.disabled = true;
+        btnSubmitSaveFilter.textContent = "Đang lưu...";
+        const res = await api("/api/saved-filters", {
+            method: "POST",
+            body: JSON.stringify({
+                name: name,
+                module: "CUSTOMER",
+                filterCriteria: criteria
+            })
+        });
+
+        closeSaveFilterModalFunc();
+        activeSavedFilterId = res?.id || null;
+        await loadSavedFilters();
+        alert(`Đã lưu thành công bộ lọc "${name}"!`);
+    } catch (err) {
+        alert("Lỗi khi lưu bộ lọc: " + err.message);
+    } finally {
+        if (btnSubmitSaveFilter) {
+            btnSubmitSaveFilter.disabled = false;
+            btnSubmitSaveFilter.textContent = "Lưu bộ lọc";
+        }
+    }
+}
+
+btnOpenSaveFilterModal?.addEventListener("click", openSaveFilterModal);
+btnCloseSaveFilterModal?.addEventListener("click", closeSaveFilterModalFunc);
+btnCancelSaveFilter?.addEventListener("click", closeSaveFilterModalFunc);
+saveFilterModalOverlay?.addEventListener("click", closeSaveFilterModalFunc);
+btnSubmitSaveFilter?.addEventListener("click", submitSaveFilterFunc);
+btnResetFilters?.addEventListener("click", resetAllFilters);
+
+// Debounced inputs & change events
+[searchInput, contactPhoneFilter].forEach(input => {
+    input?.addEventListener("input", () => {
+        activeSavedFilterId = null;
+        renderSavedFilterChips();
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => {
+            loadCustomers();
+        }, 300);
+    });
 });
 
-statusFilter?.addEventListener("change", () => {
-    loadCustomers();
+[statusFilter, industryFilter, companySizeFilter, regionFilter, ownerFilter].forEach(select => {
+    select?.addEventListener("change", () => {
+        activeSavedFilterId = null;
+        renderSavedFilterChips();
+        loadCustomers();
+    });
 });
+
+/* =========================================================
+   CUSTOMER SEARCH & TABLE RENDER
+========================================================= */
 
 async function loadCustomers() {
     try {
-        const query = searchInput ? searchInput.value.trim() : "";
-        const status = statusFilter ? statusFilter.value : "";
-        let url = `/api/customers?size=100`;
-        if (query) url += `&keyword=${encodeURIComponent(query)}`;
-        if (status) url += `&status=${encodeURIComponent(status)}`;
+        const params = new URLSearchParams();
+        params.append("size", "100");
 
-        const data = await api(url);
+        const kw = searchInput?.value.trim() || "";
+        const cPhone = contactPhoneFilter?.value.trim() || "";
+        const st = statusFilter?.value || "";
+        const ind = industryFilter?.value || "";
+        const sizeId = companySizeFilter?.value || "";
+        const regId = regionFilter?.value || "";
+        const own = ownerFilter?.value || "";
+
+        if (kw) params.append("keyword", kw);
+        if (cPhone) params.append("contactPhone", cPhone);
+        if (st) params.append("status", st);
+        if (ind) params.append("industryId", ind);
+        if (sizeId) params.append("companySizeId", sizeId);
+        if (regId) params.append("regionId", regId);
+        if (own) {
+            if (own === "MINE") params.append("ownerFilter", "MINE");
+            else params.append("ownerUserId", own);
+        }
+
+        const data = await api(`/api/customers?${params.toString()}`);
         records = data?.items || [];
+        updateFilterSummary(data?.totalItems !== undefined ? data.totalItems : records.length);
         render();
     } catch (error) {
         console.error("Lỗi tải danh sách khách hàng:", error);
-        tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red; padding:20px;">${escapeHtml(error.message)}</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:red; padding:20px;">${escapeHtml(error.message)}</td></tr>`;
     }
+}
+
+function updateFilterSummary(total) {
+    if (filterResultCount) {
+        filterResultCount.innerHTML = `Tìm thấy <strong style="color:var(--crm-primary); font-size:13px;">${total}</strong> khách hàng phù hợp`;
+    }
+
+    if (!activeFilterTags) return;
+    activeFilterTags.innerHTML = "";
+
+    const tags = [];
+    if (searchInput?.value.trim()) tags.push({ label: `Từ khóa: "${searchInput.value.trim()}"`, clear: () => { searchInput.value = ""; loadCustomers(); } });
+    if (contactPhoneFilter?.value.trim()) tags.push({ label: `SĐT: ${contactPhoneFilter.value.trim()}`, clear: () => { contactPhoneFilter.value = ""; loadCustomers(); } });
+    if (statusFilter?.value) tags.push({ label: `TT: ${statusFilter.options[statusFilter.selectedIndex]?.text}`, clear: () => { statusFilter.value = ""; loadCustomers(); } });
+    if (industryFilter?.value) tags.push({ label: `Ngành: ${industryFilter.options[industryFilter.selectedIndex]?.text.replace(/^[^\s]+\s/, "")}`, clear: () => { industryFilter.value = ""; loadCustomers(); } });
+    if (companySizeFilter?.value) tags.push({ label: `Quy mô: ${companySizeFilter.options[companySizeFilter.selectedIndex]?.text.replace(/^[^\s]+\s/, "")}`, clear: () => { companySizeFilter.value = ""; loadCustomers(); } });
+    if (regionFilter?.value) tags.push({ label: `Khu vực: ${regionFilter.options[regionFilter.selectedIndex]?.text.replace(/^[^\s]+\s/, "")}`, clear: () => { regionFilter.value = ""; loadCustomers(); } });
+    if (ownerFilter?.value) tags.push({ label: `Sở hữu: ${ownerFilter.options[ownerFilter.selectedIndex]?.text.replace(/^[^\s]+\s/, "")}`, clear: () => { ownerFilter.value = ""; loadCustomers(); } });
+
+    tags.forEach(t => {
+        const span = document.createElement("span");
+        span.className = "filter-tag";
+        span.innerHTML = `${escapeHtml(t.label)} <span class="tag-close">×</span>`;
+        span.querySelector(".tag-close").addEventListener("click", t.clear);
+        activeFilterTags.appendChild(span);
+    });
 }
 
 function render() {
@@ -549,7 +824,7 @@ function render() {
     if (!records.length) {
         const empty = document.createElement("div");
         empty.className = "customer-mobile-empty";
-        empty.textContent = "Không có bản ghi phù hợp.";
+        empty.textContent = "Không có bản ghi phù hợp với tiêu chí tìm kiếm và lọc.";
         mobileList.appendChild(empty);
         return;
     }
@@ -564,22 +839,64 @@ function render() {
 function renderDesktopRow(record, index) {
     const tr = document.createElement("tr");
 
+    // 1. Tên công ty & MST & Tập đoàn badge
+    let corporateBadge = "";
+    if (record.subsidiaryCount && record.subsidiaryCount > 0) {
+        corporateBadge = `<span style="display:inline-block; margin-top:2px; font-size:11px; background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; padding:1px 6px; border-radius:10px;">🏛️ Tập đoàn (${record.subsidiaryCount} cty con)</span>`;
+    } else if (record.parentName) {
+        corporateBadge = `<span style="display:inline-block; margin-top:2px; font-size:11px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:1px 6px; border-radius:10px;" title="Trực thuộc: ${escapeHtml(record.parentName)}">🏢 Thuộc: ${escapeHtml(record.parentName)}</span>`;
+    }
+
+    // 2. Người liên hệ & SĐT gọi ngay
+    let contactHtml = "";
+    if (record.primaryContactName) {
+        const phone = record.primaryContactPhone || "";
+        contactHtml = `
+            <div style="display:flex; flex-direction:column; gap:2px;">
+                <span style="font-weight:600; color:var(--crm-text);">${escapeHtml(record.primaryContactName)}</span>
+                <span style="font-size:11.5px; color:var(--crm-muted);">${escapeHtml(record.primaryContactRole || "Liên hệ chính")}</span>
+                ${phone ? `
+                    <a href="tel:${escapeHtml(phone)}" class="call-btn" style="display:inline-flex; align-items:center; gap:4px; font-weight:700; color:#059669; font-size:12px; text-decoration:none; margin-top:1px;">
+                        📞 ${escapeHtml(phone)}
+                    </a>
+                ` : `<span style="font-size:11px; color:#94a3b8;">Chưa có SĐT</span>`}
+            </div>
+        `;
+    } else {
+        contactHtml = `
+            <div style="color:#94a3b8; font-size:12px; font-style:italic;">
+                — Chưa có liên hệ
+                ${record.phone ? `<br><a href="tel:${escapeHtml(record.phone)}" class="call-btn" style="color:#0284c7; text-decoration:none; font-size:11.5px; font-style:normal;">☎ Tổng đài: ${escapeHtml(record.phone)}</a>` : ""}
+            </div>
+        `;
+    }
+
     tr.innerHTML = `
         <td>
             <input type="checkbox">
         </td>
         <td>
-            <a class="customer-name" href="customer-360?id=${record.id}">
+            <a class="customer-name" href="customer-360?id=${record.id}" style="font-weight:600;">
                 ${escapeHtml(record.companyName || record.name)}
             </a>
             <span class="customer-sub">
-                ${escapeHtml(record.taxCode || "—")}
+                MST: ${escapeHtml(record.taxCode || "—")}
+            </span>
+            ${corporateBadge}
+        </td>
+        <td>
+            ${contactHtml}
+        </td>
+        <td>
+            <span style="font-weight:550; color:var(--crm-text);">${escapeHtml(record.industryName || "—")}</span>
+            <span class="customer-sub" style="margin-top:2px;">
+                👥 ${escapeHtml(record.companySizeName || "—")}
             </span>
         </td>
         <td>
-            ${escapeHtml(record.email || "—")}
-            <span class="customer-sub">
-                ${escapeHtml(record.phone || "—")}
+            <span style="font-size:12.5px; font-weight:550; color:#334155;">📍 ${escapeHtml(record.regionName || "—")}</span>
+            <span class="customer-sub" title="${escapeHtml(record.address || "")}" style="max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; margin-top:2px;">
+                ${escapeHtml(record.address || "—")}
             </span>
         </td>
         <td>
@@ -588,7 +905,7 @@ function renderDesktopRow(record, index) {
             </span>
         </td>
         <td>
-            ${escapeHtml(record.ownerName || record.owner || "—")}
+            <span style="font-weight:500;">${escapeHtml(record.ownerName || record.owner || "—")}</span>
         </td>
         <td class="action-col">
             <div class="row-action-wrap">
@@ -597,13 +914,13 @@ function renderDesktopRow(record, index) {
                 </button>
                 <div class="row-action-menu" data-menu="${index}">
                     <a href="customer-360?id=${record.id}">
-                        Xem chi tiết (360)
+                        🔍 Xem chi tiết (360)
                     </a>
                     <button type="button" data-edit="${index}">
-                        Sửa
+                        ✏️ Sửa
                     </button>
                     <button type="button" class="danger" data-delete="${index}">
-                        Xóa
+                        🗑️ Xóa
                     </button>
                 </div>
             </div>
@@ -617,6 +934,11 @@ function renderMobileCard(record, index) {
     const card = document.createElement("article");
     card.className = "customer-mobile-card";
 
+    let contactLine = "";
+    if (record.primaryContactName) {
+        contactLine = `<span>👤 Người liên hệ: <strong>${escapeHtml(record.primaryContactName)}</strong> (${escapeHtml(record.primaryContactPhone || "—")})</span>`;
+    }
+
     card.innerHTML = `
         <div class="mobile-card-head">
             <div>
@@ -627,6 +949,7 @@ function renderMobileCard(record, index) {
                     <span class="status-pill ${statusClass(record.status)}">
                         ${escapeHtml(record.status)}
                     </span>
+                    <span style="font-size:11px; color:#64748b; margin-left:6px;">📍 ${escapeHtml(record.regionName || "—")}</span>
                 </div>
             </div>
             <button class="row-action-button" type="button" data-edit="${index}">
@@ -634,14 +957,24 @@ function renderMobileCard(record, index) {
             </button>
         </div>
         <div class="mobile-card-contact">
-            <span>✉ ${escapeHtml(record.email || "—")}</span>
-            <span>☎ ${escapeHtml(record.phone || "—")}</span>
-            <span>Người sở hữu: ${escapeHtml(record.ownerName || record.owner || "—")}</span>
+            ${contactLine}
+            <span>🏢 Ngành: ${escapeHtml(record.industryName || "—")} (${escapeHtml(record.companySizeName || "—")})</span>
+            <span>👤 Phụ trách: ${escapeHtml(record.ownerName || record.owner || "—")}</span>
         </div>
-        <a href="customer-360?id=${record.id}" class="crm-btn crm-btn-secondary" style="margin-top:12px; width:100%; text-decoration:none;">
-            Xem chi tiết (360)
-        </a>
+        <div style="display:flex; gap:8px; margin-top:12px;">
+            ${record.primaryContactPhone ? `
+                <a href="tel:${escapeHtml(record.primaryContactPhone)}" class="crm-btn crm-btn-primary" style="flex:1; text-align:center; text-decoration:none; background:#059669; border-color:#059669;">
+                    📞 Gọi ngay
+                </a>
+            ` : ""}
+            <a href="customer-360?id=${record.id}" class="crm-btn crm-btn-secondary" style="flex:1; text-align:center; text-decoration:none;">
+                Xem 360
+            </a>
+        </div>
     `;
+
+    mobileList.appendChild(card);
+}
 
     mobileList.appendChild(card);
 }
@@ -766,11 +1099,29 @@ function escapeHtml(val) {
         .replace(/'/g, "&#039;");
 }
 
+async function loadOwnersIntoFilter() {
+    if (!ownerFilter) return;
+    try {
+        const data = await api("/api/users?size=50");
+        const users = data?.items || [];
+        users.forEach(u => {
+            const opt = document.createElement("option");
+            opt.value = String(u.id);
+            opt.textContent = `👤 ${u.fullName || u.email}`;
+            ownerFilter.appendChild(opt);
+        });
+    } catch (e) {
+        console.warn("Could not load users for owner filter:", e);
+    }
+}
+
 /* =========================================================
    INITIALIZATION
 ========================================================= */
 async function init() {
     await initUserProfile();
+    await loadOwnersIntoFilter();
+    await loadSavedFilters();
     await loadCustomers();
     await loadDuplicatePairs();
 

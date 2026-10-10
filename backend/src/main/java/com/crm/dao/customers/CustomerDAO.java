@@ -4,6 +4,8 @@ import com.crm.config.DatabaseConfig;
 import com.crm.dto.customers.CustomerWriteRequest;
 import com.crm.service.permissions.DataScopeContext;
 
+import com.crm.dto.customers.CustomerFilterCriteria;
+
 import java.sql.*;
 import java.util.*;
 
@@ -15,6 +17,18 @@ public class CustomerDAO {
             String status,
             int page,
             int size
+    ) throws SQLException {
+        CustomerFilterCriteria criteria = new CustomerFilterCriteria();
+        criteria.setKeyword(keyword);
+        criteria.setStatus(status);
+        criteria.setPage(page);
+        criteria.setSize(size);
+        return search(scope, criteria);
+    }
+
+    public List<Map<String, Object>> search(
+            DataScopeContext scope,
+            CustomerFilterCriteria criteria
     ) throws SQLException {
         StringBuilder sql = new StringBuilder("""
                 SELECT
@@ -28,15 +42,25 @@ public class CustomerDAO {
                     c.address,
                     c.industry_id,
                     c.company_size_id,
+                    c.region_id,
                     c.owner_user_id,
                     c.parent_id,
                     p.name AS parent_name,
                     (SELECT COUNT(*) FROM customers sub WHERE sub.parent_id = c.id AND sub.is_deleted = 0) AS subsidiary_count,
+                    m_ind.name AS industry_name,
+                    m_size.name AS company_size_name,
+                    m_reg.name AS region_name,
+                    (SELECT ct.name FROM contacts ct WHERE ct.customer_id = c.id AND ct.is_deleted = 0 ORDER BY ct.is_primary DESC, ct.id ASC LIMIT 1) AS primary_contact_name,
+                    (SELECT ct.phone FROM contacts ct WHERE ct.customer_id = c.id AND ct.is_deleted = 0 ORDER BY ct.is_primary DESC, ct.id ASC LIMIT 1) AS primary_contact_phone,
+                    (SELECT ct.title FROM contacts ct WHERE ct.customer_id = c.id AND ct.is_deleted = 0 ORDER BY ct.is_primary DESC, ct.id ASC LIMIT 1) AS primary_contact_role,
                     c.created_at,
                     u.full_name AS owner_name
                 FROM customers c
                 LEFT JOIN users u ON u.id = c.owner_user_id
                 LEFT JOIN customers p ON p.id = c.parent_id
+                LEFT JOIN master_data m_ind ON m_ind.id = c.industry_id
+                LEFT JOIN master_data m_size ON m_size.id = c.company_size_id
+                LEFT JOIN master_data m_reg ON m_reg.id = c.region_id
                 WHERE c.is_deleted = 0
                 """);
 
@@ -45,20 +69,10 @@ public class CustomerDAO {
             scope.appendOwnerPredicate("c.owner_user_id", sql, params);
         }
 
-        if (keyword != null && !keyword.isBlank()) {
-            sql.append(" AND (LOWER(c.name) LIKE ? OR LOWER(c.email) LIKE ? OR LOWER(c.phone) LIKE ? OR LOWER(c.tax_code) LIKE ?)");
-            String kw = "%" + keyword.trim().toLowerCase() + "%";
-            params.add(kw);
-            params.add(kw);
-            params.add(kw);
-            params.add(kw);
-        }
+        buildFilterPredicates(criteria, sql, params);
 
-        if (status != null && !status.isBlank()) {
-            sql.append(" AND c.status = ?");
-            params.add(status.trim());
-        }
-
+        int page = criteria != null ? criteria.getPage() : 1;
+        int size = criteria != null ? criteria.getSize() : 20;
         sql.append(" ORDER BY c.id DESC LIMIT ? OFFSET ?");
         params.add(size);
         params.add((page - 1) * size);
@@ -83,9 +97,20 @@ public class CustomerDAO {
             String keyword,
             String status
     ) throws SQLException {
+        CustomerFilterCriteria criteria = new CustomerFilterCriteria();
+        criteria.setKeyword(keyword);
+        criteria.setStatus(status);
+        return count(scope, criteria);
+    }
+
+    public long count(
+            DataScopeContext scope,
+            CustomerFilterCriteria criteria
+    ) throws SQLException {
         StringBuilder sql = new StringBuilder("""
                 SELECT COUNT(*)
                 FROM customers c
+                LEFT JOIN master_data m_reg ON m_reg.id = c.region_id
                 WHERE c.is_deleted = 0
                 """);
 
@@ -94,19 +119,7 @@ public class CustomerDAO {
             scope.appendOwnerPredicate("c.owner_user_id", sql, params);
         }
 
-        if (keyword != null && !keyword.isBlank()) {
-            sql.append(" AND (LOWER(c.name) LIKE ? OR LOWER(c.email) LIKE ? OR LOWER(c.phone) LIKE ? OR LOWER(c.tax_code) LIKE ?)");
-            String kw = "%" + keyword.trim().toLowerCase() + "%";
-            params.add(kw);
-            params.add(kw);
-            params.add(kw);
-            params.add(kw);
-        }
-
-        if (status != null && !status.isBlank()) {
-            sql.append(" AND c.status = ?");
-            params.add(status.trim());
-        }
+        buildFilterPredicates(criteria, sql, params);
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
@@ -120,6 +133,92 @@ public class CustomerDAO {
             }
         }
         return 0;
+    }
+
+    private void buildFilterPredicates(CustomerFilterCriteria criteria, StringBuilder sql, List<Object> params) {
+        if (criteria == null) return;
+
+        // 1. Tìm kiếm từ khóa tổng hợp (tên, email, SĐT khách, MST, SĐT người liên hệ)
+        if (criteria.getKeyword() != null && !criteria.getKeyword().isBlank()) {
+            sql.append("""
+                 AND (
+                    LOWER(c.name) LIKE ?
+                    OR LOWER(c.email) LIKE ?
+                    OR LOWER(c.phone) LIKE ?
+                    OR LOWER(c.tax_code) LIKE ?
+                    OR EXISTS (
+                        SELECT 1 FROM contacts ct
+                        WHERE ct.customer_id = c.id
+                          AND ct.is_deleted = 0
+                          AND (ct.phone LIKE ? OR LOWER(ct.name) LIKE ?)
+                    )
+                 )
+                """);
+            String kw = "%" + criteria.getKeyword().trim().toLowerCase() + "%";
+            String rawKw = "%" + criteria.getKeyword().trim() + "%";
+            params.add(kw);
+            params.add(kw);
+            params.add(kw);
+            params.add(kw);
+            params.add(rawKw);
+            params.add(kw);
+        }
+
+        // 2. Tìm theo tên khách hàng cụ thể
+        if (criteria.getName() != null && !criteria.getName().isBlank()) {
+            sql.append(" AND LOWER(c.name) LIKE ?");
+            params.add("%" + criteria.getName().trim().toLowerCase() + "%");
+        }
+
+        // 3. Tìm theo mã số thuế
+        if (criteria.getTaxCode() != null && !criteria.getTaxCode().isBlank()) {
+            sql.append(" AND LOWER(c.tax_code) LIKE ?");
+            params.add("%" + criteria.getTaxCode().trim().toLowerCase() + "%");
+        }
+
+        // 4. Tìm theo số điện thoại người liên hệ
+        if (criteria.getContactPhone() != null && !criteria.getContactPhone().isBlank()) {
+            sql.append(" AND EXISTS (SELECT 1 FROM contacts ct WHERE ct.customer_id = c.id AND ct.is_deleted = 0 AND ct.phone LIKE ?)");
+            params.add("%" + criteria.getContactPhone().trim() + "%");
+        }
+
+        // 5. Lọc theo trạng thái
+        if (criteria.getStatus() != null && !criteria.getStatus().isBlank()) {
+            sql.append(" AND c.status = ?");
+            params.add(criteria.getStatus().trim());
+        }
+
+        // 6. Lọc theo ngành nghề
+        if (criteria.getIndustryId() != null && criteria.getIndustryId() > 0) {
+            sql.append(" AND c.industry_id = ?");
+            params.add(criteria.getIndustryId());
+        }
+
+        // 7. Lọc theo quy mô công ty
+        if (criteria.getCompanySizeId() != null && criteria.getCompanySizeId() > 0) {
+            sql.append(" AND c.company_size_id = ?");
+            params.add(criteria.getCompanySizeId());
+        }
+
+        // 8. Lọc theo khu vực (ID)
+        if (criteria.getRegionId() != null && criteria.getRegionId() > 0) {
+            sql.append(" AND c.region_id = ?");
+            params.add(criteria.getRegionId());
+        }
+
+        // 9. Lọc theo khu vực (tên khu vực / từ khóa địa chỉ)
+        if (criteria.getRegion() != null && !criteria.getRegion().isBlank()) {
+            sql.append(" AND (LOWER(c.address) LIKE ? OR LOWER(m_reg.name) LIKE ?)");
+            String rKw = "%" + criteria.getRegion().trim().toLowerCase() + "%";
+            params.add(rKw);
+            params.add(rKw);
+        }
+
+        // 10. Lọc theo người sở hữu
+        if (criteria.getOwnerUserId() != null && criteria.getOwnerUserId() > 0) {
+            sql.append(" AND c.owner_user_id = ?");
+            params.add(criteria.getOwnerUserId());
+        }
     }
 
     public Map<String, Object> findById(long id) throws SQLException {
@@ -163,8 +262,8 @@ public class CustomerDAO {
         String sql = """
                 INSERT INTO customers (
                     name, tax_code, status, email, phone, website, address,
-                    industry_id, company_size_id, owner_user_id, parent_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    industry_id, company_size_id, region_id, owner_user_id, parent_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         long ownerId = req.getOwnerUserId() != null ? req.getOwnerUserId() : defaultOwnerId;
@@ -181,8 +280,9 @@ public class CustomerDAO {
             stmt.setString(7, req.getAddress());
             stmt.setObject(8, req.getIndustryId(), Types.BIGINT);
             stmt.setObject(9, req.getCompanySizeId(), Types.BIGINT);
-            stmt.setLong(10, ownerId);
-            stmt.setObject(11, parentId, Types.BIGINT);
+            stmt.setObject(10, req.getRegionId(), Types.BIGINT);
+            stmt.setLong(11, ownerId);
+            stmt.setObject(12, parentId, Types.BIGINT);
 
             stmt.executeUpdate();
             try (ResultSet rs = stmt.getGeneratedKeys()) {
@@ -198,7 +298,7 @@ public class CustomerDAO {
         String sql = """
                 UPDATE customers SET
                     name = ?, tax_code = ?, status = ?, email = ?, phone = ?,
-                    website = ?, address = ?, industry_id = ?, company_size_id = ?,
+                    website = ?, address = ?, industry_id = ?, company_size_id = ?, region_id = ?,
                     owner_user_id = COALESCE(?, owner_user_id),
                     parent_id = ?
                 WHERE id = ? AND is_deleted = 0
@@ -220,9 +320,10 @@ public class CustomerDAO {
             stmt.setString(7, req.getAddress());
             stmt.setObject(8, req.getIndustryId(), Types.BIGINT);
             stmt.setObject(9, req.getCompanySizeId(), Types.BIGINT);
-            stmt.setObject(10, req.getOwnerUserId(), Types.BIGINT);
-            stmt.setObject(11, parentId, Types.BIGINT);
-            stmt.setLong(12, id);
+            stmt.setObject(10, req.getRegionId(), Types.BIGINT);
+            stmt.setObject(11, req.getOwnerUserId(), Types.BIGINT);
+            stmt.setObject(12, parentId, Types.BIGINT);
+            stmt.setLong(13, id);
 
             stmt.executeUpdate();
         }
@@ -381,6 +482,31 @@ public class CustomerDAO {
         map.put("parentName", rs.getString("parent_name"));
         map.put("subsidiaryCount", rs.getInt("subsidiary_count"));
         map.put("createdAt", rs.getTimestamp("created_at"));
+
+        // Thông tin phân loại & khu vực mở rộng
+        try {
+            map.put("regionId", rs.getObject("region_id"));
+            map.put("regionName", rs.getString("region_name") != null ? rs.getString("region_name") : "—");
+            map.put("industryName", rs.getString("industry_name") != null ? rs.getString("industry_name") : "—");
+            map.put("companySizeName", rs.getString("company_size_name") != null ? rs.getString("company_size_name") : "—");
+        } catch (SQLException ignored) {
+            map.put("regionId", null);
+            map.put("regionName", "—");
+            map.put("industryName", "—");
+            map.put("companySizeName", "—");
+        }
+
+        // Người liên hệ chính & SĐT gọi ngay phục vụ dựng danh sách gọi trong tuần
+        try {
+            map.put("primaryContactName", rs.getString("primary_contact_name"));
+            map.put("primaryContactPhone", rs.getString("primary_contact_phone"));
+            map.put("primaryContactRole", rs.getString("primary_contact_role"));
+        } catch (SQLException ignored) {
+            map.put("primaryContactName", null);
+            map.put("primaryContactPhone", null);
+            map.put("primaryContactRole", null);
+        }
+
         return map;
     }
 }

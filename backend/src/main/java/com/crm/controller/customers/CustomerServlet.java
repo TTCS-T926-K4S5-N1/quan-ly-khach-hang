@@ -34,12 +34,22 @@ public class CustomerServlet extends HttpServlet {
             String path = req.getPathInfo();
 
             if (path == null || path.equals("/")) {
-                String keyword = req.getParameter("keyword");
-                String status = req.getParameter("status");
-                int page = intParam(req, "page", 1);
-                int size = intParam(req, "size", 20);
+                com.crm.dto.customers.CustomerFilterCriteria criteria = new com.crm.dto.customers.CustomerFilterCriteria();
+                criteria.setKeyword(req.getParameter("keyword"));
+                criteria.setName(req.getParameter("name"));
+                criteria.setTaxCode(req.getParameter("taxCode"));
+                criteria.setContactPhone(req.getParameter("contactPhone"));
+                criteria.setStatus(req.getParameter("status"));
+                criteria.setIndustryId(longParam(req, "industryId"));
+                criteria.setCompanySizeId(longParam(req, "companySizeId"));
+                criteria.setRegionId(longParam(req, "regionId"));
+                criteria.setRegion(req.getParameter("region"));
+                criteria.setOwnerUserId(longParam(req, "ownerUserId"));
+                criteria.setOwnerFilter(req.getParameter("ownerFilter"));
+                criteria.setPage(intParam(req, "page", 1));
+                criteria.setSize(intParam(req, "size", 20));
 
-                var result = customerService.search(currentUserId, keyword, status, page, size);
+                var result = customerService.search(currentUserId, criteria);
                 ResponseUtil.json(resp, 200, ApiResponse.success("Lấy danh sách khách hàng thành công", result));
                 return;
             }
@@ -243,6 +253,16 @@ public class CustomerServlet extends HttpServlet {
             return Integer.parseInt(val.trim());
         } catch (NumberFormatException e) {
             return fallback;
+        }
+    }
+
+    private Long longParam(HttpServletRequest req, String name) {
+        String val = req.getParameter(name);
+        if (val == null || val.isBlank()) return null;
+        try {
+            return Long.parseLong(val.trim());
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 }
