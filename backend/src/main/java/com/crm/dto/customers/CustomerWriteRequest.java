@@ -14,6 +14,7 @@ public class CustomerWriteRequest {
     private Long industryId;
     private Long companySizeId;
     private Long ownerUserId;
+    private Long parentId;
     private Map<String, Object> customFields;
 
     public String getName() {
@@ -102,6 +103,14 @@ public class CustomerWriteRequest {
 
     public void setOwnerUserId(Long ownerUserId) {
         this.ownerUserId = ownerUserId;
+    }
+
+    public Long getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(Long parentId) {
+        this.parentId = parentId;
     }
 
     public Map<String, Object> getCustomFields() {
