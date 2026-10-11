@@ -1,0 +1,28 @@
+/* Tùy chỉnh thanh cuộn Scrollbar cho gọn gàng */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Hiệu ứng mượt mà cho Jira Slide-over Panel */
+#jira-drawer {
+  will-change: transform;
+}
+
+/* Áp dụng font family đồng nhất */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hệ Thống Quản Lý Lead Marketing</title>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- SheetJS (XLSX) CDN cho xử lý Excel -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  
+  <!-- Custom Style Sheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans antialiased h-screen flex flex-col overflow-hidden">
+
+  <!-- Header Section -->
+  <header class="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between z-10">
+    <div class="flex items-center space-x-3">
+      <div class="bg-blue-600 text-white p-2 rounded-lg flex items-center justify-center">
+        <i class="fa-solid fa-rectangle-list text-xl"></i>
+      </div>
+      <div>
+        <h1 class="text-lg font-bold text-gray-900 leading-tight">Lead Capture & Management</h1>
+        <p class="text-xs text-gray-500">Hệ thống tiếp nhận & xử lý danh sách khách hàng tiềm năng</p>
+      </div>
+    </div>
+
+    <!-- Right Header Actions -->
+    <div class="flex items-center space-x-3">
+      <button onclick="downloadSampleExcel()" class="inline-flex items-center px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+        <i class="fa-solid fa-file-excel text-green-600 mr-2"></i> Tải mẫu Excel
+      </button>
+
+      <button onclick="openImportModal()" class="inline-flex items-center px-3.5 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition shadow-sm">
+        <i class="fa-solid fa-file-import mr-2"></i> Nhập Lead từ Excel
+      </button>
+
+      <button onclick="openCreateModal()" class="inline-flex items-center px-3.5 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition shadow-sm">
+        <i class="fa-solid fa-plus mr-2"></i> Tạo Lead mới
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <div class="flex flex-1 overflow-hidden">
+    <!-- Main Workspace -->
+    <main class="flex-1 overflow-y-auto p-6">
+      
+      <!-- Statistics Dashboard Bar -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Tổng số Lead</p>
+            <h3 id="stat-total" class="text-2xl font-bold text-gray-900 mt-1">0</h3>
+          </div>
+          <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
+            <i class="fa-solid fa-users text-lg"></i>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Lead Mới (New)</p>
+            <h3 id="stat-new" class="text-2xl font-bold text-amber-600 mt-1">0</h3>
+          </div>
+          <div class="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
+            <i class="fa-solid fa-user-plus text-lg"></i>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Đang liên hệ</p>
+            <h3 id="stat-contacted" class="text-2xl font-bold text-blue-600 mt-1">0</h3>
+          </div>
+          <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
+            <i class="fa-solid fa-phone-volume text-lg"></i>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Chuyển đổi thành công</p>
+            <h3 id="stat-qualified" class="text-2xl font-bold text-emerald-600 mt-1">0</h3>
+          </div>
+          <div class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <i class="fa-solid fa-user-check text-lg"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls & Filter Bar -->
+      <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6 flex flex-wrap items-center justify-between gap-4">
+        <!-- Search Input -->
+        <div class="relative flex-1 min-w-[260px]">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+          <input type="text" id="search-input" onkeyup="filterLeads()" placeholder="Tìm theo tên, email, sđt, công ty..." 
+                 class="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+        </div>
+
+        <!-- Filters -->
+        <div class="flex items-center space-x-3">
+          <select id="filter-source" onchange="filterLeads()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Tất cả nguồn</option>
+            <option value="Hội thảo Software Expo 2026">Hội thảo Software Expo 2026</option>
+            <option value="Sự kiện B2B Networking">Sự kiện B2B Networking</option>
+            <option value="Nhập thủ công">Nhập thủ công</option>
+            <option value="Website Form">Website Form</option>
+          </select>
+
+          <select id="filter-status" onchange="filterLeads()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Tất cả trạng thái</option>
+            <option value="New">Mới (New)</option>
+            <option value="Contacted">Đang liên hệ</option>
+            <option value="Qualified">Tiềm năng cao</option>
+            <option value="Unqualified">Chưa phù hợp</option>
+          </select>
+
+          <button onclick="exportToExcel()" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition">
+            <i class="fa-solid fa-file-export mr-2 text-gray-500"></i> Xuất File
+          </button>
+        </div>
+      </div>
+
+      <!-- Leads Data Table -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th class="py-3 px-4">Mã Lead</th>
+                <th class="py-3 px-4">Họ và tên</th>
+                <th class="py-3 px-4">Thông tin liên hệ</th>
+                <th class="py-3 px-4">Công ty & Chức danh</th>
+                <th class="py-3 px-4">Nguồn Lead</th>
+                <th class="py-3 px-4">Trạng thái</th>
+                <th class="py-3 px-4 text-right">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="lead-table-body" class="divide-y divide-gray-200 text-sm">
+              <!-- Render bằng JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="hidden py-12 text-center">
+          <i class="fa-solid fa-folder-open text-4xl text-gray-300 mb-3"></i>
+          <p class="text-gray-500 font-medium">Không tìm thấy lead phù hợp nào</p>
+        </div>
+      </div>
+    </main>
+
+    <!-- Side-over Drawer (Giao diện Jira Work Item xem chi tiết Lead) -->
+    <aside id="jira-drawer" class="w-[450px] bg-white border-l border-gray-200 shadow-2xl flex flex-col transition-all duration-300 translate-x-full absolute top-0 right-0 bottom-0 z-20">
+      <!-- Drawer Header -->
+      <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
+        <div class="flex items-center space-x-2 text-xs text-gray-500">
+          <i class="fa-solid fa-ticket text-blue-500"></i>
+          <span id="drawer-key" class="font-semibold uppercase text-gray-700">LEAD-001</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button onclick="closeDrawer()" class="text-gray-400 hover:text-gray-600 p-1.5 rounded-md hover:bg-gray-200 transition">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Drawer Body Content -->
+      <div class="flex-1 overflow-y-auto p-6 space-y-6">
+        <!-- Lead Name / Title -->
+        <div>
+          <h2 id="drawer-title" class="text-xl font-bold text-gray-900 mb-1">Tên khách hàng</h2>
+          <p id="drawer-subtitle" class="text-sm text-gray-500">Chức vụ - Tên công ty</p>
+        </div>
+
+        <!-- Status & Priority Badge Selector -->
+        <div class="flex items-center space-x-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
+          <div class="flex-1">
+            <label class="block text-xs font-semibold text-gray-500 mb-1">Trạng thái xử lý</label>
+            <select id="drawer-status-select" onchange="updateLeadStatus()" class="w-full text-xs font-medium border-gray-300 rounded border py-1 px-2 bg-white focus:ring-blue-500">
+              <option value="New">Mới (New)</option>
+              <option value="Contacted">Đang liên hệ</option>
+              <option value="Qualified">Tiềm năng cao</option>
+              <option value="Unqualified">Chưa phù hợp</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Detail Meta Grid -->
+        <div class="space-y-3 border-t border-gray-100 pt-4">
+          <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Thông tin chi tiết</h4>
+          
+          <div class="grid grid-cols-3 gap-2 text-sm">
+            <span class="text-gray-500">Email:</span>
+            <span id="drawer-email" class="col-span-2 text-gray-900 font-medium">--</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 text-sm">
+            <span class="text-gray-500">Số điện thoại:</span>
+            <span id="drawer-phone" class="col-span-2 text-gray-900 font-medium">--</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 text-sm">
+            <span class="text-gray-500">Nguồn Lead:</span>
+            <span id="drawer-source" class="col-span-2 text-gray-900 font-medium">--</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 text-sm">
+            <span class="text-gray-500">Ngày tạo:</span>
+            <span id="drawer-created" class="col-span-2 text-gray-900 font-medium">--</span>
+          </div>
+        </div>
+
+        <!-- Note / Description -->
+        <div class="border-t border-gray-100 pt-4">
+          <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Ghi chú & Yêu cầu từ khách hàng</h4>
+          <textarea id="drawer-notes" rows="4" onchange="updateLeadNotes()" placeholder="Thêm ghi chú cuộc gọi, nhu cầu của khách..." 
+                    class="w-full text-sm p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"></textarea>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- MODAL: Tạo Lead Thủ Công -->
+  <div id="create-modal" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
+      <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+        <h3 class="text-base font-bold text-gray-900">Thêm Lead Mới Thủ Công</h3>
+        <button onclick="closeCreateModal()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <form id="create-lead-form" onsubmit="handleCreateLead(event)" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Họ và tên <span class="text-red-500">*</span></label>
+          <input type="text" id="form-name" required placeholder="Nguyễn Văn A" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Email <span class="text-red-500">*</span></label>
+            <input type="email" id="form-email" required placeholder="example@gmail.com" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Số điện thoại <span class="text-red-500">*</span></label>
+            <input type="tel" id="form-phone" required placeholder="0901234567" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Công ty</label>
+            <input type="text" id="form-company" placeholder="Công ty ABC" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Chức danh</label>
+            <input type="text" id="form-title" placeholder="Trưởng phòng Marketing" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Nguồn thu thập</label>
+          <select id="form-source" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+            <option value="Nhập thủ công">Nhập thủ công</option>
+            <option value="Hội thảo Software Expo 2026">Hội thảo Software Expo 2026</option>
+            <option value="Sự kiện B2B Networking">Sự kiện B2B Networking</option>
+            <option value="Website Form">Website Form</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Ghi chú bổ sung</label>
+          <textarea id="form-notes" rows="2" placeholder="Ghi chú thông tin quan trọng..." class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"></textarea>
+        </div>
+
+        <div class="pt-4 border-t border-gray-100 flex justify-end space-x-3">
+          <button type="button" onclick="closeCreateModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Hủy</button>
+          <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow-sm">Lưu thông tin</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Nhập Excel Hàng Loạt -->
+  <div id="import-modal" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+        <h3 class="text-base font-bold text-gray-900">Nhập danh sách Lead từ Excel / CSV</h3>
+        <button onclick="closeImportModal()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <!-- File Upload Area -->
+        <div id="drop-zone" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-500 transition cursor-pointer bg-gray-50" onclick="document.getElementById('excel-file-input').click()">
+          <i class="fa-solid fa-cloud-arrow-up text-4xl text-gray-400 mb-2"></i>
+          <p class="text-sm font-semibold text-gray-700">Tải lên tập tin Excel (.xlsx, .xls) hoặc CSV</p>
+          <p class="text-xs text-gray-400 mt-1">Bấm vào đây hoặc kéo thả file vào khung này</p>
+          <input type="file" id="excel-file-input" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileSelect(event)">
+        </div>
+
+        <!-- Preview Section -->
+        <div id="preview-container" class="hidden">
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="text-xs font-bold text-gray-500 uppercase">Xem trước dữ liệu sẽ nhập (<span id="preview-count">0</span> lead)</h4>
+            <button onclick="resetImport()" class="text-xs text-red-600 hover:underline">Chọn file khác</button>
+          </div>
+          <div class="max-h-48 overflow-y-auto border border-gray-200 rounded-lg">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-gray-100 sticky top-0">
+                <tr>
+                  <th class="p-2 border-b">Tên</th>
+                  <th class="p-2 border-b">Email</th>
+                  <th class="p-2 border-b">SĐT</th>
+                  <th class="p-2 border-b">Công ty</th>
+                </tr>
+              </thead>
+              <tbody id="preview-table-body" class="divide-y divide-gray-100">
+                <!-- Direct Preview -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="pt-4 border-t border-gray-100 flex items-center justify-between">
+          <button onclick="downloadSampleExcel()" class="text-xs text-blue-600 hover:underline flex items-center">
+            <i class="fa-solid fa-download mr-1"></i> Tải file mẫu chuẩn
+          </button>
+          <div class="flex space-x-3">
+            <button onclick="closeImportModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Hủy</button>
+            <button id="btn-import-submit" onclick="confirmImport()" disabled class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white rounded-lg text-sm font-semibold shadow-sm transition">Xác nhận nhập Lead</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2"></div>
+
+  <!-- Application Logic JavaScript File -->
+  <script src="app.js"></script>
+</body>
+</html>
