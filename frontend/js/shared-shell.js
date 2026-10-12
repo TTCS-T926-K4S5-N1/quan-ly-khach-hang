@@ -72,6 +72,9 @@
             winLoss:
                 `<svg viewBox="0 0 24 24"><path d="M4 4h16v5c0 4-3 7-8 7S4 13 4 9V4ZM8 20h8M12 16v4M4 7H2v2c0 2 1 3 3 3m15-5h2v2c0 2-1 3-3 3"/></svg>`,
 
+            leadScoring:
+                `<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+
             settings:
                 `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.5 1A7 7 0 0 0 15 6l-.4-2.7h-4L10 6a7 7 0 0 0-1.4.8l-2.5-1-2 3.4L6 11a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.5-1A7 7 0 0 0 10 18l.5 2.7h4L15 18a7 7 0 0 0 1.4-.8l2.5 1 2-3.4L19 13a7 7 0 0 0 0-1Z"/></svg>`,
 
@@ -718,6 +721,44 @@
             console.error(
                 "CRM shell load error:",
                 error
+            );
+
+            // Fallback khi chạy không có backend Java (ví dụ Live Server port 5500)
+            currentSession = currentSession || {
+                fullName: "Giám đốc Kinh doanh",
+                email: "sales.director@crm.vn",
+                roles: [{ name: "Giám đốc kinh doanh", code: "SALES_DIRECTOR" }],
+                teamName: "Khối Kinh doanh Toàn quốc"
+            };
+
+            currentMenu = [
+                { section: "workspace", path: "dashboard", label: "Tổng quan", icon: "dashboard" },
+                { section: "workspace", path: "customers", label: "Khách hàng", icon: "customer" },
+                { section: "workspace", path: "pipeline", label: "Cơ hội", icon: "opportunity" },
+                { section: "workspace", path: "calendar", label: "Lịch", icon: "calendar" },
+                { section: "workspace", path: "tasks", label: "Công việc", icon: "task" },
+                { section: "workspace", path: "quotations", label: "Báo giá", icon: "quote" },
+                { section: "workspace", path: "products", label: "Sản phẩm", icon: "product" },
+                { section: "admin", path: "lead-scoring", label: "Chấm điểm Lead", icon: "leadScoring" },
+                { section: "admin", path: "organization", label: "Cơ cấu tổ chức", icon: "organization" },
+                { section: "admin", path: "master-data", label: "Danh mục dùng chung", icon: "master" },
+                { section: "admin", path: "custom-fields", label: "Trường tùy chỉnh", icon: "custom" },
+                { section: "admin", path: "win-loss-settings", label: "Win / Loss", icon: "winLoss" },
+                { section: "admin", path: "pipeline-settings", label: "Cấu hình Pipeline", icon: "settings" }
+            ];
+
+            renderUser();
+
+            renderNavigation(
+                document.getElementById(
+                    "desktopNavigation"
+                )
+            );
+
+            renderNavigation(
+                document.getElementById(
+                    "mobileNavigation"
+                )
             );
         }
     }

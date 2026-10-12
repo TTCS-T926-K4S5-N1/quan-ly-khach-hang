@@ -242,6 +242,15 @@ public class MenuService {
             );
         }
 
+        menu.add(
+                item(
+                        "LEAD_SCORING",
+                        "Chấm điểm Lead",
+                        "lead-scoring",
+                        "admin",
+                        "leadScoring"
+                )
+        );
 
         return menu;
     }
