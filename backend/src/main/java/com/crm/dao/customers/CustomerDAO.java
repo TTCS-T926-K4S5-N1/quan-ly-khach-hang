@@ -30,9 +30,11 @@ public class CustomerDAO {
                     c.company_size_id,
                     c.owner_user_id,
                     c.created_at,
-                    u.full_name AS owner_name
+                    u.full_name AS owner_name,
+                    r.open_count, r.urgent_count, r.overdue_count, r.at_risk
                 FROM customers c
                 LEFT JOIN users u ON u.id = c.owner_user_id
+                LEFT JOIN customer_support_risk r ON r.customer_id = c.id
                 WHERE c.is_deleted = 0
                 """);
 
@@ -133,9 +135,11 @@ public class CustomerDAO {
                     c.company_size_id,
                     c.owner_user_id,
                     c.created_at,
-                    u.full_name AS owner_name
+                    u.full_name AS owner_name,
+                    r.open_count, r.urgent_count, r.overdue_count, r.at_risk
                 FROM customers c
                 LEFT JOIN users u ON u.id = c.owner_user_id
+                LEFT JOIN customer_support_risk r ON r.customer_id = c.id
                 WHERE c.id = ? AND c.is_deleted = 0
                 """;
 
@@ -236,6 +240,7 @@ public class CustomerDAO {
         map.put("ownerName", rs.getString("owner_name"));
         map.put("owner", rs.getString("owner_name"));
         map.put("createdAt", rs.getTimestamp("created_at"));
+        map.put("supportRisk", com.crm.service.support.SupportRisk.from(rs));
         return map;
     }
 }
