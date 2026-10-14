@@ -259,7 +259,8 @@ public class OpportunityDAO {
             stmt.setString(8, req.getProbabilityNote());
             stmt.setObject(9, req.getExpectedCloseDate() != null && !req.getExpectedCloseDate().isBlank() ? java.sql.Date.valueOf(req.getExpectedCloseDate()) : null, Types.DATE);
             stmt.setString(10, req.getLeadSource());
-            stmt.setString(11, req.getStatus());
+            String status = req.getStatus() != null && !req.getStatus().isBlank() ? req.getStatus() : "OPEN";
+            stmt.setString(11, status);
             stmt.setObject(12, req.getWinReasonId(), Types.BIGINT);
             stmt.setObject(13, req.getLossReasonId(), Types.BIGINT);
             stmt.setObject(14, req.getCompetitorId(), Types.BIGINT);
@@ -297,7 +298,8 @@ public class OpportunityDAO {
             stmt.setString(8, req.getProbabilityNote());
             stmt.setObject(9, req.getExpectedCloseDate() != null && !req.getExpectedCloseDate().isBlank() ? java.sql.Date.valueOf(req.getExpectedCloseDate()) : null, Types.DATE);
             stmt.setString(10, req.getLeadSource());
-            stmt.setString(11, req.getStatus());
+            String status = req.getStatus() != null && !req.getStatus().isBlank() ? req.getStatus() : "OPEN";
+            stmt.setString(11, status);
             stmt.setObject(12, req.getWinReasonId(), Types.BIGINT);
             stmt.setObject(13, req.getLossReasonId(), Types.BIGINT);
             stmt.setObject(14, req.getCompetitorId(), Types.BIGINT);
@@ -309,12 +311,26 @@ public class OpportunityDAO {
     }
 
     public void updateStage(long id, long targetStageId, int probability) throws SQLException {
-        String sql = "UPDATE opportunities SET stage_id = ?, probability = ?, stage_updated_at = NOW() WHERE id = ? AND is_deleted = 0";
+        updateStage(id, targetStageId, probability, null, null);
+    }
+
+    public void updateStage(long id, long targetStageId, int probability, String overrideReason, Long overriddenBy) throws SQLException {
+        String sql = """
+                UPDATE opportunities 
+                SET stage_id = ?, probability = ?, stage_updated_at = NOW(),
+                    last_override_reason = COALESCE(?, last_override_reason),
+                    last_overridden_by = COALESCE(?, last_overridden_by),
+                    last_overridden_at = CASE WHEN ? IS NOT NULL THEN NOW() ELSE last_overridden_at END
+                WHERE id = ? AND is_deleted = 0
+                """;
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, targetStageId);
             stmt.setInt(2, probability);
-            stmt.setLong(3, id);
+            stmt.setString(3, overrideReason);
+            stmt.setObject(4, overriddenBy, Types.BIGINT);
+            stmt.setString(5, overrideReason);
+            stmt.setLong(6, id);
             stmt.executeUpdate();
         }
     }

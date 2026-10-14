@@ -339,24 +339,33 @@
 
 
         <label>
-            Điều kiện bắt buộc để rời giai đoạn
+            Quy tắc điều kiện rời giai đoạn (Exit Criteria)
+            <select id="stageConditionType" class="crm-input" style="margin-top: 6px;">
+                <option value="NONE">-- Không áp dụng quy tắc tự động --</option>
+                <option value="HAS_MEETING">Phải có ít nhất một cuộc gặp (Meeting) trong Hoạt động</option>
+                <option value="HAS_CALL">Phải có ít nhất một cuộc gọi (Call) trong Hoạt động</option>
+                <option value="HAS_PRODUCTS">Phải thêm sản phẩm / dịch vụ vào cơ hội để có giá trị căn cứ</option>
+                <option value="HAS_CONTACT">Phải gắn thông tin Người liên hệ (Contact)</option>
+                <option value="MIN_AMOUNT">Giá trị hợp đồng phải lớn hơn 0 đ</option>
+                <option value="CUSTOM">Quy tắc tùy chỉnh khác</option>
+            </select>
+        </label>
 
+        <label style="margin-top: 10px;">
+            Mô tả điều kiện bắt buộc để rời giai đoạn
             <textarea
                 id="stageCondition"
-                rows="4"
-                placeholder="VD: Phải có ít nhất một cuộc gặp..."
+                rows="3"
+                placeholder="VD: Phải có ít nhất một cuộc gặp được ghi nhận trong Hoạt động..."
             ></textarea>
         </label>
 
-
-        <label class="condition-toggle">
-
+        <label class="condition-toggle" style="margin-top: 10px;">
             <input
                 id="stageConditionRequired"
                 type="checkbox"
             >
-
-            Bắt buộc thỏa điều kiện trước khi chuyển giai đoạn
+            Bắt buộc thỏa điều kiện trước khi chuyển giai đoạn (Trưởng nhóm trở lên có thể ghi đè)
         </label>
 
 

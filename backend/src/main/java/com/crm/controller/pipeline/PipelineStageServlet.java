@@ -62,6 +62,7 @@ public class PipelineStageServlet extends HttpServlet {
                                         order_no,
                                         probability,
                                         exit_condition,
+                                        condition_type,
                                         condition_required,
                                         active
                                     FROM pipeline_stages
@@ -242,6 +243,15 @@ public class PipelineStageServlet extends HttpServlet {
                             "exitCondition"
                     );
 
+            String conditionType =
+                    optionalString(
+                            body,
+                            "conditionType"
+                    );
+            if (conditionType == null || conditionType.isBlank()) {
+                conditionType = "NONE";
+            }
+
             boolean conditionRequired =
                     body.has("conditionRequired")
                     &&
@@ -310,10 +320,11 @@ public class PipelineStageServlet extends HttpServlet {
                                                 order_no,
                                                 probability,
                                                 exit_condition,
+                                                condition_type,
                                                 condition_required,
                                                 active
                                             )
-                                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                                             """,
                                             Statement.RETURN_GENERATED_KEYS
                                     )
@@ -344,13 +355,18 @@ public class PipelineStageServlet extends HttpServlet {
                                 exitCondition
                         );
 
-                        statement.setBoolean(
+                        statement.setString(
                                 6,
-                                conditionRequired
+                                conditionType
                         );
 
                         statement.setBoolean(
                                 7,
+                                conditionRequired
+                        );
+
+                        statement.setBoolean(
+                                8,
                                 active
                         );
 
@@ -406,6 +422,7 @@ public class PipelineStageServlet extends HttpServlet {
                                                 order_no = ?,
                                                 probability = ?,
                                                 exit_condition = ?,
+                                                condition_type = ?,
                                                 condition_required = ?,
                                                 active = ?
                                             WHERE id = ?
@@ -438,18 +455,23 @@ public class PipelineStageServlet extends HttpServlet {
                                 exitCondition
                         );
 
-                        statement.setBoolean(
+                        statement.setString(
                                 6,
-                                conditionRequired
+                                conditionType
                         );
 
                         statement.setBoolean(
                                 7,
+                                conditionRequired
+                        );
+
+                        statement.setBoolean(
+                                8,
                                 active
                         );
 
                         statement.setLong(
-                                8,
+                                9,
                                 id
                         );
 
@@ -530,6 +552,7 @@ public class PipelineStageServlet extends HttpServlet {
                                     order_no,
                                     probability,
                                     exit_condition,
+                                    condition_type,
                                     condition_required,
                                     active
                                 FROM pipeline_stages
@@ -593,6 +616,11 @@ public class PipelineStageServlet extends HttpServlet {
         item.put(
                 "exitCondition",
                 rs.getString("exit_condition")
+        );
+
+        item.put(
+                "conditionType",
+                rs.getString("condition_type")
         );
 
         item.put(

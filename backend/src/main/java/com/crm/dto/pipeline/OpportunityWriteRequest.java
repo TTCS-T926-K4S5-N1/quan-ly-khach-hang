@@ -21,6 +21,7 @@ public class OpportunityWriteRequest {
     private String lostReason;
     private Long ownerUserId;
     private Map<String, Object> customFields;
+    private java.util.List<OpportunityItemDTO> items;
 
     public Long getContactId() {
         return contactId;
@@ -156,5 +157,13 @@ public class OpportunityWriteRequest {
 
     public void setCustomFields(Map<String, Object> customFields) {
         this.customFields = customFields;
+    }
+
+    public java.util.List<OpportunityItemDTO> getItems() {
+        return items;
+    }
+
+    public void setItems(java.util.List<OpportunityItemDTO> items) {
+        this.items = items;
     }
 }

@@ -521,10 +521,57 @@
         </div>
 
 
+        <!-- Opportunity Products / Services Section (User Story 1) -->
+        <div class="opp-products-card" style="margin: 14px 0; border: 1px solid var(--crm-border, #cbd5e1); border-radius: 8px; padding: 14px; background: var(--crm-bg-subtle, #f8fafc);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 16px;">📦</span>
+                    <strong style="font-size: 13.5px; color: var(--crm-text, #0f172a);">Sản phẩm & Dịch vụ cơ hội</strong>
+                    <span id="oppProductBadgeCount" style="background: #e2e8f0; color: #475569; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 10px;">0 dòng</span>
+                </div>
+                <button id="btnAddOppProductLine" type="button" class="crm-btn crm-btn-secondary" style="padding: 4px 10px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                    + Thêm sản phẩm
+                </button>
+            </div>
+
+            <div style="overflow-x: auto; max-height: 240px; border-radius: 6px; border: 1px solid var(--crm-border, #e2e8f0); background: #ffffff;">
+                <table id="oppProductsTable" style="width: 100%; min-width: 600px; border-collapse: collapse; font-size: 12px;">
+                    <thead>
+                        <tr style="background: var(--crm-bg-subtle, #f1f5f9); color: #475569; border-bottom: 1px solid var(--crm-border, #e2e8f0); text-align: left;">
+                            <th style="padding: 8px 10px;">Sản phẩm / Dịch vụ</th>
+                            <th style="padding: 8px 6px; width: 60px;">SL</th>
+                            <th style="padding: 8px 8px; width: 100px;">Đơn giá niêm yết</th>
+                            <th style="padding: 8px 6px; width: 55px;">CK %</th>
+                            <th style="padding: 8px 6px; width: 120px;">Kỳ / Số kỳ thuê bao</th>
+                            <th style="padding: 8px 8px; width: 95px; text-align: right;">Thành tiền</th>
+                            <th style="padding: 8px 8px; width: 95px; text-align: right;">ACV (Năm)</th>
+                            <th style="padding: 8px 6px; width: 34px; text-align: center;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="oppProductsTableBody">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Summary Bar -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 8px 12px; background: #f0fdf4; border-radius: 6px; border: 1px solid #bbf7d0; font-size: 12.5px;">
+                <span style="color: #166534;">
+                    Giá trị hợp đồng theo năm (ACV): <b id="oppTotalAcvDisplay" style="color: #15803d; font-size: 13px;">0 ₫</b>
+                </span>
+                <span style="color: #166534;">
+                    Tổng tiền cơ hội: <b id="oppTotalAmountDisplay" style="color: #15803d; font-size: 13.5px;">0 ₫</b>
+                </span>
+            </div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">
+                💡 Đơn giá mặc định lấy từ bảng giá niêm yết. Giá trị cơ hội được tự động tính từ các dòng sản phẩm có căn cứ.
+            </div>
+        </div>
+
         <div class="form-grid">
 
             <label>
-                Giá trị dự kiến (VNĐ)
+                Giá trị cơ hội (VNĐ)
 
                 <input
                     id="opportunityValue"
@@ -1003,6 +1050,50 @@
 
 
 
+
+<!-- =========================================================
+     STAGE CONDITION & OVERRIDE MODAL (USER STORY 2)
+========================================================= -->
+<div id="stageConditionOverlay" class="pipeline-overlay" style="display: none; z-index: 9998;"></div>
+
+<section id="stageConditionModal" class="crm-card" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; width: 92%; max-width: 520px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1); border-radius: 12px; padding: 22px; background: var(--crm-bg-surface, #ffffff); border: 1px solid var(--crm-border, #e2e8f0);">
+    <header style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 38px; height: 38px; border-radius: 8px; background: #fff1f2; color: #e11d48; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                ⚠️
+            </div>
+            <div>
+                <strong style="font-size: 16px; color: #0f172a; display: block;">Chưa đủ điều kiện rời giai đoạn</strong>
+                <span id="scModalStageName" style="font-size: 12.5px; color: #64748b;">Giai đoạn: <strong>Tiếp cận</strong></span>
+            </div>
+        </div>
+        <button id="closeStageConditionModal" type="button" style="background: none; border: none; font-size: 16px; cursor: pointer; color: #94a3b8;">✕</button>
+    </header>
+
+    <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; padding: 12px 14px; margin-bottom: 14px;">
+        <div style="font-size: 12.5px; font-weight: 700; color: #9f1239; margin-bottom: 4px;">Thông báo điều kiện còn thiếu:</div>
+        <div id="scModalMissingDetail" style="font-size: 13px; color: #be123c; line-height: 1.45;">Chưa có cuộc gặp (Meeting) nào được ghi nhận cho cơ hội này.</div>
+    </div>
+
+    <!-- Section for Team Lead / Director / Admin override -->
+    <div id="scOverrideSection" style="margin-top: 14px; border-top: 1px dashed #cbd5e1; padding-top: 14px;">
+        <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+            <span>🛡️ Quyền Trưởng nhóm: Ghi đè điều kiện</span>
+        </div>
+        <p style="font-size: 12px; color: #64748b; margin: 0 0 8px;">Bạn có quyền Trưởng nhóm / Giám đốc để đặc cách bỏ qua điều kiện. Bắt buộc nhập lý do ghi đè để lưu lịch sử kiểm toán:</p>
+        <textarea id="scOverrideReason" class="crm-input" rows="3" placeholder="Nhập lý do ghi đè điều kiện rời giai đoạn..." style="width: 100%; box-sizing: border-box;"></textarea>
+    </div>
+
+    <!-- Alert for regular Sales Rep without override permission -->
+    <div id="scNoOverrideNotice" style="display: none; font-size: 12.5px; color: #475569; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; margin-top: 12px;">
+        ℹ️ Nhân viên kinh doanh không thể tự ý bỏ qua điều kiện rời giai đoạn. Vui lòng hoàn thành yêu cầu trên hoặc báo Trưởng nhóm xem xét ghi đè kèm lý do.
+    </div>
+
+    <footer style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px;">
+        <button id="cancelStageConditionModal" type="button" class="crm-btn crm-btn-secondary">Đóng</button>
+        <button id="btnConfirmStageOverride" type="button" class="crm-btn crm-btn-primary" style="background: #e11d48; border-color: #e11d48;">Xác nhận ghi đè & Chuyển</button>
+    </footer>
+</section>
 
 <script src="js/pages/pipeline.js"></script>
 

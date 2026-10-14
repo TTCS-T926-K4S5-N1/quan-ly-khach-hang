@@ -15,6 +15,9 @@ let currentCustomerContacts = [];
 let draggedOppId = null;
 let closingOppId = null;
 let editingOppId = null;
+let productCatalog = [];
+let currentOpportunityItems = [];
+let pendingStageOverride = null;
 
 const pipelineBoard = document.getElementById("pipelineBoard");
 const opportunityDrawer = document.getElementById("opportunityDrawer");
@@ -91,8 +94,10 @@ async function initPipeline() {
             loadCustomers(),
             loadTeams(),
             loadUsersForFilter(),
-            loadOppCustomFields()
+            loadOppCustomFields(),
+            loadProductCatalog()
         ]);
+        setupOppProductEventListeners();
         await loadOpportunities();
     } catch (err) {
         console.error("Initialization error:", err);
@@ -783,7 +788,8 @@ opportunityForm?.addEventListener("submit", async event => {
         probabilityNote,
         amount,
         expectedCloseDate,
-        customFields
+        customFields,
+        items: currentOpportunityItems
     };
 
     try {
@@ -990,6 +996,10 @@ async function moveStageRelatively(oppId, direction) {
         });
         await loadOpportunities();
     } catch (err) {
+        if (err.data?.conditionBlocked) {
+            openStageConditionModal(oppId, targetStage.id, err.data);
+            return;
+        }
         alert("Không thể chuyển giai đoạn: " + err.message);
     }
 }
@@ -1017,6 +1027,11 @@ async function moveStageTo(oppId, targetStageId) {
         });
         await loadOpportunities();
     } catch (err) {
+        if (err.data?.conditionBlocked) {
+            openStageConditionModal(oppId, targetStageId, err.data);
+            render();
+            return;
+        }
         alert("Không thể chuyển giai đoạn: " + err.message);
         render(); // Rollback UI
     }
@@ -1235,13 +1250,18 @@ async function openOpportunityDrawer(id = null) {
             try {
                 const detail = await api(`/api/opportunities/${id}`);
                 renderOppCustomFieldInputs(detail?.customFields || {});
+                currentOpportunityItems = Array.isArray(detail?.items) ? detail.items : [];
             } catch (e) {
                 renderOppCustomFieldInputs({});
+                currentOpportunityItems = [];
             }
+            renderOpportunityItemsTable();
         }
     } else {
         if (titleEl) titleEl.textContent = "Thêm cơ hội";
         opportunityForm.reset();
+        currentOpportunityItems = [];
+        renderOpportunityItemsTable();
         if (closeDateInput) {
             closeDateInput.min = todayString();
         }
@@ -1365,6 +1385,296 @@ function debounce(fn, ms) {
         timer = setTimeout(() => fn.apply(this, args), ms);
     };
 }
+
+/* =========================================================
+   USER STORY 1: OPPORTUNITY PRODUCTS & CONTRACT VALUE (ACV)
+========================================================= */
+async function loadProductCatalog() {
+    try {
+        const res = await api("/api/products?size=500");
+        productCatalog = Array.isArray(res) ? res : (Array.isArray(res?.items) ? res.items : []);
+    } catch (e) {
+        console.warn("Could not load products catalog:", e);
+        productCatalog = [];
+    }
+}
+
+function recalculateItemAmounts(item) {
+    const qty = Math.max(1, Number(item.quantity) || 1);
+    const unitPrice = Math.max(0, Number(item.unitPrice) || 0);
+    const discount = Math.min(100, Math.max(0, Number(item.discountPercent) || 0));
+    const factor = 1 - (discount / 100);
+    const netUnitPrice = unitPrice * factor;
+    const type = (item.productType || "ONE_TIME").toUpperCase();
+    const cycle = (item.billingCycle || "MONTHLY").toUpperCase();
+    const duration = Math.max(1, Number(item.billingDuration) || 1);
+
+    if (type.includes("RECURRING") || type.includes("SUBSCRIPTION")) {
+        item.amount = Math.round(netUnitPrice * qty * duration);
+        let acv = 0;
+        if (cycle === "YEARLY") {
+            acv = Math.round(netUnitPrice * qty);
+        } else if (cycle === "QUARTERLY") {
+            acv = Math.round(netUnitPrice * qty * 4);
+        } else {
+            acv = Math.round(netUnitPrice * qty * 12);
+        }
+        item.annualContractValue = acv;
+    } else {
+        item.amount = Math.round(netUnitPrice * qty);
+        item.annualContractValue = item.amount;
+    }
+}
+
+function updateOpportunityTotalsFromItems() {
+    let totalAmt = 0;
+    let totalAcv = 0;
+    currentOpportunityItems.forEach(item => {
+        recalculateItemAmounts(item);
+        totalAmt += Number(item.amount || 0);
+        totalAcv += Number(item.annualContractValue || 0);
+    });
+
+    const badgeCount = document.getElementById("oppProductBadgeCount");
+    if (badgeCount) badgeCount.textContent = `${currentOpportunityItems.length} dòng`;
+
+    const acvDisplay = document.getElementById("oppTotalAcvDisplay");
+    if (acvDisplay) acvDisplay.textContent = formatMoney(totalAcv);
+
+    const amtDisplay = document.getElementById("oppTotalAmountDisplay");
+    if (amtDisplay) amtDisplay.textContent = formatMoney(totalAmt);
+
+    const valInput = document.getElementById("opportunityValue");
+    if (valInput) {
+        if (currentOpportunityItems.length > 0) {
+            valInput.value = totalAmt;
+            valInput.readOnly = true;
+            valInput.style.backgroundColor = "var(--crm-bg-subtle, #f1f5f9)";
+            valInput.title = "Giá trị được tính tự động từ các dòng sản phẩm của cơ hội";
+        } else {
+            valInput.readOnly = false;
+            valInput.style.backgroundColor = "";
+            valInput.title = "";
+        }
+    }
+}
+
+function renderOpportunityItemsTable() {
+    const tbody = document.getElementById("oppProductsTableBody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    if (currentOpportunityItems.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align: center; color: #94a3b8; padding: 16px 10px;">
+                    Chưa có sản phẩm hoặc dịch vụ nào được thêm vào cơ hội. Bấm <b>"+ Thêm sản phẩm"</b> để định giá hợp đồng có căn cứ.
+                </td>
+            </tr>
+        `;
+        updateOpportunityTotalsFromItems();
+        return;
+    }
+
+    currentOpportunityItems.forEach((item, index) => {
+        recalculateItemAmounts(item);
+        const tr = document.createElement("tr");
+        tr.style.borderBottom = "1px solid #f1f5f9";
+        const isSub = (item.productType || "").toUpperCase().includes("SUBSCRIPTION") || (item.productType || "").toUpperCase().includes("RECURRING");
+
+        tr.innerHTML = `
+            <td style="padding: 6px 8px;">
+                <select class="crm-input opp-item-prod" data-index="${index}" style="font-size: 12px; padding: 4px 6px; width: 100%;">
+                    <option value="">-- Chọn sản phẩm --</option>
+                    ${productCatalog.map(p => `<option value="${p.id}" ${p.id == item.productId ? 'selected' : ''}>${escapeHtml(p.name)} (${escapeHtml(p.code || '')}) - ${formatMoney(p.listPrice || 0)}</option>`).join("")}
+                </select>
+                ${item.notes ? `<div style="font-size: 11px; color:#64748b; margin-top:2px;">${escapeHtml(item.notes)}</div>` : ''}
+            </td>
+            <td style="padding: 6px;">
+                <input class="crm-input opp-item-qty" data-index="${index}" type="number" min="1" value="${item.quantity || 1}" style="font-size: 12px; padding: 4px; width: 100%;">
+            </td>
+            <td style="padding: 6px;">
+                <input class="crm-input opp-item-price" data-index="${index}" type="number" min="0" step="1000" value="${item.unitPrice || 0}" style="font-size: 12px; padding: 4px; width: 100%;" title="Đơn giá niêm yết (có thể điều chỉnh)">
+            </td>
+            <td style="padding: 6px;">
+                <input class="crm-input opp-item-discount" data-index="${index}" type="number" min="0" max="100" value="${item.discountPercent || 0}" style="font-size: 12px; padding: 4px; width: 100%;">
+            </td>
+            <td style="padding: 6px;">
+                ${isSub ? `
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                        <select class="crm-input opp-item-cycle" data-index="${index}" style="font-size: 11px; padding: 3px; flex: 1;">
+                            <option value="MONTHLY" ${item.billingCycle === 'MONTHLY' ? 'selected' : ''}>Tháng</option>
+                            <option value="QUARTERLY" ${item.billingCycle === 'QUARTERLY' ? 'selected' : ''}>Quý</option>
+                            <option value="YEARLY" ${item.billingCycle === 'YEARLY' ? 'selected' : ''}>Năm</option>
+                        </select>
+                        <input class="crm-input opp-item-duration" data-index="${index}" type="number" min="1" value="${item.billingDuration || 12}" title="Số kỳ thuê bao (VD: 12 tháng)" style="font-size: 11px; padding: 3px; width: 45px;">
+                    </div>
+                ` : `
+                    <span style="color: #64748b; font-size: 11.5px;">Một lần</span>
+                `}
+            </td>
+            <td style="padding: 6px 8px; text-align: right; font-weight: 600; color: #1e293b;">
+                ${formatMoney(item.amount)}
+            </td>
+            <td style="padding: 6px 8px; text-align: right; font-weight: 600; color: #0284c7;">
+                ${formatMoney(item.annualContractValue)}
+            </td>
+            <td style="padding: 6px 4px; text-align: center;">
+                <button type="button" class="btn-remove-opp-item" data-index="${index}" style="background: none; border: none; color: #ef4444; font-size: 14px; cursor: pointer; padding: 2px;" title="Xóa dòng">✕</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    updateOpportunityTotalsFromItems();
+}
+
+function setupOppProductEventListeners() {
+    const btnAdd = document.getElementById("btnAddOppProductLine");
+    btnAdd?.addEventListener("click", () => {
+        currentOpportunityItems.push({
+            id: null,
+            productId: null,
+            productCode: "",
+            productName: "",
+            productType: "ONE_TIME",
+            quantity: 1,
+            unitPrice: 0,
+            discountPercent: 0,
+            billingCycle: "MONTHLY",
+            billingDuration: 12,
+            amount: 0,
+            annualContractValue: 0
+        });
+        renderOpportunityItemsTable();
+    });
+
+    const tbody = document.getElementById("oppProductsTableBody");
+    tbody?.addEventListener("change", event => {
+        const target = event.target;
+        const index = Number(target.dataset.index);
+        if (isNaN(index) || !currentOpportunityItems[index]) return;
+        const item = currentOpportunityItems[index];
+
+        if (target.classList.contains("opp-item-prod")) {
+            const prodId = Number(target.value);
+            const prod = productCatalog.find(p => p.id === prodId);
+            if (prod) {
+                item.productId = prod.id;
+                item.productCode = prod.code;
+                item.productName = prod.name;
+                item.productType = prod.type || "PHYSICAL";
+                item.unit = prod.unit || "";
+                item.unitPrice = Number(prod.listPrice || 0);
+                if (String(prod.type).toUpperCase().includes("SUBSCRIPTION") || String(prod.type).toUpperCase().includes("RECURRING")) {
+                    item.billingCycle = "MONTHLY";
+                    item.billingDuration = 12;
+                } else {
+                    item.billingCycle = "ONE_TIME";
+                    item.billingDuration = 1;
+                }
+            } else {
+                item.productId = null;
+                item.productName = "";
+                item.unitPrice = 0;
+            }
+            renderOpportunityItemsTable();
+            return;
+        }
+
+        if (target.classList.contains("opp-item-qty")) {
+            item.quantity = Math.max(1, Number(target.value) || 1);
+        } else if (target.classList.contains("opp-item-price")) {
+            item.unitPrice = Math.max(0, Number(target.value) || 0);
+        } else if (target.classList.contains("opp-item-discount")) {
+            item.discountPercent = Math.min(100, Math.max(0, Number(target.value) || 0));
+        } else if (target.classList.contains("opp-item-cycle")) {
+            item.billingCycle = target.value;
+        } else if (target.classList.contains("opp-item-duration")) {
+            item.billingDuration = Math.max(1, Number(target.value) || 1);
+        }
+
+        renderOpportunityItemsTable();
+    });
+
+    tbody?.addEventListener("click", event => {
+        const removeBtn = event.target.closest(".btn-remove-opp-item");
+        if (removeBtn) {
+            const index = Number(removeBtn.dataset.index);
+            if (!isNaN(index) && currentOpportunityItems[index]) {
+                currentOpportunityItems.splice(index, 1);
+                renderOpportunityItemsTable();
+            }
+        }
+    });
+}
+
+/* =========================================================
+   USER STORY 2: MANDATORY STAGE EXIT CRITERIA & OVERRIDE
+========================================================= */
+function openStageConditionModal(oppId, targetStageId, conditionData) {
+    pendingStageOverride = { oppId, targetStageId };
+
+    const modal = document.getElementById("stageConditionModal");
+    const overlay = document.getElementById("stageConditionOverlay");
+    const stageNameEl = document.getElementById("scModalStageName");
+    const missingEl = document.getElementById("scModalMissingDetail");
+    const overrideSection = document.getElementById("scOverrideSection");
+    const noOverrideNotice = document.getElementById("scNoOverrideNotice");
+    const reasonInput = document.getElementById("scOverrideReason");
+
+    if (stageNameEl) stageNameEl.innerHTML = `Giai đoạn: <strong>${escapeHtml(conditionData.stageName || "Hiện tại")}</strong>`;
+    if (missingEl) missingEl.textContent = conditionData.missingReason || conditionData.exitCondition || "Chưa đạt điều kiện rời giai đoạn theo cấu hình.";
+    if (reasonInput) reasonInput.value = "";
+
+    const canOverride = Boolean(conditionData.canOverride);
+    if (overrideSection) overrideSection.style.display = canOverride ? "block" : "none";
+    if (noOverrideNotice) noOverrideNotice.style.display = canOverride ? "none" : "block";
+
+    const confirmBtn = document.getElementById("btnConfirmStageOverride");
+    if (confirmBtn) confirmBtn.style.display = canOverride ? "inline-block" : "none";
+
+    if (modal) modal.style.display = "block";
+    if (overlay) overlay.style.display = "block";
+}
+
+function closeStageConditionModal() {
+    const modal = document.getElementById("stageConditionModal");
+    const overlay = document.getElementById("stageConditionOverlay");
+    if (modal) modal.style.display = "none";
+    if (overlay) overlay.style.display = "none";
+    pendingStageOverride = null;
+}
+
+document.getElementById("closeStageConditionModal")?.addEventListener("click", closeStageConditionModal);
+document.getElementById("cancelStageConditionModal")?.addEventListener("click", closeStageConditionModal);
+document.getElementById("stageConditionOverlay")?.addEventListener("click", closeStageConditionModal);
+
+document.getElementById("btnConfirmStageOverride")?.addEventListener("click", async () => {
+    if (!pendingStageOverride) return;
+    const reasonInput = document.getElementById("scOverrideReason");
+    const reason = (reasonInput?.value || "").trim();
+
+    if (!reason) {
+        alert("Bắt buộc phải nhập lý do đặc cách ghi đè để lưu lịch sử kiểm toán.");
+        reasonInput?.focus();
+        return;
+    }
+
+    try {
+        await api(`/api/opportunities/${pendingStageOverride.oppId}/stage`, {
+            method: "POST",
+            body: JSON.stringify({
+                stageId: pendingStageOverride.targetStageId,
+                overrideReason: reason
+            })
+        });
+        closeStageConditionModal();
+        await loadOpportunities();
+    } catch (err) {
+        alert("Lỗi khi ghi đè chuyển giai đoạn: " + err.message);
+    }
+});
 
 // Start
 initPipeline();

@@ -2,19 +2,27 @@ package com.crm.service.pipeline;
 
 import com.crm.dao.customfields.CustomFieldValueDAO;
 import com.crm.dao.pipeline.OpportunityDAO;
+import com.crm.dao.pipeline.OpportunityItemDAO;
 import com.crm.dao.pipeline.PipelineStageDAO;
 import com.crm.dto.pipeline.OpportunityWriteRequest;
 import com.crm.service.permissions.DataScopeContext;
 import com.crm.service.permissions.DataScopeService;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Types;
 import java.util.*;
 
 public class OpportunityService {
 
     private final OpportunityDAO opportunityDAO = new OpportunityDAO();
     private final PipelineStageDAO stageDAO = new PipelineStageDAO();
+    private final OpportunityItemDAO itemDAO = new OpportunityItemDAO();
     private final CustomFieldValueDAO customFieldValueDAO = new CustomFieldValueDAO();
     private final DataScopeService dataScopeService = new DataScopeService();
+    private final com.crm.dao.permissions.PermissionDAO permissionDAO = new com.crm.dao.permissions.PermissionDAO();
+    private final com.crm.service.audit.AuditLogService auditLogService = new com.crm.service.audit.AuditLogService();
 
     public List<Map<String, Object>> search(
             long currentUserId,
@@ -73,6 +81,14 @@ public class OpportunityService {
 
         Map<String, Object> customFields = customFieldValueDAO.getValues("OPPORTUNITY", id);
         opp.put("customFields", customFields);
+
+        // Nạp danh sách sản phẩm / dịch vụ của cơ hội & tổng ACV
+        List<com.crm.dto.pipeline.OpportunityItemDTO> items = itemDAO.findByOpportunityId(id);
+        Map<String, Object> totals = itemDAO.calculateOpportunityTotals(id);
+        opp.put("items", items);
+        opp.put("itemCount", totals.get("itemCount"));
+        opp.put("totalAcv", totals.get("totalAcv"));
+
         return opp;
     }
 
@@ -112,7 +128,22 @@ public class OpportunityService {
             }
         }
 
+        // Nếu có danh sách sản phẩm, tự động tính tổng tiền từ các dòng sản phẩm
+        if (req.getItems() != null && !req.getItems().isEmpty()) {
+            java.math.BigDecimal total = java.math.BigDecimal.ZERO;
+            for (var item : req.getItems()) {
+                OpportunityItemDAO.calculateItemAmounts(item);
+                total = total.add(item.getAmount());
+            }
+            req.setAmount(total);
+        }
+
         long id = opportunityDAO.create(req, currentUserId);
+
+        // Lưu các dòng sản phẩm nếu có
+        if (req.getItems() != null && !req.getItems().isEmpty()) {
+            itemDAO.saveItems(id, req.getItems());
+        }
 
         if (req.getCustomFields() != null && !req.getCustomFields().isEmpty()) {
             customFieldValueDAO.saveValues("OPPORTUNITY", id, req.getCustomFields());
@@ -141,6 +172,13 @@ public class OpportunityService {
             throw new SecurityException("Bạn không có quyền truy cập dữ liệu này do giới hạn phạm vi sở hữu.");
         }
 
+        // Nếu có dòng sản phẩm truyền lên, tự động cập nhật và tính lại tổng tiền
+        if (req.getItems() != null) {
+            itemDAO.saveItems(id, req.getItems());
+            Map<String, Object> totals = itemDAO.calculateOpportunityTotals(id);
+            req.setAmount((java.math.BigDecimal) totals.get("totalAmount"));
+        }
+
         opportunityDAO.update(id, req);
 
         if (req.getCustomFields() != null && !req.getCustomFields().isEmpty()) {
@@ -151,6 +189,10 @@ public class OpportunityService {
     }
 
     public Map<String, Object> changeStage(long currentUserId, long id, long targetStageId) throws Exception {
+        return changeStage(currentUserId, id, targetStageId, null);
+    }
+
+    public Map<String, Object> changeStage(long currentUserId, long id, long targetStageId, String overrideReason) throws Exception {
         DataScopeContext scope = dataScopeService.resolve(currentUserId, "opportunity", "update");
         Map<String, Object> opp = opportunityDAO.findById(id);
         if (opp == null) {
@@ -168,17 +210,53 @@ public class OpportunityService {
             throw new IllegalArgumentException("Giai đoạn đích không tồn tại.");
         }
 
-        // CRM-37 Tiêu chí 3: Kiểm tra điều kiện bắt buộc rời giai đoạn hiện tại (nếu có cấu hình)
+        // USER STORY 2: Kiểm tra điều kiện bắt buộc rời giai đoạn hiện tại
         Long currentStageId = (Long) opp.get("stageId");
         if (currentStageId != null && currentStageId != targetStageId) {
             var currentStage = stageDAO.findById(currentStageId);
             if (currentStage != null) {
-                String requirements = (String) currentStage.get("requirements");
-                if (requirements != null && !requirements.isBlank()) {
-                    // Check if requirements are met
-                    boolean isWonOrLost = Boolean.TRUE.equals(targetStage.get("isWon")) || Boolean.TRUE.equals(targetStage.get("isLost"));
-                    if (!isWonOrLost && requirements.toLowerCase().contains("gặp") && opp.get("contactName") == null) {
-                        throw new IllegalArgumentException("Điều kiện rời giai đoạn '" + currentStage.get("name") + "': " + requirements);
+                boolean conditionRequired = Boolean.TRUE.equals(currentStage.get("conditionRequired"));
+                String conditionType = (String) currentStage.get("conditionType");
+                String exitCondition = (String) currentStage.get("exitCondition");
+                if (exitCondition == null || exitCondition.isBlank()) {
+                    exitCondition = (String) currentStage.get("requirements");
+                }
+
+                boolean isWonOrLost = Boolean.TRUE.equals(targetStage.get("isWon")) || Boolean.TRUE.equals(targetStage.get("isLost"));
+
+                if (conditionRequired && !isWonOrLost) {
+                    String missingReason = checkMissingExitCondition(id, opp, conditionType, exitCondition);
+                    if (missingReason != null) {
+                        // Điều kiện chưa thỏa! Kiểm tra quyền Trưởng nhóm trở lên
+                        boolean canOverride = permissionDAO.hasRole(currentUserId, "ADMIN")
+                                || permissionDAO.hasRole(currentUserId, "DIRECTOR")
+                                || permissionDAO.hasRole(currentUserId, "TEAM_LEAD");
+
+                        if (overrideReason != null && !overrideReason.isBlank()) {
+                            if (!canOverride) {
+                                throw new SecurityException("Chỉ Trưởng nhóm trở lên mới có quyền ghi đè điều kiện chuyển giai đoạn.");
+                            }
+                            // Ghi đè hợp lệ -> Ghi log kiểm toán
+                            auditLogService.log(
+                                    currentUserId,
+                                    "OPPORTUNITY",
+                                    String.valueOf(id),
+                                    "STAGE_OVERRIDE",
+                                    "Ghi đè điều kiện rời giai đoạn '" + currentStage.get("name") + "'. Lý do: " + overrideReason.trim()
+                            );
+                            int prob = targetStage.get("winProbability") != null ? ((Number) targetStage.get("winProbability")).intValue() : 0;
+                            opportunityDAO.updateStage(id, targetStageId, prob, overrideReason.trim(), currentUserId);
+                            return getById(currentUserId, id);
+                        } else {
+                            // Chưa nhập lý do ghi đè -> ném ngoại lệ cấu trúc để Frontend hiển thị modal
+                            throw new com.crm.exception.StageConditionException(
+                                    (String) currentStage.get("name"),
+                                    conditionType,
+                                    exitCondition,
+                                    missingReason,
+                                    canOverride
+                            );
+                        }
                     }
                 }
             }
@@ -188,6 +266,113 @@ public class OpportunityService {
         opportunityDAO.updateStage(id, targetStageId, prob);
 
         return getById(currentUserId, id);
+    }
+
+    private String checkMissingExitCondition(long oppId, Map<String, Object> opp, String conditionType, String exitCondition) throws Exception {
+        String cond = (conditionType != null ? conditionType : "").toUpperCase();
+        String text = (exitCondition != null ? exitCondition : "").toLowerCase();
+        Long custId = (Long) opp.get("customerId");
+
+        // 1. Kiểm tra cuộc gặp (Meeting)
+        if ("HAS_MEETING".equals(cond) || text.contains("gặp") || text.contains("meeting")) {
+            if (!hasMeeting(oppId, custId)) {
+                return "Chưa có cuộc gặp (Meeting) nào được ghi nhận cho cơ hội này trong mục Hoạt động.";
+            }
+        }
+
+        // 2. Kiểm tra cuộc gọi (Call)
+        if ("HAS_CALL".equals(cond) || text.contains("gọi") || text.contains("call")) {
+            if (!hasCall(oppId, custId)) {
+                return "Chưa có cuộc gọi (Call) nào được ghi nhận cho cơ hội này trong mục Hoạt động.";
+            }
+        }
+
+        // 3. Kiểm tra sản phẩm / dịch vụ
+        if ("HAS_PRODUCTS".equals(cond) || text.contains("sản phẩm") || text.contains("dịch vụ")) {
+            List<com.crm.dto.pipeline.OpportunityItemDTO> items = itemDAO.findByOpportunityId(oppId);
+            if (items == null || items.isEmpty()) {
+                return "Chưa có sản phẩm hoặc dịch vụ nào được thêm vào cơ hội để xác định giá trị hợp đồng có căn cứ.";
+            }
+        }
+
+        // 4. Kiểm tra người liên hệ
+        if ("HAS_CONTACT".equals(cond) || text.contains("người liên hệ") || text.contains("liên hệ")) {
+            if (opp.get("contactId") == null && opp.get("contactName") == null) {
+                return "Chưa gắn thông tin người liên hệ (Contact) cho cơ hội này.";
+            }
+        }
+
+        // 5. Kiểm tra giá trị cơ hội > 0
+        if ("MIN_AMOUNT".equals(cond) || text.contains("giá trị") || text.contains("hợp đồng")) {
+            java.math.BigDecimal amt = (java.math.BigDecimal) opp.get("amount");
+            if (amt == null || amt.compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                return "Giá trị hợp đồng của cơ hội phải lớn hơn 0 đ.";
+            }
+        }
+
+        return null;
+    }
+
+    private boolean hasMeeting(long opportunityId, Long customerId) throws Exception {
+        String sql = """
+            SELECT COUNT(*) FROM activities 
+            WHERE (opportunity_id = ? OR (opportunity_id IS NULL AND customer_id = ?))
+              AND type = 'MEETING' AND is_deleted = 0
+        """;
+        try (Connection conn = com.crm.config.DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, opportunityId);
+            ps.setObject(2, customerId, Types.BIGINT);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() && rs.getInt(1) > 0;
+            }
+        }
+    }
+
+    private boolean hasCall(long opportunityId, Long customerId) throws Exception {
+        String sql = """
+            SELECT COUNT(*) FROM activities 
+            WHERE (opportunity_id = ? OR (opportunity_id IS NULL AND customer_id = ?))
+              AND type = 'CALL' AND is_deleted = 0
+        """;
+        try (Connection conn = com.crm.config.DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, opportunityId);
+            ps.setObject(2, customerId, Types.BIGINT);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() && rs.getInt(1) > 0;
+            }
+        }
+    }
+
+    public List<com.crm.dto.pipeline.OpportunityItemDTO> getItems(long currentUserId, long oppId) throws Exception {
+        getById(currentUserId, oppId); // check permissions
+        return itemDAO.findByOpportunityId(oppId);
+    }
+
+    public List<com.crm.dto.pipeline.OpportunityItemDTO> saveItems(long currentUserId, long oppId, List<com.crm.dto.pipeline.OpportunityItemDTO> items) throws Exception {
+        DataScopeContext scope = dataScopeService.resolve(currentUserId, "opportunity", "update");
+        Map<String, Object> opp = opportunityDAO.findById(oppId);
+        if (opp == null) throw new NoSuchElementException("Cơ hội không tồn tại.");
+        long ownerId = (Long) opp.get("ownerUserId");
+        if (!scope.canAccessOwner(ownerId)) {
+            throw new SecurityException("Bạn không có quyền cập nhật cơ hội này.");
+        }
+
+        itemDAO.saveItems(oppId, items);
+        return itemDAO.findByOpportunityId(oppId);
+    }
+
+    public void deleteItem(long currentUserId, long oppId, long itemId) throws Exception {
+        DataScopeContext scope = dataScopeService.resolve(currentUserId, "opportunity", "update");
+        Map<String, Object> opp = opportunityDAO.findById(oppId);
+        if (opp == null) throw new NoSuchElementException("Cơ hội không tồn tại.");
+        long ownerId = (Long) opp.get("ownerUserId");
+        if (!scope.canAccessOwner(ownerId)) {
+            throw new SecurityException("Bạn không có quyền cập nhật cơ hội này.");
+        }
+
+        itemDAO.deleteItem(itemId, oppId);
     }
 
     public Map<String, Object> closeDeal(

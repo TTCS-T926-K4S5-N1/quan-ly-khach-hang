@@ -84,6 +84,14 @@ public class OpportunityServlet extends HttpServlet {
                 return;
             }
 
+            String[] getSegments = segments(path);
+            if (getSegments.length == 2 && "items".equals(getSegments[1])) {
+                long targetId = Long.parseLong(getSegments[0]);
+                var items = opportunityService.getItems(currentUserId, targetId);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Lấy danh sách sản phẩm cơ hội thành công", items));
+                return;
+            }
+
             long id = parseId(path);
             var item = opportunityService.getById(currentUserId, id);
             if (item == null) {
@@ -103,6 +111,7 @@ public class OpportunityServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        req.setCharacterEncoding("UTF-8");
         try {
             long currentUserId = requireUser(req);
             String path = req.getPathInfo();
@@ -119,13 +128,23 @@ public class OpportunityServlet extends HttpServlet {
                 long targetId = Long.parseLong(segments[0]);
                 String action = segments[1];
 
+                if ("items".equals(action)) {
+                    java.lang.reflect.Type listType = new com.google.gson.reflect.TypeToken<List<com.crm.dto.pipeline.OpportunityItemDTO>>(){}.getType();
+                    List<com.crm.dto.pipeline.OpportunityItemDTO> items = JsonUtil.getGson().fromJson(req.getReader(), listType);
+                    var saved = opportunityService.saveItems(currentUserId, targetId, items != null ? items : Collections.emptyList());
+                    ResponseUtil.json(resp, 200, ApiResponse.success("Lưu danh sách sản phẩm thành công", saved));
+                    return;
+                }
+
                 if ("stage".equals(action)) {
                     Map<String, Object> body = JsonUtil.getGson().fromJson(req.getReader(), com.crm.util.JsonUtil.OBJECT_MAP_TYPE);
                     if (body == null || body.get("stageId") == null) {
                         throw new IllegalArgumentException("Thiếu stageId");
                     }
                     long targetStageId = ((Number) body.get("stageId")).longValue();
-                    var updated = opportunityService.changeStage(currentUserId, targetId, targetStageId);
+                    String overrideReason = body.get("overrideReason") != null ? String.valueOf(body.get("overrideReason")).trim() : null;
+
+                    var updated = opportunityService.changeStage(currentUserId, targetId, targetStageId, overrideReason);
                     ResponseUtil.json(resp, 200, ApiResponse.success("Chuyển giai đoạn thành công", updated));
                     return;
                 }
@@ -148,17 +167,28 @@ public class OpportunityServlet extends HttpServlet {
             }
 
             ResponseUtil.json(resp, 404, ApiResponse.error("Endpoint không tồn tại", null));
+        } catch (com.crm.exception.StageConditionException e) {
+            Map<String, Object> errData = new HashMap<>();
+            errData.put("conditionBlocked", true);
+            errData.put("canOverride", e.isCanOverride());
+            errData.put("stageName", e.getStageName());
+            errData.put("conditionType", e.getConditionType());
+            errData.put("exitCondition", e.getExitCondition());
+            errData.put("missingReason", e.getMissingReason());
+            ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), errData));
         } catch (SecurityException e) {
             ResponseUtil.json(resp, 403, ApiResponse.error(e.getMessage(), null));
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
-            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));
+            e.printStackTrace();
+            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ: " + e.getMessage(), null));
         }
     }
 
     @Override
     protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        req.setCharacterEncoding("UTF-8");
         try {
             long currentUserId = requireUser(req);
             long id = parseId(req.getPathInfo());
@@ -184,7 +214,18 @@ public class OpportunityServlet extends HttpServlet {
     protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
             long currentUserId = requireUser(req);
-            long id = parseId(req.getPathInfo());
+            String path = req.getPathInfo();
+            String[] segments = segments(path);
+
+            if (segments.length == 3 && "items".equals(segments[1])) {
+                long targetId = Long.parseLong(segments[0]);
+                long itemId = Long.parseLong(segments[2]);
+                opportunityService.deleteItem(currentUserId, targetId, itemId);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Xóa sản phẩm khỏi cơ hội thành công", null));
+                return;
+            }
+
+            long id = parseId(path);
 
             opportunityService.delete(currentUserId, id);
             ResponseUtil.json(resp, 200, ApiResponse.success("Xóa cơ hội thành công", null));
