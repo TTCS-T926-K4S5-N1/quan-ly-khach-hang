@@ -2,8 +2,9 @@
 
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
-                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="
+         http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
 
@@ -14,12 +15,18 @@
     <packaging>war</packaging>
 
     <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+
+        <project.build.sourceEncoding>
+            UTF-8
+        </project.build.sourceEncoding>
+
     </properties>
 
     <dependencies>
+
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-to-jul</artifactId>
@@ -51,7 +58,6 @@
             <artifactId>jbcrypt</artifactId>
             <version>0.4</version>
         </dependency>
-
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -59,46 +65,52 @@
             <scope>test</scope>
         </dependency>
 
-        <dependency>
+            <dependency>
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-ooxml</artifactId>
             <version>5.4.1</version>
         </dependency>
-
+    
         <dependency>
             <groupId>org.eclipse.angus</groupId>
             <artifactId>jakarta.mail</artifactId>
             <version>2.0.3</version>
         </dependency>
+
     </dependencies>
 
     <build>
+
         <finalName>crm</finalName>
 
         <plugins>
+
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
+
+                <groupId>
+                    org.apache.maven.plugins
+                </groupId>
+
+                <artifactId>
+                    maven-compiler-plugin
+                </artifactId>
+
                 <version>3.13.0</version>
 
                 <configuration>
-                    <release>17</release>
+                    <release>21</release>
                     <showWarnings>true</showWarnings>
-                    <compilerArgs>
-                        <arg>-Xlint:unchecked,rawtypes</arg>
-                        <arg>-Werror</arg>
-                    </compilerArgs>
+                    <compilerArgs><arg>-Xlint:unchecked,rawtypes</arg><arg>-Werror</arg></compilerArgs>
                 </configuration>
+
             </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
                 <version>3.4.0</version>
-
                 <configuration>
                     <failOnMissingWebXml>false</failOnMissingWebXml>
-
                     <webResources>
                         <resource>
                             <directory>${project.basedir}/../frontend</directory>
@@ -112,7 +124,9 @@
                     </webResources>
                 </configuration>
             </plugin>
+
         </plugins>
+
     </build>
 
 </project>
