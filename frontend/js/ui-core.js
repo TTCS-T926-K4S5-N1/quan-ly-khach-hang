@@ -411,11 +411,11 @@ window.crmUpdateGlobalAvatar =
 function setupActiveNavigation() {
 
     const currentFile =
-        window.location.pathname
+        (window.location.pathname
             .split("/")
             .pop()
         ||
-        "dashboard.html";
+        "dashboard").replace(/\.html$/, "");
 
 
     document
@@ -430,6 +430,10 @@ function setupActiveNavigation() {
                         "href"
                     );
 
+                const hrefClean =
+                    (href || "")
+                        .split("?")[0]
+                        .replace(/\.html$/, "");
 
                 item.classList.toggle(
                     "active",
@@ -438,8 +442,7 @@ function setupActiveNavigation() {
                         &&
                         href !== "#"
                         &&
-                        href.split("?")[0]
-                        === currentFile
+                        hrefClean === currentFile
                     )
                 );
 
