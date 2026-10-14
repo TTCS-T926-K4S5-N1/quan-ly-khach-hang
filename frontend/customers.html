@@ -185,6 +185,16 @@
 
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
             <a
+                href="lead-reports"
+                id="btnGoLeadReports"
+                class="crm-btn crm-btn-secondary"
+                style="display:inline-flex; align-items:center; gap:6px; font-weight:600; text-decoration:none;"
+                title="Báo cáo hiệu quả từng nguồn lead và chiến dịch Marketing (Doanh thu & ROI)"
+            >
+                📈 Báo cáo Nguồn Lead
+            </a>
+
+            <a
                 href="import-leads"
                 id="btnGoImportLead"
                 class="crm-btn crm-btn-secondary"
@@ -260,9 +270,9 @@
 
     <!-- ================= THANH TÌM KIẾM & BỘ LỌC ĐA ĐIỀU KIỆN ================= -->
     <section class="customer-toolbar crm-card" style="display: flex; flex-direction: column; gap: 12px; padding: 16px; margin-bottom: 16px;">
-        <!-- Hàng 1: Tìm kiếm từ khóa tổng quát + Tìm SĐT liên hệ -->
+        <!-- Hàng 1: Tìm kiếm từ khóa tổng quát + Tìm SĐT liên hệ + Nguồn Lead + Trạng thái -->
         <div style="display: flex; flex-wrap: wrap; gap: 12px; width: 100%;">
-            <div class="toolbar-search" style="flex: 2; min-width: 260px;">
+            <div class="toolbar-search" style="flex: 2; min-width: 240px;">
                 <input
                     id="customerSearch"
                     class="crm-input"
@@ -271,7 +281,7 @@
                 >
             </div>
 
-            <div style="flex: 1.2; min-width: 200px;">
+            <div style="flex: 1.1; min-width: 170px;">
                 <input
                     id="contactPhoneFilter"
                     class="crm-input"
@@ -281,7 +291,21 @@
                 >
             </div>
 
-            <select id="statusFilter" class="crm-input" style="flex: 1; min-width: 150px;">
+            <select id="leadSourceFilter" class="crm-input" style="flex: 1.2; min-width: 170px;">
+                <option value="">🌐 Tất cả nguồn Lead</option>
+                <option value="HOI_THAO">🎪 Hội thảo & Sự kiện</option>
+                <option value="WEBSITE">🌐 Website Form</option>
+                <option value="FACEBOOK">📱 Facebook Lead Ads</option>
+                <option value="GOOGLE_ADS">🔍 Google Search Ads</option>
+                <option value="TIKTOK">🎵 TikTok Ads</option>
+                <option value="LINKEDIN">💼 LinkedIn B2B</option>
+                <option value="EMAIL_MARKETING">📧 Email Marketing</option>
+                <option value="GIOI_THIEU">🤝 Khách hàng giới thiệu</option>
+                <option value="DANH_THIEP">📇 Danh thiếp / Trực tiếp</option>
+                <option value="KHAC">✨ Nguồn khác</option>
+            </select>
+
+            <select id="statusFilter" class="crm-input" style="flex: 1; min-width: 140px;">
                 <option value="">Tất cả trạng thái</option>
                 <option value="MOI">Mới (Lead)</option>
                 <option value="TIEM_NANG">Tiềm năng</option>
@@ -292,9 +316,9 @@
             </select>
         </div>
 
-        <!-- Hàng 2: Lọc theo Ngành nghề, Quy mô, Khu vực, Người sở hữu -->
+        <!-- Hàng 2: Lọc theo Ngành nghề, Quy mô, Khu vực, Người sở hữu, Điểm số, Thời gian tạo -->
         <div style="display: flex; flex-wrap: wrap; gap: 12px; width: 100%; align-items: center;">
-            <select id="industryFilter" class="crm-input" style="flex: 1; min-width: 160px;">
+            <select id="industryFilter" class="crm-input" style="flex: 1; min-width: 150px;">
                 <option value="">🏢 Tất cả ngành nghề</option>
                 <option value="1">CNTT & Viễn thông</option>
                 <option value="2">Bất động sản & Xây dựng</option>
@@ -307,7 +331,7 @@
                 <option value="9">Vận tải & Logistics</option>
             </select>
 
-            <select id="companySizeFilter" class="crm-input" style="flex: 1; min-width: 150px;">
+            <select id="companySizeFilter" class="crm-input" style="flex: 1; min-width: 140px;">
                 <option value="">👥 Tất cả quy mô</option>
                 <option value="10">Dưới 20 nhân sự</option>
                 <option value="11">20 - 50 nhân sự</option>
@@ -316,7 +340,7 @@
                 <option value="14">Trên 500 nhân sự</option>
             </select>
 
-            <select id="regionFilter" class="crm-input" style="flex: 1; min-width: 150px;">
+            <select id="regionFilter" class="crm-input" style="flex: 1; min-width: 140px;">
                 <option value="">📍 Tất cả khu vực</option>
                 <option value="22">Khu vực Hà Nội</option>
                 <option value="26">Khu vực TP. Hồ Chí Minh</option>
@@ -327,23 +351,36 @@
                 <option value="20">Toàn quốc</option>
             </select>
 
-            <select id="ownerFilter" class="crm-input" style="flex: 1; min-width: 160px;">
+            <select id="ownerFilter" class="crm-input" style="flex: 1; min-width: 150px;">
                 <option value="">👤 Tất cả người sở hữu</option>
                 <option value="MINE">⭐️ Khách do tôi phụ trách</option>
             </select>
 
-            <select id="scoreGradeFilter" class="crm-input" style="flex: 1; min-width: 140px;">
+            <select id="scoreGradeFilter" class="crm-input" style="flex: 1; min-width: 130px;">
                 <option value="">🔥 Phân loại Lead</option>
                 <option value="HOT">🔥 Lead NÓNG</option>
                 <option value="WARM">☀️ Lead ẤM</option>
                 <option value="COLD">❄️ Lead LẠNH</option>
             </select>
 
-            <select id="assignmentStatusFilter" class="crm-input" style="flex: 1; min-width: 140px;">
+            <select id="assignmentStatusFilter" class="crm-input" style="flex: 1; min-width: 130px;">
                 <option value="">🎯 Phân bổ</option>
                 <option value="UNASSIGNED">⏳ Hàng chờ (Chưa phân)</option>
                 <option value="ASSIGNED">✅ Đã phân bổ</option>
             </select>
+
+            <!-- Bộ lọc thời gian tạo: preset hoặc khoảng ngày -->
+            <div style="display: flex; gap: 6px; align-items: center; flex: 1.4; min-width: 220px;">
+                <select id="leadDatePresetFilter" class="crm-input" style="flex: 1; min-width: 130px;">
+                    <option value="">📅 Thời gian tạo</option>
+                    <option value="TODAY">🌅 Tạo hôm nay</option>
+                    <option value="LAST_7_DAYS">🗓️ 7 ngày qua</option>
+                    <option value="THIS_MONTH">📆 Tháng này</option>
+                    <option value="CUSTOM">⏱️ Tùy chọn ngày...</option>
+                </select>
+                <input id="leadCreatedFrom" class="crm-input" type="date" title="Từ ngày tạo" style="display:none; width: 120px; padding: 6px 8px; font-size: 12px;">
+                <input id="leadCreatedTo" class="crm-input" type="date" title="Đến ngày tạo" style="display:none; width: 120px; padding: 6px 8px; font-size: 12px;">
+            </div>
 
             <button
                 id="btnSortByScore"
@@ -366,12 +403,12 @@
             </button>
 
             <!-- Lọc trường tùy chỉnh -->
-            <div id="customFieldFilterWrap" style="display: flex; gap: 6px; align-items: center; flex: 1.5; min-width: 250px;">
-                <select id="customFieldSelectFilter" class="crm-input" style="flex: 1; min-width: 140px;">
+            <div id="customFieldFilterWrap" style="display: flex; gap: 6px; align-items: center; flex: 1.5; min-width: 230px;">
+                <select id="customFieldSelectFilter" class="crm-input" style="flex: 1; min-width: 130px;">
                     <option value="">✨ Lọc trường tùy chỉnh</option>
                 </select>
-                <input id="customFieldValueFilter" class="crm-input" type="text" placeholder="Nhập giá trị lọc..." style="flex: 1; min-width: 110px; display: none;">
-                <select id="customFieldSelectValueFilter" class="crm-input" style="flex: 1; min-width: 110px; display: none;">
+                <input id="customFieldValueFilter" class="crm-input" type="text" placeholder="Nhập giá trị lọc..." style="flex: 1; min-width: 100px; display: none;">
+                <select id="customFieldSelectValueFilter" class="crm-input" style="flex: 1; min-width: 100px; display: none;">
                     <option value="">-- Chọn --</option>
                 </select>
             </div>

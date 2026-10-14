@@ -166,6 +166,10 @@ public class CustomerFilterCriteria {
     }
 
     private Boolean slaBreached;
+    private String leadSource;
+    private String createdFrom;
+    private String createdTo;
+    private String datePreset;
 
     public Boolean getSlaBreached() {
         return slaBreached;
@@ -173,5 +177,37 @@ public class CustomerFilterCriteria {
 
     public void setSlaBreached(Boolean slaBreached) {
         this.slaBreached = slaBreached;
+    }
+
+    public String getLeadSource() {
+        return leadSource;
+    }
+
+    public void setLeadSource(String leadSource) {
+        this.leadSource = leadSource;
+    }
+
+    public String getCreatedFrom() {
+        return createdFrom;
+    }
+
+    public void setCreatedFrom(String createdFrom) {
+        this.createdFrom = createdFrom;
+    }
+
+    public String getCreatedTo() {
+        return createdTo;
+    }
+
+    public void setCreatedTo(String createdTo) {
+        this.createdTo = createdTo;
+    }
+
+    public String getDatePreset() {
+        return datePreset;
+    }
+
+    public void setDatePreset(String datePreset) {
+        this.datePreset = datePreset;
     }
 }

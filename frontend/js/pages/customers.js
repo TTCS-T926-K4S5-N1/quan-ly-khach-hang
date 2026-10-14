@@ -36,12 +36,16 @@ const form = document.getElementById("customerForm");
 const searchInput = document.getElementById("customerSearch");
 const statusFilter = document.getElementById("statusFilter");
 const contactPhoneFilter = document.getElementById("contactPhoneFilter");
+const leadSourceFilter = document.getElementById("leadSourceFilter");
 const industryFilter = document.getElementById("industryFilter");
 const companySizeFilter = document.getElementById("companySizeFilter");
 const regionFilter = document.getElementById("regionFilter");
 const ownerFilter = document.getElementById("ownerFilter");
 const scoreGradeFilter = document.getElementById("scoreGradeFilter");
 const assignmentStatusFilter = document.getElementById("assignmentStatusFilter");
+const leadDatePresetFilter = document.getElementById("leadDatePresetFilter");
+const leadCreatedFrom = document.getElementById("leadCreatedFrom");
+const leadCreatedTo = document.getElementById("leadCreatedTo");
 const btnSortByScore = document.getElementById("btnSortByScore");
 let isSortByScoreActive = false;
 const btnSlaBreachedFilter = document.getElementById("btnSlaBreachedFilter");
@@ -775,13 +779,44 @@ function applySavedFilter(filter) {
     if (searchInput) searchInput.value = crit.keyword || "";
     if (contactPhoneFilter) contactPhoneFilter.value = crit.contactPhone || "";
     if (statusFilter) statusFilter.value = crit.status || "";
+    if (leadSourceFilter) leadSourceFilter.value = crit.leadSource || "";
     if (industryFilter) industryFilter.value = crit.industryId ? String(crit.industryId) : "";
     if (companySizeFilter) companySizeFilter.value = crit.companySizeId ? String(crit.companySizeId) : "";
     if (regionFilter) regionFilter.value = crit.regionId ? String(crit.regionId) : "";
+    if (scoreGradeFilter) scoreGradeFilter.value = crit.scoreGrade || "";
+    if (assignmentStatusFilter) assignmentStatusFilter.value = crit.assignmentStatus || "";
+
     if (ownerFilter) {
         if (crit.ownerFilter) ownerFilter.value = crit.ownerFilter;
         else if (crit.ownerUserId) ownerFilter.value = String(crit.ownerUserId);
         else ownerFilter.value = "";
+    }
+
+    if (crit.slaBreached) {
+        isSlaBreachedActive = true;
+        if (btnSlaBreachedFilter) {
+            btnSlaBreachedFilter.style.background = "#dc2626";
+            btnSlaBreachedFilter.style.color = "#ffffff";
+            btnSlaBreachedFilter.innerHTML = "🚨 Đang lọc Quá SLA ▲";
+        }
+    } else {
+        isSlaBreachedActive = false;
+        if (btnSlaBreachedFilter) {
+            btnSlaBreachedFilter.style.background = "#fef2f2";
+            btnSlaBreachedFilter.style.color = "#dc2626";
+            btnSlaBreachedFilter.innerHTML = "🚨 Quá SLA phản hồi";
+        }
+    }
+
+    if (leadDatePresetFilter) leadDatePresetFilter.value = crit.datePreset || "";
+    if (leadCreatedFrom) leadCreatedFrom.value = crit.createdFrom || "";
+    if (leadCreatedTo) leadCreatedTo.value = crit.createdTo || "";
+    if (crit.datePreset === "CUSTOM" || crit.createdFrom || crit.createdTo) {
+        if (leadCreatedFrom) leadCreatedFrom.style.display = "inline-block";
+        if (leadCreatedTo) leadCreatedTo.style.display = "inline-block";
+    } else {
+        if (leadCreatedFrom) leadCreatedFrom.style.display = "none";
+        if (leadCreatedTo) leadCreatedTo.style.display = "none";
     }
 
     renderSavedFilterChips();
@@ -807,16 +842,30 @@ function resetAllFilters() {
     if (searchInput) searchInput.value = "";
     if (contactPhoneFilter) contactPhoneFilter.value = "";
     if (statusFilter) statusFilter.value = "";
+    if (leadSourceFilter) leadSourceFilter.value = "";
     if (industryFilter) industryFilter.value = "";
     if (companySizeFilter) companySizeFilter.value = "";
     if (regionFilter) regionFilter.value = "";
     if (ownerFilter) ownerFilter.value = "";
+    if (scoreGradeFilter) scoreGradeFilter.value = "";
+    if (assignmentStatusFilter) assignmentStatusFilter.value = "";
+
+    if (leadDatePresetFilter) leadDatePresetFilter.value = "";
+    if (leadCreatedFrom) { leadCreatedFrom.value = ""; leadCreatedFrom.style.display = "none"; }
+    if (leadCreatedTo) { leadCreatedTo.value = ""; leadCreatedTo.style.display = "none"; }
 
     isSlaBreachedActive = false;
     if (btnSlaBreachedFilter) {
         btnSlaBreachedFilter.style.background = "#fef2f2";
         btnSlaBreachedFilter.style.color = "#dc2626";
         btnSlaBreachedFilter.innerHTML = "🚨 Quá SLA phản hồi";
+    }
+
+    isSortByScoreActive = false;
+    if (btnSortByScore) {
+        btnSortByScore.style.background = "#fee2e2";
+        btnSortByScore.style.color = "#b91c1c";
+        btnSortByScore.innerHTML = "🔥 Lead Hot nhất";
     }
 
     if (customFieldSelectFilter) customFieldSelectFilter.value = "";
@@ -833,11 +882,24 @@ function openSaveFilterModal() {
     const previewItems = [];
     if (searchInput?.value.trim()) previewItems.push(`<strong>Từ khóa:</strong> ${escapeHtml(searchInput.value.trim())}`);
     if (contactPhoneFilter?.value.trim()) previewItems.push(`<strong>SĐT liên hệ:</strong> ${escapeHtml(contactPhoneFilter.value.trim())}`);
+    if (leadSourceFilter?.value) previewItems.push(`<strong>Nguồn Lead:</strong> ${escapeHtml(leadSourceFilter.options[leadSourceFilter.selectedIndex]?.text)}`);
     if (statusFilter?.value) previewItems.push(`<strong>Trạng thái:</strong> ${escapeHtml(statusFilter.options[statusFilter.selectedIndex]?.text)}`);
+    if (scoreGradeFilter?.value) previewItems.push(`<strong>Phân loại:</strong> ${escapeHtml(scoreGradeFilter.options[scoreGradeFilter.selectedIndex]?.text)}`);
+    if (assignmentStatusFilter?.value) previewItems.push(`<strong>Phân bổ:</strong> ${escapeHtml(assignmentStatusFilter.options[assignmentStatusFilter.selectedIndex]?.text)}`);
+    if (isSlaBreachedActive) previewItems.push(`<strong>Quá hạn:</strong> 🚨 Quá SLA phản hồi`);
     if (industryFilter?.value) previewItems.push(`<strong>Ngành nghề:</strong> ${escapeHtml(industryFilter.options[industryFilter.selectedIndex]?.text)}`);
     if (companySizeFilter?.value) previewItems.push(`<strong>Quy mô:</strong> ${escapeHtml(companySizeFilter.options[companySizeFilter.selectedIndex]?.text)}`);
     if (regionFilter?.value) previewItems.push(`<strong>Khu vực:</strong> ${escapeHtml(regionFilter.options[regionFilter.selectedIndex]?.text)}`);
     if (ownerFilter?.value) previewItems.push(`<strong>Người sở hữu:</strong> ${escapeHtml(ownerFilter.options[ownerFilter.selectedIndex]?.text)}`);
+    if (leadDatePresetFilter?.value) {
+        if (leadDatePresetFilter.value === "CUSTOM") {
+            const dFrom = leadCreatedFrom?.value || "...";
+            const dTo = leadCreatedTo?.value || "...";
+            previewItems.push(`<strong>Thời gian tạo:</strong> ${dFrom} đến ${dTo}`);
+        } else {
+            previewItems.push(`<strong>Thời gian tạo:</strong> ${escapeHtml(leadDatePresetFilter.options[leadDatePresetFilter.selectedIndex]?.text)}`);
+        }
+    }
 
     if (saveFilterCriteriaPreview) {
         saveFilterCriteriaPreview.innerHTML = previewItems.length > 0
@@ -868,12 +930,23 @@ async function submitSaveFilterFunc() {
     if (searchInput?.value.trim()) criteria.keyword = searchInput.value.trim();
     if (contactPhoneFilter?.value.trim()) criteria.contactPhone = contactPhoneFilter.value.trim();
     if (statusFilter?.value) criteria.status = statusFilter.value;
+    if (leadSourceFilter?.value) criteria.leadSource = leadSourceFilter.value;
+    if (scoreGradeFilter?.value) criteria.scoreGrade = scoreGradeFilter.value;
+    if (assignmentStatusFilter?.value) criteria.assignmentStatus = assignmentStatusFilter.value;
+    if (isSlaBreachedActive) criteria.slaBreached = true;
     if (industryFilter?.value) criteria.industryId = Number(industryFilter.value);
     if (companySizeFilter?.value) criteria.companySizeId = Number(companySizeFilter.value);
     if (regionFilter?.value) criteria.regionId = Number(regionFilter.value);
     if (ownerFilter?.value) {
         if (ownerFilter.value === "MINE") criteria.ownerFilter = "MINE";
         else criteria.ownerUserId = Number(ownerFilter.value);
+    }
+    if (leadDatePresetFilter?.value) {
+        criteria.datePreset = leadDatePresetFilter.value;
+        if (leadDatePresetFilter.value === "CUSTOM") {
+            if (leadCreatedFrom?.value) criteria.createdFrom = leadCreatedFrom.value;
+            if (leadCreatedTo?.value) criteria.createdTo = leadCreatedTo.value;
+        }
     }
 
     try {
@@ -922,8 +995,31 @@ btnResetFilters?.addEventListener("click", resetAllFilters);
     });
 });
 
-[statusFilter, industryFilter, companySizeFilter, regionFilter, ownerFilter, scoreGradeFilter, assignmentStatusFilter].forEach(select => {
+[statusFilter, leadSourceFilter, industryFilter, companySizeFilter, regionFilter, ownerFilter, scoreGradeFilter, assignmentStatusFilter].forEach(select => {
     select?.addEventListener("change", () => {
+        activeSavedFilterId = null;
+        renderSavedFilterChips();
+        currentPage = 1;
+        loadCustomers(1);
+    });
+});
+
+leadDatePresetFilter?.addEventListener("change", () => {
+    activeSavedFilterId = null;
+    renderSavedFilterChips();
+    if (leadDatePresetFilter.value === "CUSTOM") {
+        if (leadCreatedFrom) leadCreatedFrom.style.display = "inline-block";
+        if (leadCreatedTo) leadCreatedTo.style.display = "inline-block";
+    } else {
+        if (leadCreatedFrom) { leadCreatedFrom.style.display = "none"; leadCreatedFrom.value = ""; }
+        if (leadCreatedTo) { leadCreatedTo.style.display = "none"; leadCreatedTo.value = ""; }
+        currentPage = 1;
+        loadCustomers(1);
+    }
+});
+
+[leadCreatedFrom, leadCreatedTo].forEach(input => {
+    input?.addEventListener("change", () => {
         activeSavedFilterId = null;
         renderSavedFilterChips();
         currentPage = 1;
@@ -1012,15 +1108,42 @@ customFieldSelectValueFilter?.addEventListener("change", () => {
 });
 
 // Excel Export Button handler
+// Excel Export Button handler
 btnExportExcel?.addEventListener("click", () => {
     const params = new URLSearchParams();
     const kw = searchInput?.value.trim() || "";
     const cPhone = contactPhoneFilter?.value.trim() || "";
+    const lSource = leadSourceFilter?.value || "";
     const st = statusFilter?.value || "";
     const ind = industryFilter?.value || "";
     const sizeId = companySizeFilter?.value || "";
     const regId = regionFilter?.value || "";
     const own = ownerFilter?.value || "";
+    const sGrade = scoreGradeFilter?.value || "";
+    const aStatus = assignmentStatusFilter?.value || "";
+    const datePreset = leadDatePresetFilter?.value || "";
+    const cFrom = leadCreatedFrom?.value || "";
+    const cTo = leadCreatedTo?.value || "";
+
+    if (kw) params.append("keyword", kw);
+    if (cPhone) params.append("contactPhone", cPhone);
+    if (lSource) params.append("leadSource", lSource);
+    if (st) params.append("status", st);
+    if (ind) params.append("industryId", ind);
+    if (sizeId) params.append("companySizeId", sizeId);
+    if (regId) params.append("regionId", regId);
+    if (sGrade) params.append("scoreGrade", sGrade);
+    if (aStatus) params.append("assignmentStatus", aStatus);
+    if (datePreset) params.append("datePreset", datePreset);
+    if (cFrom) params.append("createdFrom", cFrom);
+    if (cTo) params.append("createdTo", cTo);
+    if (isSlaBreachedActive) params.append("slaBreached", "true");
+
+    if (own) {
+        if (own === "MINE") params.append("ownerFilter", "MINE");
+        else params.append("ownerUserId", own);
+    }
+
     const cfKey = customFieldSelectFilter?.value || "";
     let cfVal = "";
     const cfDef = customerCustomFields.find(f => f.key === cfKey);
@@ -1028,17 +1151,6 @@ btnExportExcel?.addEventListener("click", () => {
         cfVal = customFieldSelectValueFilter?.value || "";
     } else {
         cfVal = customFieldValueFilter?.value.trim() || "";
-    }
-
-    if (kw) params.append("keyword", kw);
-    if (cPhone) params.append("contactPhone", cPhone);
-    if (st) params.append("status", st);
-    if (ind) params.append("industryId", ind);
-    if (sizeId) params.append("companySizeId", sizeId);
-    if (regId) params.append("regionId", regId);
-    if (own) {
-        if (own === "MINE") params.append("ownerFilter", "MINE");
-        else params.append("ownerUserId", own);
     }
     if (cfKey && cfVal) {
         params.append("customFieldKey", cfKey);
@@ -1062,6 +1174,7 @@ async function loadCustomers(targetPage = currentPage) {
 
         const kw = searchInput?.value.trim() || "";
         const cPhone = contactPhoneFilter?.value.trim() || "";
+        const lSource = leadSourceFilter?.value || "";
         const st = statusFilter?.value || "";
         const ind = industryFilter?.value || "";
         const sizeId = companySizeFilter?.value || "";
@@ -1069,15 +1182,22 @@ async function loadCustomers(targetPage = currentPage) {
         const own = ownerFilter?.value || "";
         const sGrade = scoreGradeFilter?.value || "";
         const aStatus = assignmentStatusFilter?.value || "";
+        const datePreset = leadDatePresetFilter?.value || "";
+        const cFrom = leadCreatedFrom?.value || "";
+        const cTo = leadCreatedTo?.value || "";
 
         if (kw) params.append("keyword", kw);
         if (cPhone) params.append("contactPhone", cPhone);
+        if (lSource) params.append("leadSource", lSource);
         if (st) params.append("status", st);
         if (ind) params.append("industryId", ind);
         if (sizeId) params.append("companySizeId", sizeId);
         if (regId) params.append("regionId", regId);
         if (sGrade) params.append("scoreGrade", sGrade);
         if (aStatus) params.append("assignmentStatus", aStatus);
+        if (datePreset) params.append("datePreset", datePreset);
+        if (cFrom) params.append("createdFrom", cFrom);
+        if (cTo) params.append("createdTo", cTo);
         if (isSortByScoreActive) params.append("sortBy", "score");
         if (isSlaBreachedActive) params.append("slaBreached", "true");
         if (own) {
@@ -1209,7 +1329,19 @@ function updateFilterSummary(total) {
     const tags = [];
     if (searchInput?.value.trim()) tags.push({ label: `Từ khóa: "${searchInput.value.trim()}"`, clear: () => { searchInput.value = ""; loadCustomers(); } });
     if (contactPhoneFilter?.value.trim()) tags.push({ label: `SĐT: ${contactPhoneFilter.value.trim()}`, clear: () => { contactPhoneFilter.value = ""; loadCustomers(); } });
+    if (leadSourceFilter?.value) tags.push({ label: `Nguồn: ${leadSourceFilter.options[leadSourceFilter.selectedIndex]?.text.replace(/^[^\s]+\s/, "")}`, clear: () => { leadSourceFilter.value = ""; loadCustomers(); } });
     if (statusFilter?.value) tags.push({ label: `TT: ${statusFilter.options[statusFilter.selectedIndex]?.text}`, clear: () => { statusFilter.value = ""; loadCustomers(); } });
+    if (scoreGradeFilter?.value) tags.push({ label: `Hạng: ${scoreGradeFilter.options[scoreGradeFilter.selectedIndex]?.text.replace(/^[^\s]+\s/, "")}`, clear: () => { scoreGradeFilter.value = ""; loadCustomers(); } });
+    if (assignmentStatusFilter?.value) tags.push({ label: `Phân bổ: ${assignmentStatusFilter.options[assignmentStatusFilter.selectedIndex]?.text.replace(/^[^\s]+\s/, "")}`, clear: () => { assignmentStatusFilter.value = ""; loadCustomers(); } });
+    if (leadDatePresetFilter?.value) {
+        if (leadDatePresetFilter.value === "CUSTOM") {
+            const f = leadCreatedFrom?.value || "...";
+            const t = leadCreatedTo?.value || "...";
+            tags.push({ label: `Tạo: ${f} → ${t}`, clear: () => { leadDatePresetFilter.value = ""; if (leadCreatedFrom) { leadCreatedFrom.value = ""; leadCreatedFrom.style.display = "none"; } if (leadCreatedTo) { leadCreatedTo.value = ""; leadCreatedTo.style.display = "none"; } loadCustomers(); } });
+        } else {
+            tags.push({ label: `Tạo: ${leadDatePresetFilter.options[leadDatePresetFilter.selectedIndex]?.text.replace(/^[^\s]+\s/, "")}`, clear: () => { leadDatePresetFilter.value = ""; loadCustomers(); } });
+        }
+    }
     if (industryFilter?.value) tags.push({ label: `Ngành: ${industryFilter.options[industryFilter.selectedIndex]?.text.replace(/^[^\s]+\s/, "")}`, clear: () => { industryFilter.value = ""; loadCustomers(); } });
     if (companySizeFilter?.value) tags.push({ label: `Quy mô: ${companySizeFilter.options[companySizeFilter.selectedIndex]?.text.replace(/^[^\s]+\s/, "")}`, clear: () => { companySizeFilter.value = ""; loadCustomers(); } });
     if (regionFilter?.value) tags.push({ label: `Khu vực: ${regionFilter.options[regionFilter.selectedIndex]?.text.replace(/^[^\s]+\s/, "")}`, clear: () => { regionFilter.value = ""; loadCustomers(); } });
@@ -1268,6 +1400,10 @@ function render() {
 
 function renderDesktopRow(record, index) {
     const tr = document.createElement("tr");
+    if (record.slaBreached) {
+        tr.style.background = "#fff1f2";
+        tr.style.borderLeft = "4px solid #ef4444";
+    }
 
     // 1. Tên công ty & MST & Tập đoàn badge
     let corporateBadge = "";
@@ -1445,6 +1581,10 @@ function renderDesktopRow(record, index) {
 function renderMobileCard(record, index) {
     const card = document.createElement("article");
     card.className = "customer-mobile-card";
+    if (record.slaBreached) {
+        card.style.background = "#fff1f2";
+        card.style.borderLeft = "4px solid #ef4444";
+    }
 
     let contactLine = "";
     if (record.primaryContactName) {

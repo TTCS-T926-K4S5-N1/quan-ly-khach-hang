@@ -51,6 +51,10 @@ public class CustomerServlet extends HttpServlet {
                 criteria.setScoreGrade(req.getParameter("scoreGrade"));
                 criteria.setAssignmentStatus(req.getParameter("assignmentStatus"));
                 criteria.setSortBy(req.getParameter("sortBy"));
+                criteria.setLeadSource(req.getParameter("leadSource"));
+                criteria.setCreatedFrom(req.getParameter("createdFrom"));
+                criteria.setCreatedTo(req.getParameter("createdTo"));
+                criteria.setDatePreset(req.getParameter("datePreset"));
                 String slaBreachedStr = req.getParameter("slaBreached");
                 if (slaBreachedStr != null && !slaBreachedStr.isBlank()) {
                     criteria.setSlaBreached(Boolean.parseBoolean(slaBreachedStr.trim()));
@@ -79,6 +83,10 @@ public class CustomerServlet extends HttpServlet {
                 criteria.setOwnerFilter(req.getParameter("ownerFilter"));
                 criteria.setCustomFieldKey(req.getParameter("customFieldKey"));
                 criteria.setCustomFieldValue(req.getParameter("customFieldValue"));
+                criteria.setLeadSource(req.getParameter("leadSource"));
+                criteria.setCreatedFrom(req.getParameter("createdFrom"));
+                criteria.setCreatedTo(req.getParameter("createdTo"));
+                criteria.setDatePreset(req.getParameter("datePreset"));
                 criteria.setPage(1);
                 criteria.setSize(10000);
 

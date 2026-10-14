@@ -277,6 +277,37 @@ public class CustomerDAO {
                 sql.append(" AND (c.sla_breached = 0 OR c.sla_breached IS NULL)");
             }
         }
+
+        // 15. Lọc theo nguồn lead (Story 5)
+        if (criteria.getLeadSource() != null && !criteria.getLeadSource().isBlank()) {
+            sql.append(" AND c.lead_source = ?");
+            params.add(criteria.getLeadSource().trim());
+        }
+
+        // 16. Lọc theo khoảng thời gian tạo lead (Story 5)
+        if (criteria.getDatePreset() != null && !criteria.getDatePreset().isBlank()) {
+            switch (criteria.getDatePreset().toUpperCase()) {
+                case "TODAY":
+                    sql.append(" AND DATE(c.created_at) = CURDATE()");
+                    break;
+                case "LAST_7_DAYS":
+                    sql.append(" AND c.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
+                    break;
+                case "THIS_MONTH":
+                    sql.append(" AND c.created_at >= DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00')");
+                    break;
+                default:
+                    break;
+            }
+        }
+        if (criteria.getCreatedFrom() != null && !criteria.getCreatedFrom().isBlank()) {
+            sql.append(" AND c.created_at >= ?");
+            params.add(criteria.getCreatedFrom().trim() + " 00:00:00");
+        }
+        if (criteria.getCreatedTo() != null && !criteria.getCreatedTo().isBlank()) {
+            sql.append(" AND c.created_at <= ?");
+            params.add(criteria.getCreatedTo().trim() + " 23:59:59");
+        }
     }
 
     public Map<String, Object> findById(long id) throws SQLException {

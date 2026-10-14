@@ -69,6 +69,18 @@ public class MenuService {
             );
         }
 
+        if (permissions.contains("report.lead_source") || permissions.contains("campaign.read") || permissions.contains("lead.read") || permissions.contains("customer.read")) {
+            menu.add(
+                    item(
+                            "LEAD_REPORTS",
+                            "Báo cáo Nguồn Lead",
+                            "lead-reports",
+                            "workspace",
+                            "campaign"
+                    )
+            );
+        }
+
         if (permissions.contains("lead.routing.read") || permissions.contains("lead.routing.manage") || permissions.contains("customer.read")) {
             menu.add(
                     item(
