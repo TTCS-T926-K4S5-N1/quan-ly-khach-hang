@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phân bổ & Chấm điểm Lead | Hệ thống Quản trị CRM</title>
+    <link rel="stylesheet" href="css/shared-shell.css">
+    <link rel="stylesheet" href="css/pages/lead-routing.css">
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="app-sidebar" id="appSidebar"></aside>
+
+        <div class="app-main">
+            <header class="app-header" id="appHeader"></header>
+
+            <main class="app-content">
+                <div class="routing-container">
+                    <!-- Page Header -->
+                    <div class="page-header-row">
+                        <div>
+                            <div class="breadcrumb">Bán hàng & Marketing / Tự động hóa</div>
+                            <h1 class="page-title">Cấu hình Chấm điểm & Phân bổ Lead</h1>
+                            <p class="page-subtitle">Tự động chấm điểm độ tiềm năng (Nóng/Ấm/Lạnh) và định tuyến phân bổ lead tới đúng chuyên viên kinh doanh trong vài phút.</p>
+                        </div>
+                        <div class="header-actions">
+                            <button id="btnRecalculateScores" class="btn btn-secondary">
+                                <span class="btn-icon">⚡</span> Tính lại điểm toàn bộ Lead
+                            </button>
+                            <button id="btnRunAssignmentNow" class="btn btn-secondary">
+                                <span class="btn-icon">🔄</span> Chạy phân bổ ngay
+                            </button>
+                            <button id="btnCreateRule" class="btn btn-primary">
+                                <span class="btn-icon">+</span> Thêm quy tắc phân bổ
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- KPI Summary Cards -->
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <div class="kpi-icon-box bg-blue">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>
+                            </div>
+                            <div class="kpi-info">
+                                <span class="kpi-label">Quy tắc phân bổ đang chạy</span>
+                                <div class="kpi-value" id="kpiActiveRules">0 / 0</div>
+                                <span class="kpi-sub">Theo thứ tự ưu tiên (First-match)</span>
+                            </div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-icon-box bg-amber">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            </div>
+                            <div class="kpi-info">
+                                <span class="kpi-label">Hàng chờ chưa phân bổ</span>
+                                <div class="kpi-value text-amber" id="kpiUnassignedCount">0</div>
+                                <span class="kpi-sub">Lead chờ Trưởng nhóm phân tay</span>
+                            </div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-icon-box bg-red">
+                                <span class="kpi-emoji">🔥</span>
+                            </div>
+                            <div class="kpi-info">
+                                <span class="kpi-label">Lead NÓNG chưa phân bổ</span>
+                                <div class="kpi-value text-red" id="kpiHotUnassigned">0</div>
+                                <span class="kpi-sub">Cần gọi ngay trong 15 phút</span>
+                            </div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-icon-box bg-emerald">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                            </div>
+                            <div class="kpi-info">
+                                <span class="kpi-label">Tiêu chí chấm điểm</span>
+                                <div class="kpi-value text-emerald" id="kpiTotalCriteria">0</div>
+                                <span class="kpi-sub">Ngành, Quy mô, Nguồn, Nhu cầu</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Navigation Tabs -->
+                    <div class="routing-tabs-bar">
+                        <button class="tab-btn active" data-tab="tabRules">
+                            <span class="tab-icon">🎯</span> Quy tắc Phân bổ Tự động
+                        </button>
+                        <button class="tab-btn" data-tab="tabUnassigned">
+                            <span class="tab-icon">⏳</span> Hàng chờ Lead Chưa Phân bổ <span class="badge-count" id="badgeUnassigned">0</span>
+                        </button>
+                        <button class="tab-btn" data-tab="tabScoring">
+                            <span class="tab-icon">⭐</span> Cấu hình Chấm điểm Lead
+                        </button>
+                        <button class="tab-btn" data-tab="tabAudit">
+                            <span class="tab-icon">📜</span> Nhật ký Phân bổ
+                        </button>
+                    </div>
+
+                    <!-- Tab 1: Assignment Rules -->
+                    <div class="tab-pane active" id="tabRules">
+                        <div class="card table-card">
+                            <div class="card-header-bar">
+                                <div class="card-title-group">
+                                    <h3 class="card-title">Danh sách Quy tắc Phân bổ (Priority Engine)</h3>
+                                    <p class="card-desc">Hệ thống duyệt quy tắc từ trên xuống dưới theo thứ tự ưu tiên. Quy tắc đầu tiên khớp toàn bộ điều kiện sẽ thắng (First-match wins).</p>
+                                </div>
+                                <div class="card-actions">
+                                    <span class="sla-badge">⏱️ SLA chạy nền: &lt; 5 phút</span>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table" id="tableAssignmentRules">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 80px;">Ưu tiên</th>
+                                            <th>Tên quy tắc</th>
+                                            <th>Điều kiện khớp (Filters)</th>
+                                            <th>Hình thức &amp; Người nhận</th>
+                                            <th>Trạng thái</th>
+                                            <th style="text-align: right;">Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="rulesTableBody">
+                                        <tr><td colspan="6" class="text-center py-4">Đang tải danh sách quy tắc...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 2: Unassigned Leads Queue -->
+                    <div class="tab-pane" id="tabUnassigned">
+                        <div class="card table-card">
+                            <div class="card-header-bar">
+                                <div class="card-title-group">
+                                    <h3 class="card-title">Hàng chờ Lead Chưa Phân bổ (Manual Dispatch Pool)</h3>
+                                    <p class="card-desc">Các lead không khớp quy tắc tự động nào sẽ tập hợp tại đây để Trưởng nhóm / Giám đốc phân công trực tiếp cho chuyên viên.</p>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table" id="tableUnassignedLeads">
+                                    <thead>
+                                        <tr>
+                                            <th>Họ tên &amp; Công ty</th>
+                                            <th>Liên hệ</th>
+                                            <th>Ngành nghề &amp; Khu vực</th>
+                                            <th>Nguồn</th>
+                                            <th>Điểm &amp; Phân loại</th>
+                                            <th>Ngày vào</th>
+                                            <th style="text-align: right;">Hành động</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="unassignedTableBody">
+                                        <tr><td colspan="7" class="text-center py-4">Đang kiểm tra hàng chờ...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 3: Lead Scoring Configuration -->
+                    <div class="tab-pane" id="tabScoring">
+                        <!-- Thresholds Config -->
+                        <div class="card mb-4">
+                            <div class="card-header-bar">
+                                <div class="card-title-group">
+                                    <h3 class="card-title">Cấu hình Ngưỡng Phân loại Lead (Nóng, Ấm, Lạnh)</h3>
+                                    <p class="card-desc">Xác định ngưỡng điểm để gắn nhãn phân hạng, giúp nhân viên ưu tiên gọi điện thoại cho khách hàng có xác suất chốt cao nhất trước.</p>
+                                </div>
+                            </div>
+                            <div class="thresholds-grid" id="thresholdsContainer">
+                                <!-- Rendered dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Scoring Criteria Table -->
+                        <div class="card table-card">
+                            <div class="card-header-bar">
+                                <div class="card-title-group">
+                                    <h3 class="card-title">Bảng Tiêu chí Chấm điểm (Scoring Criteria)</h3>
+                                    <p class="card-desc">Cộng/trừ điểm số dựa trên đặc điểm của khách hàng tiềm năng. Điểm số được tính lại tự động ngay khi thông tin Lead thay đổi.</p>
+                                </div>
+                                <div class="card-actions">
+                                    <button class="btn btn-sm btn-primary" id="btnOpenAddCriterionModal">+ Thêm tiêu chí</button>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table" id="tableScoringRules">
+                                    <thead>
+                                        <tr>
+                                            <th>Nhóm tiêu chí</th>
+                                            <th>Mã giá trị</th>
+                                            <th>Tên tiêu chí hiển thị</th>
+                                            <th>Điểm cộng/trừ</th>
+                                            <th>Trạng thái</th>
+                                            <th style="text-align: right;">Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="scoringTableBody">
+                                        <tr><td colspan="6" class="text-center py-4">Đang tải danh sách tiêu chí...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 4: Audit Logs -->
+                    <div class="tab-pane" id="tabAudit">
+                        <div class="card table-card">
+                            <div class="card-header-bar">
+                                <div class="card-title-group">
+                                    <h3 class="card-title">Nhật ký Phân bổ Lead (Assignment Audit Trail)</h3>
+                                    <p class="card-desc">Theo dõi minh bạch toàn bộ các lượt chuyển giao lead cho nhân viên (tự động theo quy tắc hoặc phân bổ thủ công).</p>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table" id="tableAuditLogs">
+                                    <thead>
+                                        <tr>
+                                            <th>Thời gian</th>
+                                            <th>Khách hàng / Lead</th>
+                                            <th>Chuyên viên phụ trách</th>
+                                            <th>Hình thức</th>
+                                            <th>Quy tắc / Người giao</th>
+                                            <th>Ghi chú</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="auditTableBody">
+                                        <tr><td colspan="6" class="text-center py-4">Đang tải lịch sử...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal: Thêm / Sửa Quy tắc Phân bổ -->
+    <div class="modal-backdrop" id="modalRuleBackdrop" style="display: none;">
+        <div class="modal-card modal-lg">
+            <div class="modal-header">
+                <h3 class="modal-title" id="ruleModalTitle">Thêm quy tắc phân bổ lead tự động</h3>
+                <button type="button" class="btn-close" id="btnCloseRuleModal">&times;</button>
+            </div>
+            <form id="formAssignmentRule">
+                <input type="hidden" id="ruleId">
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group col-8">
+                            <label class="form-label required">Tên quy tắc</label>
+                            <input type="text" id="ruleName" class="form-control" placeholder="vd: Phân bổ Lead Miền Bắc cho Nhóm Hà Nội" required>
+                        </div>
+                        <div class="form-group col-4">
+                            <label class="form-label required">Độ ưu tiên</label>
+                            <input type="number" id="rulePriority" class="form-control" min="1" value="1" required>
+                        </div>
+                    </div>
+
+                    <div class="form-section-title">1. Điều kiện lọc Lead (Khớp tất cả tiêu chí)</div>
+                    <div class="form-row">
+                        <div class="form-group col-6">
+                            <label class="form-label">Theo Khu vực</label>
+                            <select id="ruleRegionId" class="form-control">
+                                <option value="">-- Tất cả khu vực --</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-6">
+                            <label class="form-label">Theo Ngành nghề</label>
+                            <select id="ruleIndustryId" class="form-control">
+                                <option value="">-- Tất cả ngành nghề --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-6">
+                            <label class="form-label">Theo Nguồn Lead</label>
+                            <select id="ruleLeadSource" class="form-control">
+                                <option value="">-- Tất cả nguồn lead --</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-6">
+                            <label class="form-label">Điểm số tối thiểu (Score $\ge$)</label>
+                            <input type="number" id="ruleMinScore" class="form-control" placeholder="vd: 70 (Chỉ chia lead NÓNG)">
+                        </div>
+                    </div>
+
+                    <div class="form-section-title">2. Hình thức &amp; Người nhận Lead</div>
+                    <div class="form-group">
+                        <label class="form-label required">Phương thức phân bổ</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="ruleTargetType" value="ROUND_ROBIN" checked>
+                                <span><strong>Xoay vòng đều trong nhóm (Round Robin)</strong>: Chia đều lead lần lượt cho các nhân viên</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="ruleTargetType" value="DIRECT_USER">
+                                <span><strong>Chỉ định trực tiếp</strong>: Giao cố định cho một nhân viên duy nhất</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Direct Assignee -->
+                    <div class="form-group" id="groupDirectUser" style="display: none;">
+                        <label class="form-label required">Nhân viên nhận lead</label>
+                        <select id="ruleAssigneeUserId" class="form-control">
+                            <option value="">-- Chọn nhân viên kinh doanh --</option>
+                        </select>
+                    </div>
+
+                    <!-- Round Robin Pool -->
+                    <div class="form-group" id="groupRoundRobin">
+                        <label class="form-label required">Chọn các nhân viên tham gia vòng xoay Round Robin</label>
+                        <div class="checkbox-pool-container" id="roundRobinUsersContainer">
+                            <!-- Populated with sales users -->
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Mô tả / Ghi chú</label>
+                        <textarea id="ruleDescription" class="form-control" rows="2" placeholder="Ghi chú mục đích của quy tắc..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="ruleActive" checked>
+                            <span>Kích hoạt quy tắc này ngay lập tức</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="btnCancelRuleModal">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-primary">Lưu quy tắc</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Phân bổ Lead thủ công từ Hàng chờ -->
+    <div class="modal-backdrop" id="modalManualAssignBackdrop" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title">Phân công Lead cho Nhân viên</h3>
+                <button type="button" class="btn-close" id="btnCloseManualModal">&times;</button>
+            </div>
+            <form id="formManualAssign">
+                <input type="hidden" id="manualLeadId">
+                <div class="modal-body">
+                    <div class="lead-assign-preview" id="manualLeadPreview">
+                        <!-- Lead summary -->
+                    </div>
+                    <div class="form-group mt-3">
+                        <label class="form-label required">Chuyên viên tiếp nhận</label>
+                        <select id="manualTargetUserId" class="form-control" required>
+                            <option value="">-- Chọn chuyên viên kinh doanh --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Ghi chú giao việc</label>
+                        <textarea id="manualNotes" class="form-control" rows="2" placeholder="vd: Lead quan tâm gói Cloud, liên hệ trước 11h sáng..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="btnCancelManualModal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Xác nhận giao Lead</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Thêm Tiêu chí Chấm điểm -->
+    <div class="modal-backdrop" id="modalCriterionBackdrop" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title" id="criterionModalTitle">Thêm tiêu chí chấm điểm lead</h3>
+                <button type="button" class="btn-close" id="btnCloseCriterionModal">&times;</button>
+            </div>
+            <form id="formCriterion">
+                <input type="hidden" id="criterionId">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label required">Nhóm tiêu chí</label>
+                        <select id="critCategory" class="form-control" required>
+                            <option value="INDUSTRY">Ngành nghề phù hợp</option>
+                            <option value="COMPANY_SIZE">Quy mô doanh nghiệp</option>
+                            <option value="LEAD_SOURCE">Nguồn Lead</option>
+                            <option value="INTEREST_LEVEL">Mức độ quan tâm</option>
+                            <option value="REGION">Khu vực địa lý</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required">Mã so khớp (Key)</label>
+                        <input type="text" id="critKey" class="form-control" placeholder="vd: CNTT, TREN_500, HOI_THAO, HIGH..." required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required">Tên hiển thị</label>
+                        <input type="text" id="critName" class="form-control" placeholder="vd: Doanh nghiệp trên 500 nhân sự" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required">Điểm số (+/-)</label>
+                        <input type="number" id="critScore" class="form-control" value="20" required>
+                        <small class="form-hint">Điểm cộng khi phù hợp (vd: +25), hoặc điểm trừ nếu không tiềm năng (vd: -10).</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="critActive" checked>
+                            <span>Kích hoạt tiêu chí này</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="btnCancelCriterionModal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Lưu tiêu chí</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/shared-shell.js"></script>
+    <script src="js/pages/lead-routing.js"></script>
+</body>
+</html>

@@ -48,6 +48,9 @@ public class CustomerServlet extends HttpServlet {
                 criteria.setOwnerFilter(req.getParameter("ownerFilter"));
                 criteria.setCustomFieldKey(req.getParameter("customFieldKey"));
                 criteria.setCustomFieldValue(req.getParameter("customFieldValue"));
+                criteria.setScoreGrade(req.getParameter("scoreGrade"));
+                criteria.setAssignmentStatus(req.getParameter("assignmentStatus"));
+                criteria.setSortBy(req.getParameter("sortBy"));
                 criteria.setPage(intParam(req, "page", 1));
                 criteria.setSize(intParam(req, "size", 20));
 

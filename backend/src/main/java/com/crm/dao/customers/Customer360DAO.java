@@ -75,6 +75,13 @@ public class Customer360DAO {
                     c.industry_id,
                     c.company_size_id,
                     c.owner_user_id,
+                    c.lead_score,
+                    c.score_grade,
+                    c.assignment_status,
+                    c.score_breakdown,
+                    th.label AS score_grade_label,
+                    th.color AS score_grade_color,
+                    th.icon AS score_grade_icon,
                     c.created_at,
                     u.full_name AS owner_name,
                     m_ind.name AS industry_name,
@@ -83,6 +90,7 @@ public class Customer360DAO {
                 LEFT JOIN users u ON u.id = c.owner_user_id
                 LEFT JOIN master_data m_ind ON m_ind.id = c.industry_id
                 LEFT JOIN master_data m_size ON m_size.id = c.company_size_id
+                LEFT JOIN lead_score_thresholds th ON th.grade = c.score_grade
                 WHERE c.id = ? AND c.is_deleted = 0
                 """;
 
@@ -106,6 +114,13 @@ public class Customer360DAO {
                     map.put("companySizeId", rs.getObject("company_size_id"));
                     map.put("ownerUserId", rs.getLong("owner_user_id"));
                     map.put("ownerName", rs.getString("owner_name") != null ? rs.getString("owner_name") : "CRM Administrator");
+                    map.put("leadScore", rs.getInt("lead_score"));
+                    map.put("scoreGrade", rs.getString("score_grade"));
+                    map.put("scoreGradeLabel", rs.getString("score_grade_label"));
+                    map.put("scoreGradeColor", rs.getString("score_grade_color"));
+                    map.put("scoreGradeIcon", rs.getString("score_grade_icon"));
+                    map.put("assignmentStatus", rs.getString("assignment_status"));
+                    map.put("scoreBreakdown", rs.getString("score_breakdown"));
                     map.put("createdAt", rs.getTimestamp("created_at"));
                     return map;
                 }

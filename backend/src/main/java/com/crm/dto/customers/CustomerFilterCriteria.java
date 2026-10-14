@@ -121,6 +121,9 @@ public class CustomerFilterCriteria {
 
     private String customFieldKey;
     private String customFieldValue;
+    private String scoreGrade;
+    private String assignmentStatus;
+    private String sortBy;
 
     public String getCustomFieldKey() {
         return customFieldKey;
@@ -136,5 +139,29 @@ public class CustomerFilterCriteria {
 
     public void setCustomFieldValue(String customFieldValue) {
         this.customFieldValue = customFieldValue;
+    }
+
+    public String getScoreGrade() {
+        return scoreGrade;
+    }
+
+    public void setScoreGrade(String scoreGrade) {
+        this.scoreGrade = scoreGrade;
+    }
+
+    public String getAssignmentStatus() {
+        return assignmentStatus;
+    }
+
+    public void setAssignmentStatus(String assignmentStatus) {
+        this.assignmentStatus = assignmentStatus;
+    }
+
+    public String getSortBy() {
+        return sortBy;
+    }
+
+    public void setSortBy(String sortBy) {
+        this.sortBy = sortBy;
     }
 }

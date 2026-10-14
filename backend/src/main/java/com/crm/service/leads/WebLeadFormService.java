@@ -194,6 +194,12 @@ public class WebLeadFormService {
         );
         webLeadFormDAO.incrementSubmissionsCount(formId);
 
+        // Tự động chấm điểm và phân bổ lead từ Web-to-Lead
+        try {
+            new com.crm.service.routing.LeadScoringService().evaluateAndSaveLeadScore(null, customerId);
+            new com.crm.service.routing.LeadAssignmentService().evaluateAndAssignLead(null, customerId, null);
+        } catch (Exception ignored) {}
+
         // 9. Phản hồi thành công
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("success", true);

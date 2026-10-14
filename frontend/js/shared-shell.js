@@ -39,6 +39,9 @@
             campaign:
                 `<svg viewBox="0 0 24 24"><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07M3 11v2a2 2 0 0 0 2 2h2l5 4V5L7 9H5a2 2 0 0 0-2 2Z"/></svg>`,
 
+            routing:
+                `<svg viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>`,
+
             opportunity:
                 `<svg viewBox="0 0 24 24"><path d="m12 3 7 7-7 7-7-7 7-7Z"/><path d="M12 17v4"/></svg>`,
 

@@ -42,6 +42,9 @@ public class CustomerDAO {
                     c.address,
                     c.lead_source,
                     c.lead_source_id,
+                    c.lead_score,
+                    c.score_grade,
+                    c.assignment_status,
                     c.industry_id,
                     c.company_size_id,
                     c.region_id,
@@ -75,7 +78,11 @@ public class CustomerDAO {
 
         int page = criteria != null ? criteria.getPage() : 1;
         int size = criteria != null ? criteria.getSize() : 20;
-        sql.append(" ORDER BY c.id DESC LIMIT ? OFFSET ?");
+        if (criteria != null && "score".equalsIgnoreCase(criteria.getSortBy())) {
+            sql.append(" ORDER BY c.lead_score DESC, c.id DESC LIMIT ? OFFSET ?");
+        } else {
+            sql.append(" ORDER BY c.id DESC LIMIT ? OFFSET ?");
+        }
         params.add(size);
         params.add((page - 1) * size);
 
@@ -239,6 +246,22 @@ public class CustomerDAO {
             }
             sql.append(")");
         }
+
+        // 12. Lọc theo phân hạng điểm (HOT, WARM, COLD)
+        if (criteria.getScoreGrade() != null && !criteria.getScoreGrade().isBlank()) {
+            sql.append(" AND c.score_grade = ?");
+            params.add(criteria.getScoreGrade().trim().toUpperCase());
+        }
+
+        // 13. Lọc theo trạng thái phân bổ
+        if (criteria.getAssignmentStatus() != null && !criteria.getAssignmentStatus().isBlank()) {
+            if ("UNASSIGNED".equalsIgnoreCase(criteria.getAssignmentStatus())) {
+                sql.append(" AND (c.owner_user_id IS NULL OR c.assignment_status = 'UNASSIGNED')");
+            } else {
+                sql.append(" AND c.assignment_status = ?");
+                params.add(criteria.getAssignmentStatus().trim());
+            }
+        }
     }
 
     public Map<String, Object> findById(long id) throws SQLException {
@@ -257,6 +280,9 @@ public class CustomerDAO {
                     c.industry_id,
                     c.company_size_id,
                     c.owner_user_id,
+                    c.lead_score,
+                    c.score_grade,
+                    c.assignment_status,
                     c.parent_id,
                     p.name AS parent_name,
                     (SELECT COUNT(*) FROM customers sub WHERE sub.parent_id = c.id AND sub.is_deleted = 0) AS subsidiary_count,
@@ -535,6 +561,17 @@ public class CustomerDAO {
             map.put("primaryContactName", null);
             map.put("primaryContactPhone", null);
             map.put("primaryContactRole", null);
+        }
+
+        // Chấm điểm Lead & Phân bổ tự động
+        try {
+            map.put("leadScore", rs.getInt("lead_score"));
+            map.put("scoreGrade", rs.getString("score_grade") != null ? rs.getString("score_grade") : "COLD");
+            map.put("assignmentStatus", rs.getString("assignment_status") != null ? rs.getString("assignment_status") : "UNASSIGNED");
+        } catch (SQLException ignored) {
+            map.put("leadScore", 0);
+            map.put("scoreGrade", "COLD");
+            map.put("assignmentStatus", "UNASSIGNED");
         }
 
         return map;

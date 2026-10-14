@@ -69,6 +69,18 @@ public class MenuService {
             );
         }
 
+        if (permissions.contains("lead.routing.read") || permissions.contains("lead.routing.manage") || permissions.contains("customer.read")) {
+            menu.add(
+                    item(
+                            "LEAD_ROUTING",
+                            "Phân bổ & Chấm điểm",
+                            "lead-routing",
+                            "workspace",
+                            "routing"
+                    )
+            );
+        }
+
 
         if (permissions.contains("opportunity.read")) {
 

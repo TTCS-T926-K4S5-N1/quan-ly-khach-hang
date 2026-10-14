@@ -107,6 +107,14 @@ public class CustomerService {
             customFieldValueDAO.saveValues("CUSTOMER", customerId, req.getCustomFields());
         }
 
+        // Tự động chấm điểm và phân bổ lead
+        try {
+            new com.crm.service.routing.LeadScoringService().evaluateAndSaveLeadScore(null, customerId);
+            if (req.getOwnerUserId() == null || req.getOwnerUserId() <= 0) {
+                new com.crm.service.routing.LeadAssignmentService().evaluateAndAssignLead(null, customerId, null);
+            }
+        } catch (Exception ignored) {}
+
         return getById(currentUserId, customerId);
     }
 
@@ -135,6 +143,12 @@ public class CustomerService {
         if (req.getCustomFields() != null && !req.getCustomFields().isEmpty()) {
             customFieldValueDAO.saveValues("CUSTOMER", id, req.getCustomFields());
         }
+
+        // Tự động tính lại điểm khi thông tin thay đổi (Acceptance Criteria Story 1)
+        try {
+            new com.crm.service.routing.LeadScoringService().evaluateAndSaveLeadScore(null, id);
+            new com.crm.service.routing.LeadAssignmentService().evaluateAndAssignLead(null, id, null);
+        } catch (Exception ignored) {}
 
         return getById(currentUserId, id);
     }

@@ -40,6 +40,10 @@ const industryFilter = document.getElementById("industryFilter");
 const companySizeFilter = document.getElementById("companySizeFilter");
 const regionFilter = document.getElementById("regionFilter");
 const ownerFilter = document.getElementById("ownerFilter");
+const scoreGradeFilter = document.getElementById("scoreGradeFilter");
+const assignmentStatusFilter = document.getElementById("assignmentStatusFilter");
+const btnSortByScore = document.getElementById("btnSortByScore");
+let isSortByScoreActive = false;
 const btnResetFilters = document.getElementById("btnResetFilters");
 const savedFilterChips = document.getElementById("savedFilterChips");
 const filterResultCount = document.getElementById("filterResultCount");
@@ -909,13 +913,28 @@ btnResetFilters?.addEventListener("click", resetAllFilters);
     });
 });
 
-[statusFilter, industryFilter, companySizeFilter, regionFilter, ownerFilter].forEach(select => {
+[statusFilter, industryFilter, companySizeFilter, regionFilter, ownerFilter, scoreGradeFilter, assignmentStatusFilter].forEach(select => {
     select?.addEventListener("change", () => {
         activeSavedFilterId = null;
         renderSavedFilterChips();
         currentPage = 1;
         loadCustomers(1);
     });
+});
+
+btnSortByScore?.addEventListener("click", () => {
+    isSortByScoreActive = !isSortByScoreActive;
+    if (isSortByScoreActive) {
+        btnSortByScore.style.background = "#dc2626";
+        btnSortByScore.style.color = "#ffffff";
+        btnSortByScore.innerHTML = "🔥 Đang xếp Lead Hot nhất ▲";
+    } else {
+        btnSortByScore.style.background = "#fee2e2";
+        btnSortByScore.style.color = "#b91c1c";
+        btnSortByScore.innerHTML = "🔥 Lead Hot nhất";
+    }
+    currentPage = 1;
+    loadCustomers(1);
 });
 
 custPageSizeSelect?.addEventListener("change", (e) => {
@@ -1024,6 +1043,8 @@ async function loadCustomers(targetPage = currentPage) {
         const sizeId = companySizeFilter?.value || "";
         const regId = regionFilter?.value || "";
         const own = ownerFilter?.value || "";
+        const sGrade = scoreGradeFilter?.value || "";
+        const aStatus = assignmentStatusFilter?.value || "";
 
         if (kw) params.append("keyword", kw);
         if (cPhone) params.append("contactPhone", cPhone);
@@ -1031,6 +1052,9 @@ async function loadCustomers(targetPage = currentPage) {
         if (ind) params.append("industryId", ind);
         if (sizeId) params.append("companySizeId", sizeId);
         if (regId) params.append("regionId", regId);
+        if (sGrade) params.append("scoreGrade", sGrade);
+        if (aStatus) params.append("assignmentStatus", aStatus);
+        if (isSortByScoreActive) params.append("sortBy", "score");
         if (own) {
             if (own === "MINE") params.append("ownerFilter", "MINE");
             else params.append("ownerUserId", own);
@@ -1286,7 +1310,23 @@ function renderDesktopRow(record, index) {
             ${record.leadSource ? `<div style="margin-top:3px;"><span style="font-size:10.5px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:1px 6px; border-radius:8px;" title="Nguồn khách hàng">🌐 ${escapeHtml(record.leadSource)}</span></div>` : ""}
         </td>
         <td>
+            ${(function() {
+                const grade = record.scoreGrade || "COLD";
+                let icon = "❄️", color = "#0284c7", bg = "#e0f2fe", border = "#bae6fd", label = "Lạnh";
+                if (grade === "HOT") {
+                    icon = "🔥"; color = "#dc2626"; bg = "#fee2e2"; border = "#fca5a5"; label = "NÓNG";
+                } else if (grade === "WARM") {
+                    icon = "☀️"; color = "#d97706"; bg = "#fef3c7"; border = "#fde68a"; label = "ẤM";
+                }
+                return `<div style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:12px; font-size:11.5px; font-weight:700; background:${bg}; color:${color}; border:1px solid ${border};" title="Điểm tiềm năng: ${record.leadScore || 0} điểm">
+                    <span>${icon}</span>
+                    <span>${record.leadScore || 0}đ (${label})</span>
+                </div>`;
+            })()}
+        </td>
+        <td>
             <span style="font-weight:500;">${escapeHtml(record.ownerName || record.owner || "—")}</span>
+            ${record.assignmentStatus === "UNASSIGNED" ? `<span style="display:block; font-size:10.5px; color:#d97706; font-weight:600;">(Chờ phân bổ)</span>` : ""}
         </td>
         <td class="action-col">
             <div class="row-action-wrap">

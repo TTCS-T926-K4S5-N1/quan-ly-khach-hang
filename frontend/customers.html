@@ -330,6 +330,29 @@
                 <option value="MINE">⭐️ Khách do tôi phụ trách</option>
             </select>
 
+            <select id="scoreGradeFilter" class="crm-input" style="flex: 1; min-width: 140px;">
+                <option value="">🔥 Phân loại Lead</option>
+                <option value="HOT">🔥 Lead NÓNG</option>
+                <option value="WARM">☀️ Lead ẤM</option>
+                <option value="COLD">❄️ Lead LẠNH</option>
+            </select>
+
+            <select id="assignmentStatusFilter" class="crm-input" style="flex: 1; min-width: 140px;">
+                <option value="">🎯 Phân bổ</option>
+                <option value="UNASSIGNED">⏳ Hàng chờ (Chưa phân)</option>
+                <option value="ASSIGNED">✅ Đã phân bổ</option>
+            </select>
+
+            <button
+                id="btnSortByScore"
+                type="button"
+                class="crm-btn"
+                style="padding: 9px 12px; background: #fee2e2; color: #b91c1c; font-size: 13px; font-weight: 700; border: 1px solid #fca5a5; white-space: nowrap;"
+                title="Sắp xếp lead theo thứ tự điểm tiềm năng cao nhất lên đầu danh sách"
+            >
+                🔥 Lead Hot nhất
+            </button>
+
             <!-- Lọc trường tùy chỉnh -->
             <div id="customFieldFilterWrap" style="display: flex; gap: 6px; align-items: center; flex: 1.5; min-width: 250px;">
                 <select id="customFieldSelectFilter" class="crm-input" style="flex: 1; min-width: 140px;">
@@ -393,6 +416,10 @@
 
                     <th>
                         Trạng thái
+                    </th>
+
+                    <th style="min-width: 140px;">
+                        🎯 Điểm Lead
                     </th>
 
                     <th>

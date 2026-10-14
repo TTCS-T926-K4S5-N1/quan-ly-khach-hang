@@ -286,6 +286,12 @@ public class LeadServlet extends HttpServlet {
                     ps.executeUpdate();
                 }
 
+                // Tự động chấm điểm và phân bổ lead theo quy tắc
+                try {
+                    new com.crm.service.routing.LeadScoringService().evaluateAndSaveLeadScore(conn, customerId);
+                    new com.crm.service.routing.LeadAssignmentService().evaluateAndAssignLead(conn, customerId, null);
+                } catch (Exception ignored) {}
+
                 conn.commit();
 
                 Map<String, Object> respData = new LinkedHashMap<>();
