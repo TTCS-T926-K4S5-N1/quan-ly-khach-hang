@@ -66,20 +66,21 @@ function escapeHtml(str) {
         .replace(/'/g, "&#039;");
 }
 
-function getSourceIcon(code) {
-    const icons = {
-        "HOI_THAO": "🎪",
-        "WEBSITE": "🌐",
-        "FACEBOOK": "📱",
-        "GOOGLE_ADS": "🔍",
-        "TIKTOK": "🎵",
-        "LINKEDIN": "💼",
-        "EMAIL_MARKETING": "📧",
-        "GIOI_THIEU": "🤝",
-        "DANH_THIEP": "📇",
-        "KHAC": "✨"
-    };
-    return icons[code] || "🌐";
+function getSourceIcon(code, name) {
+    const text = ((code || "") + " " + (name || "")).toUpperCase();
+    if (text.includes("HOI_THAO") || text.includes("HỘI THẢO")) return "🎪";
+    if (text.includes("SU_KIEN") || text.includes("SỰ KIỆN") || text.includes("WORKSHOP")) return "🎟️";
+    if (text.includes("WEBSITE") || text.includes("FORM")) return "🌐";
+    if (text.includes("FACEBOOK") || text.includes("MẠNG XÃ HỘI")) return "📱";
+    if (text.includes("GOOGLE") || text.includes("SEARCH")) return "🔍";
+    if (text.includes("GIOI_THIEU") || text.includes("GIỚI THIỆU") || text.includes("NGƯỜI QUEN")) return "🤝";
+    if (text.includes("TIKTOK")) return "🎵";
+    if (text.includes("LINKEDIN")) return "💼";
+    if (text.includes("EMAIL")) return "📧";
+    if (text.includes("DANH_THIEP")) return "📇";
+    if (text.includes("COLD_CALL") || text.includes("TELESALES")) return "📞";
+    if (text.includes("CHUA_XAC_DINH") || text.includes("CHƯA PHÂN LOẠI") || text.includes("CHƯA XÁC ĐỊNH")) return "❓";
+    return "🌐";
 }
 
 async function api(path) {
@@ -286,7 +287,7 @@ function renderLeadSources(sources, kpis) {
     list.forEach(item => {
         const tr = document.createElement("tr");
 
-        const icon = getSourceIcon(item.sourceCode);
+        const icon = getSourceIcon(item.sourceCode, item.sourceName);
         const leads = Number(item.totalLeads || 0);
         const accepted = Number(item.acceptedLeads || 0);
         const accRate = Number(item.acceptanceRate || 0);

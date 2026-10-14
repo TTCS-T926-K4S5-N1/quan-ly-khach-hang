@@ -226,20 +226,48 @@ public class LeadSourceReportDAO {
     }
 
     public static String formatSourceName(String code) {
-        if (code == null || code.isBlank()) return "Chưa xác định";
-        return switch (code.toUpperCase().trim()) {
-            case "HOI_THAO" -> "🎪 Hội thảo / Triển lãm";
-            case "SU_KIEN", "SỰ KIỆN" -> "🎟️ Sự kiện / Workshop";
-            case "WEBSITE" -> "🌐 Website / Form liên hệ";
-            case "FACEBOOK" -> "📱 Facebook Lead Ads";
-            case "GOOGLE_ADS" -> "🔍 Google Search / Ads";
-            case "TIKTOK" -> "🎵 TikTok Ads";
-            case "LINKEDIN" -> "💼 LinkedIn B2B";
-            case "EMAIL" -> "📧 Email Marketing";
-            case "GIOI_THIEU" -> "🤝 Khách hàng giới thiệu";
-            case "COLD_CALL" -> "📞 Cold Calling / Outbound";
-            case "CHUA_XAC_DINH" -> "❓ Chưa phân loại nguồn";
-            default -> code;
-        };
+        if (code == null || code.isBlank() || "CHUA_XAC_DINH".equalsIgnoreCase(code.trim())) {
+            return "Chưa phân loại nguồn";
+        }
+        String trimmed = code.trim();
+        String upper = trimmed.toUpperCase();
+
+        if (upper.contains("HOI_THAO") || upper.contains("HỘI THẢO / TRIỂN LÃM")) {
+            return "Hội thảo / Triển lãm";
+        }
+        if (upper.contains("HỘI THẢO / SỰ KIỆN") || upper.contains("H?I TH?O / S? KI?N") || upper.contains("HÁ»™I THÁº£O")) {
+            return "Hội thảo / Sự kiện";
+        }
+        if (upper.contains("SU_KIEN") || upper.contains("SỰ KIỆN") || upper.contains("WORKSHOP")) {
+            return "Sự kiện / Workshop";
+        }
+        if (upper.contains("WEBSITE / TÌM KIẾM") || upper.contains("TÃ¬M KIÁº¿M") || upper.contains("TÃ¬M KI")) {
+            return "Website / Tìm kiếm";
+        }
+        if (upper.contains("WEBSITE") || upper.contains("FORM")) {
+            return trimmed.contains("Form") ? trimmed : "Website / Form liên hệ";
+        }
+        if (upper.contains("NGƯỜI QUEN") || upper.contains("GIOI_THIEU") || upper.contains("GIỚI THIỆU") || upper.contains("NGÆ°Á»") || upper.contains("NGÆ°")) {
+            return "Người quen giới thiệu";
+        }
+        if (upper.contains("FACEBOOK") || upper.contains("MẠNG XÃ HỘI") || upper.contains("M?NG X")) {
+            return "Mạng xã hội";
+        }
+        if (upper.contains("GOOGLE")) {
+            return trimmed.equalsIgnoreCase("Google Search") ? "Google Search" : "Google Search / Ads";
+        }
+        if (upper.contains("COLD_CALL") || upper.contains("TELESALES")) {
+            return "Telesales / Outbound";
+        }
+        if (upper.contains("TIKTOK")) {
+            return "TikTok Ads";
+        }
+        if (upper.contains("LINKEDIN")) {
+            return "LinkedIn B2B";
+        }
+        if (upper.contains("EMAIL")) {
+            return "Email Marketing";
+        }
+        return trimmed;
     }
 }
