@@ -35,7 +35,7 @@ async function api(path, options = {}) {
 
     if (response.status === 401) {
         localStorage.removeItem("crm_ui_session");
-        window.location.href = "login.html";
+        window.location.href = "login";
         throw new Error("Phiên đăng nhập đã hết hạn.");
     }
 
@@ -169,7 +169,7 @@ document.getElementById("approveQuote")?.addEventListener("click", async () => {
                 body: JSON.stringify({ status: "APPROVED" })
             });
             alert("Báo giá đã được phê duyệt thành công!");
-            window.location.href = "quotations.html";
+            window.location.href = "quotations";
             return;
         } catch (err) {
             alert("Lỗi duyệt báo giá: " + err.message);
@@ -188,7 +188,7 @@ document.getElementById("rejectQuote")?.addEventListener("click", async () => {
                 body: JSON.stringify({ status: "REJECTED" })
             });
             alert("Báo giá đã bị từ chối!");
-            window.location.href = "quotations.html";
+            window.location.href = "quotations";
             return;
         } catch (err) {
             alert("Lỗi từ chối báo giá: " + err.message);
@@ -448,7 +448,7 @@ async function saveQuote() {
             localStorage.setItem("crm_ui_quotes", JSON.stringify(list));
         } catch (_) {}
 
-        window.location.href = "quotations.html";
+        window.location.href = "quotations";
     } catch (err) {
         alert("Lỗi khi lưu báo giá: " + err.message);
     }

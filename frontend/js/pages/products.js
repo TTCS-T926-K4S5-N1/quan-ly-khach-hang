@@ -104,7 +104,7 @@ async function api(
     ) {
 
         window.location.href =
-            "login.html";
+            "login";
 
         throw new Error(
             "Phiên đăng nhập đã hết hạn"

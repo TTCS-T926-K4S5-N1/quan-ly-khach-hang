@@ -66,7 +66,7 @@ async function api(path, options = {}) {
         localStorage.removeItem("crm_ui_session");
 
         window.location.href =
-            "login.html";
+            "login";
 
         throw new Error("Phiên đăng nhập đã hết hạn.");
     }

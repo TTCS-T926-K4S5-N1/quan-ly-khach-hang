@@ -134,7 +134,7 @@ async function downloadTemplate(type = "valid") {
         });
 
         if (response.status === 401) {
-            window.location.href = "login.html";
+            window.location.href = "login";
             return;
         }
 
@@ -500,7 +500,7 @@ function showBanner(message, type = "info") {
     importResult.className = `import-result-banner ${type}`;
     importResult.innerHTML = `
         <span>${escapeHtml(message)}</span>
-        ${type === 'success' ? '<a href="users.html" class="crm-btn crm-btn-secondary crm-btn-sm" style="text-decoration:none;margin-left:12px;">Xem danh sách người dùng →</a>' : ''}
+        ${type === 'success' ? '<a href="users" class="crm-btn crm-btn-secondary crm-btn-sm" style="text-decoration:none;margin-left:12px;">Xem danh sách người dùng →</a>' : ''}
     `;
 }
 

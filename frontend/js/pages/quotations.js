@@ -34,7 +34,7 @@ async function api(path, options = {}) {
 
     if (response.status === 401) {
         localStorage.removeItem("crm_ui_session");
-        window.location.href = "login.html";
+        window.location.href = "login";
         throw new Error("Phiên đăng nhập đã hết hạn.");
     }
 
@@ -147,7 +147,7 @@ function render() {
                 </td>
                 <td>
                     <div class="quote-actions">
-                        <a class="quote-action" href="quote-editor.html?id=${encodeURIComponent(quote.id)}">
+                        <a class="quote-action" href="quote-editor?id=${encodeURIComponent(quote.id)}">
                             Xem / Sửa
                         </a>
                         ${
@@ -157,7 +157,7 @@ function render() {
                         }
                         ${
                             quote.status === "approved"
-                            ? `<a class="quote-action contract" href="contract-create.html?id=${encodeURIComponent(quote.id)}">Tạo HĐ</a>`
+                            ? `<a class="quote-action contract" href="contract-create?id=${encodeURIComponent(quote.id)}">Tạo HĐ</a>`
                             : ""
                         }
                         <button type="button" class="quote-action" style="color:#ef4444;cursor:pointer;" data-delete-quote="${quote.id}">
@@ -188,7 +188,7 @@ function render() {
                     <span>Hiệu lực: ${escapeHtml(quote.validUntil || "—")}</span>
                 </div>
                 <div class="quote-mobile-actions">
-                    <a class="crm-btn crm-btn-secondary" style="text-decoration:none" href="quote-editor.html?id=${encodeURIComponent(quote.id)}">
+                    <a class="crm-btn crm-btn-secondary" style="text-decoration:none" href="quote-editor?id=${encodeURIComponent(quote.id)}">
                         Xem / Sửa
                     </a>
                     ${
@@ -198,7 +198,7 @@ function render() {
                     }
                     ${
                         quote.status === "approved"
-                        ? `<a class="crm-btn crm-btn-primary" style="text-decoration:none" href="contract-create.html?id=${encodeURIComponent(quote.id)}">Tạo Hợp đồng</a>`
+                        ? `<a class="crm-btn crm-btn-primary" style="text-decoration:none" href="contract-create?id=${encodeURIComponent(quote.id)}">Tạo Hợp đồng</a>`
                         : `<button class="crm-btn crm-btn-secondary" disabled>Chưa duyệt</button>`
                     }
                     <button type="button" class="crm-btn crm-btn-secondary" style="color:#ef4444" data-delete-quote="${quote.id}">Xóa</button>
