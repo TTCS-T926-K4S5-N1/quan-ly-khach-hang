@@ -1530,9 +1530,253 @@ async function loadOwnersIntoFilter() {
 }
 
 /* =========================================================
+   MANUAL LEAD CREATION MODAL (SCRUM-64)
+========================================================= */
+const btnOpenManualLeadModal = document.getElementById("btnOpenManualLeadModal");
+const manualLeadModalOverlay = document.getElementById("manualLeadModalOverlay");
+const btnCloseManualLeadModal = document.getElementById("btnCloseManualLeadModal");
+const btnCancelManualLead = document.getElementById("btnCancelManualLead");
+const manualLeadForm = document.getElementById("manualLeadForm");
+const mlLeadSource = document.getElementById("mlLeadSource");
+
+function initManualLeadModal() {
+    btnOpenManualLeadModal?.addEventListener("click", openManualLeadModal);
+    btnCloseManualLeadModal?.addEventListener("click", closeManualLeadModal);
+    btnCancelManualLead?.addEventListener("click", closeManualLeadModal);
+    manualLeadForm?.addEventListener("submit", handleManualLeadSubmit);
+
+    manualLeadModalOverlay?.addEventListener("click", e => {
+        if (e.target === manualLeadModalOverlay) closeManualLeadModal();
+    });
+
+    setupRealtimeDuplicateCheck();
+}
+
+function openManualLeadModal() {
+    if (!manualLeadModalOverlay) return;
+    manualLeadForm?.reset();
+    clearManualLeadErrors();
+    const warnBox = document.getElementById("mlDuplicateWarning");
+    if (warnBox) warnBox.style.display = "none";
+    loadLeadSourcesIntoSelect();
+    loadCampaignsIntoSelect();
+    manualLeadModalOverlay.style.display = "flex";
+}
+
+function closeManualLeadModal() {
+    if (!manualLeadModalOverlay) return;
+    manualLeadModalOverlay.style.display = "none";
+}
+
+function clearManualLeadErrors() {
+    ["mlFullNameError", "mlPhoneError", "mlEmailError", "mlLeadSourceError"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.textContent = "";
+            el.style.display = "none";
+        }
+    });
+}
+
+async function loadLeadSourcesIntoSelect() {
+    if (!mlLeadSource) return;
+    try {
+        const res = await api("/api/leads/sources");
+        const list = res?.data || res || [];
+        if (Array.isArray(list) && list.length > 0) {
+            mlLeadSource.innerHTML = `<option value="">-- Vui lòng chọn nguồn Lead (Bắt buộc) --</option>`;
+            list.forEach(item => {
+                const opt = document.createElement("option");
+                opt.value = item.name || item.code;
+                opt.textContent = item.name || item.code;
+                if (item.code === "HOI_THAO") opt.selected = true;
+                mlLeadSource.appendChild(opt);
+            });
+        }
+    } catch (e) {
+        console.warn("Could not load dynamic lead sources, using defaults:", e);
+    }
+}
+
+async function loadCampaignsIntoSelect() {
+    const mlCampaignId = document.getElementById("mlCampaignId");
+    if (!mlCampaignId) return;
+    try {
+        const res = await api("/api/campaigns/options");
+        const list = res?.data || res || [];
+        mlCampaignId.innerHTML = `<option value="">-- Không gắn chiến dịch cụ thể --</option>`;
+        list.forEach(c => {
+            const opt = document.createElement("option");
+            opt.value = c.id;
+            opt.textContent = `[${c.code}] ${c.name}`;
+            mlCampaignId.appendChild(opt);
+        });
+    } catch (e) {
+        console.warn("Could not load campaigns:", e);
+    }
+}
+
+let dupCheckTimer;
+function setupRealtimeDuplicateCheck() {
+    ["mlPhone", "mlEmail", "mlCompany"].forEach(id => {
+        document.getElementById(id)?.addEventListener("input", () => {
+            clearTimeout(dupCheckTimer);
+            dupCheckTimer = setTimeout(checkManualLeadDuplicates, 450);
+        });
+    });
+}
+
+async function checkManualLeadDuplicates() {
+    const phone = document.getElementById("mlPhone")?.value.trim() || "";
+    const email = document.getElementById("mlEmail")?.value.trim() || "";
+    const name = document.getElementById("mlCompany")?.value.trim() || document.getElementById("mlFullName")?.value.trim() || "";
+
+    const warnBox = document.getElementById("mlDuplicateWarning");
+    const msgEl = document.getElementById("mlDupMessage");
+    const custIdEl = document.getElementById("mlDupCustId");
+    const viewBtn = document.getElementById("mlBtnViewExisting");
+
+    if (!phone && !email && !name) {
+        if (warnBox) warnBox.style.display = "none";
+        return;
+    }
+
+    try {
+        const url = `/api/leads/check-duplicate?phone=${encodeURIComponent(phone)}&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`;
+        const res = await api(url);
+        const dupes = res?.data || res || [];
+
+        if (dupes.length > 0 && dupes[0].confidence >= 75) {
+            const top = dupes[0];
+            warnBox.style.display = "block";
+            msgEl.textContent = `Khớp ${top.confidence}%: ${top.matchReasons.join(", ")} (Khách hàng: ${top.name}${top.ownerName ? " - Phụ trách: " + top.ownerName : ""}).`;
+            custIdEl.textContent = top.id;
+            if (viewBtn) viewBtn.href = `customers?id=${top.id}`;
+
+            // Gợi ý gắn vào khách hàng đã có
+            const btnLink = document.getElementById("mlBtnLinkToExisting");
+            if (btnLink) {
+                btnLink.onclick = async () => {
+                    const leadFullName = document.getElementById("mlFullName")?.value.trim() || top.name;
+                    if (!confirm(`Bạn có muốn gắn người liên hệ "${leadFullName}" trực tiếp vào Khách hàng #${top.id} (${top.name})?`)) return;
+                    try {
+                        await api("/api/contacts", {
+                            method: "POST",
+                            body: JSON.stringify({
+                                customerId: top.id,
+                                name: leadFullName,
+                                title: document.getElementById("mlTitle")?.value.trim() || "Người liên hệ mới",
+                                phone: phone || top.phone,
+                                email: email || top.email,
+                                notes: "Thu thập từ: " + (document.getElementById("mlLeadSource")?.value || "Sự kiện") + " - " + (document.getElementById("mlInterest")?.value.trim() || "")
+                            })
+                        });
+                        alert(`✓ Đã gắn thành công người liên hệ vào khách hàng "${top.name}"!`);
+                        closeManualLeadModal();
+                        await loadCustomers();
+                    } catch (err) {
+                        alert("Lỗi khi gắn người liên hệ: " + err.message);
+                    }
+                };
+            }
+        } else {
+            if (warnBox) warnBox.style.display = "none";
+        }
+    } catch (e) {
+        // Silent fail
+    }
+}
+
+async function handleManualLeadSubmit(e) {
+    e.preventDefault();
+    clearManualLeadErrors();
+
+    const fullName = document.getElementById("mlFullName")?.value.trim() || "";
+    const company = document.getElementById("mlCompany")?.value.trim() || "";
+    const title = document.getElementById("mlTitle")?.value.trim() || "";
+    const phone = document.getElementById("mlPhone")?.value.trim() || "";
+    const email = document.getElementById("mlEmail")?.value.trim() || "";
+    const leadSource = document.getElementById("mlLeadSource")?.value.trim() || "";
+    const campaignId = document.getElementById("mlCampaignId")?.value || null;
+    const eventName = document.getElementById("mlEventName")?.value.trim() || "";
+    const interest = document.getElementById("mlInterest")?.value.trim() || "";
+
+    let hasError = false;
+
+    if (!fullName) {
+        const el = document.getElementById("mlFullNameError");
+        if (el) { el.textContent = "Họ và tên không được để trống"; el.style.display = "block"; }
+        hasError = true;
+    }
+
+    if (!leadSource) {
+        const el = document.getElementById("mlLeadSourceError");
+        if (el) { el.textContent = "Mọi lead nhập vào đều bắt buộc có nguồn"; el.style.display = "block"; }
+        hasError = true;
+    }
+
+    if (!phone) {
+        const el = document.getElementById("mlPhoneError");
+        if (el) { el.textContent = "Số điện thoại không được để trống"; el.style.display = "block"; }
+        hasError = true;
+    } else if (!/^[0-9+()\s.-]{8,20}$/.test(phone)) {
+        const el = document.getElementById("mlPhoneError");
+        if (el) { el.textContent = "Số điện thoại không hợp lệ (tối thiểu 8 chữ số)"; el.style.display = "block"; }
+        hasError = true;
+    }
+
+    if (!email) {
+        const el = document.getElementById("mlEmailError");
+        if (el) { el.textContent = "Email không được để trống"; el.style.display = "block"; }
+        hasError = true;
+    } else if (!/^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email)) {
+        const el = document.getElementById("mlEmailError");
+        if (el) { el.textContent = "Email không đúng định dạng"; el.style.display = "block"; }
+        hasError = true;
+    }
+
+    if (hasError) return;
+
+    const btnSubmit = document.getElementById("btnSubmitManualLead");
+    if (btnSubmit) {
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = "⏳ Đang lưu...";
+    }
+
+    try {
+        const res = await api("/api/leads/manual", {
+            method: "POST",
+            body: JSON.stringify({
+                fullName,
+                company,
+                title,
+                phone,
+                email,
+                leadSource,
+                campaignId: campaignId ? Number(campaignId) : null,
+                eventName,
+                interest
+            })
+        });
+
+        alert(`✓ Đã tạo thành công khách hàng tiềm năng: "${fullName}" từ nguồn "${leadSource}"!`);
+        closeManualLeadModal();
+        await loadCustomers();
+    } catch (err) {
+        alert("Lỗi khi tạo lead: " + (err.message || "Không thể kết nối đến máy chủ"));
+    } finally {
+        if (btnSubmit) {
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = "💾 Lưu Lead vào hệ thống";
+        }
+    }
+}
+
+/* =========================================================
    INITIALIZATION
 ========================================================= */
 async function init() {
+    initManualLeadModal();
     await initUserProfile();
     await loadCustomerCustomFields();
     await loadOwnersIntoFilter();

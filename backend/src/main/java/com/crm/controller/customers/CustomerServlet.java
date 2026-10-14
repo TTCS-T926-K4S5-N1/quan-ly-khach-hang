@@ -98,11 +98,25 @@ public class CustomerServlet extends HttpServlet {
                 String name = req.getParameter("name");
                 String taxCode = req.getParameter("taxCode");
                 String website = req.getParameter("website");
+                String email = req.getParameter("email");
+                String phone = req.getParameter("phone");
                 String exclStr = req.getParameter("excludeId");
                 Long excludeId = (exclStr != null && !exclStr.isBlank()) ? Long.parseLong(exclStr.trim()) : null;
 
-                var dupes = customerService.checkDuplicates(currentUserId, name, taxCode, website, excludeId);
+                var dupes = customerService.checkDuplicates(currentUserId, name, taxCode, website, email, phone, excludeId);
                 ResponseUtil.json(resp, 200, ApiResponse.success("Kiểm tra trùng lặp thành công", dupes));
+                return;
+            }
+
+            // Gợi ý khách hàng trùng lặp để gắn lead thẳng vào khách hàng đó
+            if (path.equals("/suggest-existing")) {
+                String email = req.getParameter("email");
+                String phone = req.getParameter("phone");
+                String companyName = req.getParameter("companyName");
+                if (companyName == null) companyName = req.getParameter("name");
+
+                var suggestion = customerService.suggestExistingCustomer(currentUserId, email, phone, companyName);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Gợi ý khách hàng thành công", suggestion));
                 return;
             }
 

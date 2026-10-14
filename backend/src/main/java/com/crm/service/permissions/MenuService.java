@@ -56,6 +56,19 @@ public class MenuService {
             );
         }
 
+        if (permissions.contains("campaign.read") || permissions.contains("campaign.manage") || permissions.contains("lead.read") || permissions.contains("customer.read")) {
+
+            menu.add(
+                    item(
+                            "CAMPAIGNS",
+                            "Chiến dịch",
+                            "campaigns",
+                            "workspace",
+                            "campaign"
+                    )
+            );
+        }
+
 
         if (permissions.contains("opportunity.read")) {
 

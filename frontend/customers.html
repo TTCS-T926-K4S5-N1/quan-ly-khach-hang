@@ -183,7 +183,27 @@
             </p>
         </div>
 
-        <div style="display:flex; gap:10px; align-items:center;">
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <a
+                href="import-leads"
+                id="btnGoImportLead"
+                class="crm-btn crm-btn-secondary"
+                style="display:inline-flex; align-items:center; gap:6px; font-weight:600; text-decoration:none;"
+                title="Nhập lead hàng loạt từ tệp Excel thu thập từ sự kiện / hội thảo"
+            >
+                📊 Nhập Lead từ Excel
+            </a>
+
+            <button
+                id="btnOpenManualLeadModal"
+                class="crm-btn"
+                type="button"
+                style="display:inline-flex; align-items:center; gap:6px; font-weight:600; background:#059669; color:#fff; border-color:#059669;"
+                title="Tạo khách hàng tiềm năng thủ công từ sự kiện hoặc danh thiếp"
+            >
+                📇 + Thêm Lead (Sự kiện / Danh thiếp)
+            </button>
+
             <button
                 id="btnExportExcel"
                 class="crm-btn crm-btn-secondary"
@@ -1068,6 +1088,130 @@
         <button id="btnSubmitSaveFilter" type="button" class="crm-btn crm-btn-primary">
             Lưu bộ lọc
         </button>
+    </div>
+</div>
+
+<!-- ================= MODAL NHẬP LEAD THỦ CÔNG (SỰ KIỆN / DANH THIẾP) ================= -->
+<div id="manualLeadModalOverlay" class="crm-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:9999; backdrop-filter:blur(3px); align-items:center; justify-content:center; padding:16px;">
+    <div class="crm-modal-content crm-card" style="width:100%; max-width:640px; max-height:90vh; overflow-y:auto; background:var(--crm-card-bg, #fff); border-radius:14px; box-shadow:0 20px 40px rgba(0,0,0,0.25); border:1px solid var(--crm-border);">
+        <header style="display:flex; align-items:center; justify-content:space-between; padding:18px 24px; border-bottom:1px solid var(--crm-border); background:#f8fafc; border-top-left-radius:14px; border-top-right-radius:14px;">
+            <div>
+                <strong style="font-size:17px; color:var(--crm-text, #0f172a); display:flex; align-items:center; gap:8px;">
+                    📇 Thêm mới Lead thủ công (Sự kiện / Danh thiếp)
+                </strong>
+                <span style="font-size:12.5px; color:var(--crm-muted, #64748b); display:block; margin-top:2px;">
+                    Nhập nhanh thông tin danh thiếp hoặc khách gặp trực tiếp tại hội thảo
+                </span>
+            </div>
+            <button id="btnCloseManualLeadModal" type="button" class="drawer-close" style="background:none; border:none; font-size:22px; cursor:pointer; color:#64748b;">
+                ✕
+            </button>
+        </header>
+
+        <form id="manualLeadForm" style="padding:20px 24px; display:flex; flex-direction:column; gap:14px;" novalidate>
+            <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:10px 14px; font-size:12.5px; color:#1e40af; display:flex; align-items:center; gap:8px;">
+                <span>💡</span>
+                <span><strong>Quy định nghiệp vụ (SCRUM-64):</strong> Mọi lead nhập vào hệ thống bắt buộc phải chọn <strong>Nguồn Lead</strong>. Lead được tạo sẽ mang trạng thái <strong>Mới (MOI)</strong>.</span>
+            </div>
+
+            <!-- Họ và tên & Chức danh -->
+            <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:12px;">
+                <div class="field-group">
+                    <label for="mlFullName" style="font-weight:600; font-size:13px;">Họ và tên người liên hệ <em style="color:#dc2626;">*</em></label>
+                    <input id="mlFullName" class="crm-input" type="text" placeholder="VD: Nguyễn Hoàng Nam" required style="margin-top:4px;">
+                    <small id="mlFullNameError" class="field-error" style="color:#dc2626; font-size:11.5px; display:none;"></small>
+                </div>
+                <div class="field-group">
+                    <label for="mlTitle" style="font-weight:600; font-size:13px;">Chức danh / Vị trí</label>
+                    <input id="mlTitle" class="crm-input" type="text" placeholder="VD: Trưởng phòng Mua hàng" style="margin-top:4px;">
+                </div>
+            </div>
+
+            <!-- Công ty -->
+            <div class="field-group">
+                <label for="mlCompany" style="font-weight:600; font-size:13px;">Công ty / Đơn vị công tác</label>
+                <input id="mlCompany" class="crm-input" type="text" placeholder="VD: Tập đoàn Xây dựng Nam Long (bỏ trống nếu cá nhân)" style="margin-top:4px;">
+            </div>
+
+            <!-- Số điện thoại & Email -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="field-group">
+                    <label for="mlPhone" style="font-weight:600; font-size:13px;">Số điện thoại <em style="color:#dc2626;">*</em></label>
+                    <input id="mlPhone" class="crm-input" type="tel" placeholder="VD: 0912345678" required style="margin-top:4px;">
+                    <small id="mlPhoneError" class="field-error" style="color:#dc2626; font-size:11.5px; display:none;"></small>
+                </div>
+                <div class="field-group">
+                    <label for="mlEmail" style="font-weight:600; font-size:13px;">Email <em style="color:#dc2626;">*</em></label>
+                    <input id="mlEmail" class="crm-input" type="email" placeholder="VD: hoangnam@namlong.vn" required style="margin-top:4px;">
+                    <small id="mlEmailError" class="field-error" style="color:#dc2626; font-size:11.5px; display:none;"></small>
+                </div>
+            </div>
+
+            <!-- BANNER CẢNH BÁO TRÙNG LẶP & GỢI Ý GẮN VÀO KHÁCH HÀNG ĐÃ CÓ (SCRUM) -->
+            <div id="mlDuplicateWarning" style="display:none; background:#fffbeb; border:1.5px solid #f59e0b; border-radius:10px; padding:12px 14px; margin-bottom:4px;">
+                <div style="display:flex; align-items:flex-start; gap:10px;">
+                    <span style="font-size:20px;">⚠️</span>
+                    <div style="flex:1;">
+                        <div style="font-weight:700; color:#92400e; font-size:13.5px;" id="mlDupTitle">Phát hiện trùng lặp với Khách hàng trong hệ thống!</div>
+                        <div style="font-size:12.5px; color:#78350f; margin-top:2px;" id="mlDupMessage"></div>
+                        <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+                            <button type="button" id="mlBtnLinkToExisting" class="crm-btn crm-btn-secondary" style="font-size:12px; padding:5px 12px; background:#fef3c7; border-color:#fcd34d; color:#92400e; font-weight:700;">
+                                🔗 Gắn thành Người liên hệ của khách hàng này
+                            </button>
+                            <a id="mlBtnViewExisting" href="#" target="_blank" class="crm-btn crm-btn-secondary" style="font-size:12px; padding:5px 10px; text-decoration:none;">
+                                👁️ Mở Khách hàng (#<span id="mlDupCustId"></span>)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nguồn Lead (BẮT BUỘC) -->
+            <div class="field-group" style="background:#fef2f2; border:1px solid #fecaca; padding:12px; border-radius:8px;">
+                <label for="mlLeadSource" style="font-weight:700; font-size:13px; color:#991b1b; display:flex; justify-content:space-between;">
+                    <span>Nguồn Lead <em style="color:#dc2626;">*</em></span>
+                    <span style="font-size:11px; font-weight:600; background:#fee2e2; color:#b91c1c; padding:1px 6px; border-radius:4px;">BẮT BUỘC THEO QUY ĐỊNH</span>
+                </label>
+                <select id="mlLeadSource" class="crm-input" required style="margin-top:6px; font-weight:600; border-color:#f87171;">
+                    <option value="">-- Vui lòng chọn nguồn Lead --</option>
+                    <option value="Sự kiện / Hội nghị" selected>Sự kiện / Hội nghị</option>
+                    <option value="Danh thiếp / Gặp gỡ trực tiếp">Danh thiếp / Gặp gỡ trực tiếp</option>
+                    <option value="Hội thảo / Triển lãm ngành">Hội thảo / Triển lãm ngành</option>
+                    <option value="Người quen giới thiệu">Người quen giới thiệu</option>
+                    <option value="Telesales / Tiếp cận trực tiếp">Telesales / Tiếp cận trực tiếp</option>
+                </select>
+                <small id="mlLeadSourceError" class="field-error" style="color:#dc2626; font-size:11.5px; display:none;"></small>
+            </div>
+
+            <!-- Chiến dịch Marketing (Tùy chọn) -->
+            <div class="field-group">
+                <label for="mlCampaignId" style="font-weight:600; font-size:13px;">Chiến dịch Marketing (Liên kết đo lường ROI)</label>
+                <select id="mlCampaignId" class="crm-input" style="margin-top:4px;">
+                    <option value="">-- Không gắn chiến dịch cụ thể --</option>
+                </select>
+            </div>
+
+            <!-- Tên sự kiện / Nơi gặp gỡ -->
+            <div class="field-group">
+                <label for="mlEventName" style="font-weight:600; font-size:13px;">Tên sự kiện / Nơi gặp gỡ đối tác</label>
+                <input id="mlEventName" class="crm-input" type="text" placeholder="VD: Triển lãm VietBuild 2026, Diễn đàn Doanh nghiệp VCCI..." style="margin-top:4px;">
+            </div>
+
+            <!-- Nhu cầu quan tâm / Ghi chú ban đầu -->
+            <div class="field-group">
+                <label for="mlInterest" style="font-weight:600; font-size:13px;">Nhu cầu quan tâm / Ghi chú trao đổi</label>
+                <textarea id="mlInterest" class="crm-input" rows="3" placeholder="VD: Khách quan tâm giải pháp CRM quản lý dự án cho 30 nhân sự, hẹn gọi lại vào sáng thứ Hai..." style="margin-top:4px; resize:vertical;"></textarea>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:8px; padding-top:14px; border-top:1px solid var(--crm-border);">
+                <button id="btnCancelManualLead" type="button" class="crm-btn crm-btn-secondary" style="padding:9px 18px;">
+                    Hủy bỏ
+                </button>
+                <button id="btnSubmitManualLead" type="submit" class="crm-btn crm-btn-primary" style="padding:9px 22px; font-weight:700; background:#059669; border-color:#059669;">
+                    💾 Lưu Lead vào hệ thống
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 

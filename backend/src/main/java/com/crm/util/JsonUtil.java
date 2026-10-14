@@ -8,6 +8,14 @@ public final class JsonUtil {
     private static final Gson GSON =
             new GsonBuilder()
                     .serializeNulls()
+                    .registerTypeAdapter(java.time.LocalDate.class, (com.google.gson.JsonSerializer<java.time.LocalDate>) (src, typeOfSrc, context) ->
+                            src == null ? null : new com.google.gson.JsonPrimitive(src.toString()))
+                    .registerTypeAdapter(java.time.LocalDate.class, (com.google.gson.JsonDeserializer<java.time.LocalDate>) (json, typeOfT, context) ->
+                            json == null || json.getAsString().isBlank() ? null : java.time.LocalDate.parse(json.getAsString().substring(0, 10)))
+                    .registerTypeAdapter(java.time.LocalDateTime.class, (com.google.gson.JsonSerializer<java.time.LocalDateTime>) (src, typeOfSrc, context) ->
+                            src == null ? null : new com.google.gson.JsonPrimitive(src.toString()))
+                    .registerTypeAdapter(java.time.LocalDateTime.class, (com.google.gson.JsonDeserializer<java.time.LocalDateTime>) (json, typeOfT, context) ->
+                            json == null || json.getAsString().isBlank() ? null : java.time.LocalDateTime.parse(json.getAsString()))
                     .create();
 
     public static final java.lang.reflect.Type OBJECT_MAP_TYPE =

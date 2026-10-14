@@ -170,6 +170,27 @@ public class CustomerService {
         return customerMergeDAO.checkDuplicates(name, taxCode, website, excludeId);
     }
 
+    public List<Map<String, Object>> checkDuplicates(
+            long currentUserId,
+            String name,
+            String taxCode,
+            String website,
+            String email,
+            String phone,
+            Long excludeId
+    ) throws Exception {
+        return customerMergeDAO.checkDuplicates(name, taxCode, website, email, phone, excludeId);
+    }
+
+    public Map<String, Object> suggestExistingCustomer(
+            long currentUserId,
+            String email,
+            String phone,
+            String companyName
+    ) throws Exception {
+        return customerMergeDAO.suggestExistingCustomer(email, phone, companyName);
+    }
+
     public List<Map<String, Object>> findAllDuplicatePairs(long currentUserId) throws Exception {
         return customerMergeDAO.findAllDuplicatePairs();
     }
