@@ -11,9 +11,9 @@ class JsonUtilTest {
                 "{\"items\":[{\"productId\":12,\"quantity\":2,\"unitPrice\":150.5,\"note\":\"Tiếng Việt\"}]}",
                 JsonUtil.OBJECT_MAP_TYPE);
         var rows = JsonUtil.objectList(body.get("items"));
-        assertEquals(12.0, rows.getFirst().get("productId"));
-        assertEquals(150.5, rows.getFirst().get("unitPrice"));
-        assertEquals("Tiếng Việt", rows.getFirst().get("note"));
+        assertEquals(12.0, rows.get(0).get("productId"));
+        assertEquals(150.5, rows.get(0).get("unitPrice"));
+        assertEquals("Tiếng Việt", rows.get(0).get("note"));
         assertEquals(body.get("items"), rows);
     }
 
