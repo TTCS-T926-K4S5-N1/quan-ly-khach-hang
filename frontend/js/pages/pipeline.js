@@ -8,6 +8,9 @@ let customers = [];
 let winReasons = [];
 let lossReasons = [];
 let competitors = [];
+let teams = [];
+let currentUser = null;
+let currentCustomerContacts = [];
 
 let draggedOppId = null;
 let closingOppId = null;
@@ -19,6 +22,12 @@ const opportunityOverlay = document.getElementById("opportunityOverlay");
 const opportunityForm = document.getElementById("opportunityForm");
 const searchInput = document.getElementById("pipelineSearch");
 const ownerFilter = document.getElementById("ownerFilter");
+const teamFilter = document.getElementById("teamFilter");
+const closeDatePreset = document.getElementById("closeDatePreset");
+const customDateRangeWrap = document.getElementById("customDateRangeWrap");
+const closeDateFrom = document.getElementById("closeDateFrom");
+const closeDateTo = document.getElementById("closeDateTo");
+const leadSourceFilter = document.getElementById("leadSourceFilter");
 
 // Custom Fields state & elements for Opportunity
 let oppCustomFields = [];
@@ -75,15 +84,34 @@ async function api(path, options = {}) {
 ========================================================= */
 async function initPipeline() {
     try {
+        await loadSession();
         await Promise.all([
             loadStages(),
             loadWinLossAndCompetitors(),
             loadCustomers(),
-            loadOppCustomFields(),
-            loadOpportunities()
+            loadTeams(),
+            loadUsersForFilter(),
+            loadOppCustomFields()
         ]);
+        await loadOpportunities();
     } catch (err) {
         console.error("Initialization error:", err);
+    }
+}
+
+async function loadSession() {
+    try {
+        const data = await api("/api/auth/session");
+        if (data) {
+            currentUser = data;
+            const scope = data.dataScope || data.scope || "";
+            // Criteria: Sales rep by default only sees their own opportunities
+            if (scope === "SELF" || (!scope.includes("ALL") && !scope.includes("TEAM"))) {
+                if (ownerFilter) ownerFilter.value = "MINE";
+            }
+        }
+    } catch (e) {
+        console.warn("Could not load session:", e);
     }
 }
 
@@ -153,9 +181,141 @@ async function loadCustomers() {
     populateCustomerSelect();
 }
 
+async function loadTeams() {
+    try {
+        const res = await api("/api/teams?active=true");
+        const list = res?.teams || (Array.isArray(res) ? res : []);
+        if (Array.isArray(list) && list.length > 0) {
+            teams = list;
+            if (teamFilter) {
+                teamFilter.innerHTML = '<option value="">Tất cả nhóm</option>';
+                teams.forEach(t => {
+                    const opt = document.createElement("option");
+                    opt.value = t.id;
+                    opt.textContent = t.name;
+                    teamFilter.appendChild(opt);
+                });
+            }
+        }
+    } catch (e) {
+        console.warn("Could not load teams:", e);
+    }
+}
+
+async function loadUsersForFilter() {
+    try {
+        const res = await api("/api/users?size=100");
+        const list = res?.items || (Array.isArray(res) ? res : []);
+        if (Array.isArray(list) && list.length > 0 && ownerFilter) {
+            const currentSelected = ownerFilter.value || "MINE";
+            ownerFilter.innerHTML = `
+                <option value="">Tất cả người sở hữu</option>
+                <option value="MINE" ${currentSelected === "MINE" ? "selected" : ""}>Cơ hội của tôi</option>
+            `;
+            list.forEach(u => {
+                const opt = document.createElement("option");
+                opt.value = u.id;
+                opt.textContent = u.fullName || u.email;
+                if (String(u.id) === currentSelected) opt.selected = true;
+                ownerFilter.appendChild(opt);
+            });
+        }
+    } catch (e) {
+        console.warn("Could not load users for filter:", e);
+    }
+}
+
+async function loadContactsForCustomer(customerId, selectedContactId = null, fallbackName = "") {
+    const contactSelect = document.getElementById("opportunityContact");
+    const manualInput = document.getElementById("opportunityContactManual");
+    if (!contactSelect) return;
+
+    currentCustomerContacts = [];
+
+    if (!customerId) {
+        contactSelect.innerHTML = '<option value="">-- Chọn người liên hệ --</option><option value="__manual__">+ Nhập tên khác...</option>';
+        if (manualInput) {
+            manualInput.style.display = "none";
+            manualInput.value = "";
+        }
+        return;
+    }
+
+    try {
+        const data = await api(`/api/contacts?customerId=${customerId}`);
+        currentCustomerContacts = Array.isArray(data) ? data : [];
+    } catch (e) {
+        console.warn("Could not load contacts:", e);
+        currentCustomerContacts = [];
+    }
+
+    contactSelect.innerHTML = '<option value="">-- Chọn người liên hệ --</option>';
+    let matched = false;
+
+    currentCustomerContacts.forEach(ct => {
+        const opt = document.createElement("option");
+        opt.value = ct.id;
+        const role = ct.title || ct.buyingRole || "";
+        opt.textContent = `${ct.name}${role ? ' (' + role + ')' : ''}`;
+        if (selectedContactId && String(ct.id) === String(selectedContactId)) {
+            opt.selected = true;
+            matched = true;
+        } else if (!selectedContactId && (ct.isPrimary || ct.is_primary)) {
+            opt.selected = true;
+            matched = true;
+        }
+        contactSelect.appendChild(opt);
+    });
+
+    const manualOpt = document.createElement("option");
+    manualOpt.value = "__manual__";
+    manualOpt.textContent = "+ Nhập tên khác...";
+    contactSelect.appendChild(manualOpt);
+
+    if (!matched && fallbackName) {
+        contactSelect.value = "__manual__";
+        if (manualInput) {
+            manualInput.style.display = "block";
+            manualInput.value = fallbackName;
+        }
+    } else {
+        if (manualInput) {
+            manualInput.style.display = contactSelect.value === "__manual__" ? "block" : "none";
+            if (contactSelect.value !== "__manual__") manualInput.value = "";
+        }
+    }
+}
+
 async function loadOpportunities() {
     try {
         const params = new URLSearchParams();
+
+        const kw = (searchInput?.value || "").trim();
+        if (kw) params.append("keyword", kw);
+
+        const ownerVal = ownerFilter?.value || "";
+        if (ownerVal === "MINE" || ownerVal === "Tôi") {
+            params.append("ownerFilter", "MINE");
+        } else if (ownerVal && !isNaN(ownerVal)) {
+            params.append("ownerId", ownerVal);
+        }
+
+        const teamVal = teamFilter?.value || "";
+        if (teamVal) params.append("teamId", teamVal);
+
+        const leadSrcVal = leadSourceFilter?.value || "";
+        if (leadSrcVal) params.append("leadSource", leadSrcVal);
+
+        const preset = closeDatePreset?.value || "";
+        if (preset === "CUSTOM") {
+            if (closeDateFrom?.value) params.append("closeDateFrom", closeDateFrom.value);
+            if (closeDateTo?.value) params.append("closeDateTo", closeDateTo.value);
+        } else if (preset) {
+            const range = getCloseDateRangeFromPreset(preset);
+            if (range.from) params.append("closeDateFrom", range.from);
+            if (range.to) params.append("closeDateTo", range.to);
+        }
+
         const cfKey = oppCustomFieldSelect?.value || "";
         let cfVal = "";
         const cfDef = oppCustomFields.find(f => f.key === cfKey);
@@ -168,11 +328,11 @@ async function loadOpportunities() {
             params.append("customFieldKey", cfKey);
             params.append("customFieldValue", cfVal);
         }
+
         const qs = params.toString() ? "?" + params.toString() : "";
         const list = await api("/api/opportunities" + qs);
         if (Array.isArray(list)) {
             opportunities = list;
-            // Sync with localStorage for offline / dashboard view
             try {
                 localStorage.setItem("crm_ui_opportunities", JSON.stringify(opportunities.map(o => ({
                     id: o.id,
@@ -196,6 +356,39 @@ async function loadOpportunities() {
     }
 
     render();
+}
+
+function getCloseDateRangeFromPreset(preset) {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth();
+
+    if (preset === "OVERDUE") {
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        return { from: "", to: formatDate(yesterday) };
+    }
+    if (preset === "THIS_MONTH") {
+        const first = new Date(y, m, 1);
+        const last = new Date(y, m + 1, 0);
+        return { from: formatDate(first), to: formatDate(last) };
+    }
+    if (preset === "NEXT_MONTH") {
+        const first = new Date(y, m + 1, 1);
+        const last = new Date(y, m + 2, 0);
+        return { from: formatDate(first), to: formatDate(last) };
+    }
+    if (preset === "THIS_QUARTER") {
+        const quarterStartMonth = Math.floor(m / 3) * 3;
+        const first = new Date(y, quarterStartMonth, 1);
+        const last = new Date(y, quarterStartMonth + 3, 0);
+        return { from: formatDate(first), to: formatDate(last) };
+    }
+    return { from: "", to: "" };
+}
+
+function formatDate(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 /* =========================================================
@@ -271,16 +464,48 @@ document.getElementById("closeOpportunityDrawer")?.addEventListener("click", clo
 document.getElementById("cancelOpportunity")?.addEventListener("click", closeOpportunityDrawer);
 opportunityOverlay?.addEventListener("click", closeOpportunityDrawer);
 
+document.getElementById("opportunityCustomer")?.addEventListener("change", async event => {
+    const custId = event.target.value ? Number(event.target.value) : null;
+    await loadContactsForCustomer(custId);
+});
+
+document.getElementById("opportunityContact")?.addEventListener("change", event => {
+    const manualInput = document.getElementById("opportunityContactManual");
+    if (manualInput) {
+        manualInput.style.display = event.target.value === "__manual__" ? "block" : "none";
+        if (event.target.value === "__manual__") manualInput.focus();
+    }
+});
+
 document.getElementById("opportunityStage")?.addEventListener("change", event => {
     const stageId = Number(event.target.value);
     const selected = stages.find(s => s.id === stageId);
     if (selected) {
-        document.getElementById("opportunityProbability").value = selected.probability;
+        const probInput = document.getElementById("opportunityProbability");
+        if (probInput) probInput.value = selected.probability;
     }
 });
 
-searchInput?.addEventListener("input", render);
-ownerFilter?.addEventListener("change", render);
+searchInput?.addEventListener("input", debounce(loadOpportunities, 300));
+ownerFilter?.addEventListener("change", loadOpportunities);
+teamFilter?.addEventListener("change", loadOpportunities);
+leadSourceFilter?.addEventListener("change", loadOpportunities);
+
+closeDatePreset?.addEventListener("change", () => {
+    if (customDateRangeWrap) {
+        customDateRangeWrap.style.display = closeDatePreset.value === "CUSTOM" ? "inline-flex" : "none";
+    }
+    if (closeDatePreset.value !== "CUSTOM") {
+        loadOpportunities();
+    }
+});
+
+closeDateFrom?.addEventListener("change", () => {
+    if (closeDatePreset?.value === "CUSTOM") loadOpportunities();
+});
+closeDateTo?.addEventListener("change", () => {
+    if (closeDatePreset?.value === "CUSTOM") loadOpportunities();
+});
 
 /* Custom Fields Logic for Opportunity */
 async function loadOppCustomFields() {
@@ -349,7 +574,6 @@ function renderOppCustomFieldInputs(existingValues = {}) {
                 ${escapeHtml(cf.label)}${requiredAsterisk}
             </label>
             ${inputHtml}
-            <small id="opp_cf_err_${cf.key}" class="opp-cf-error" style="color:#ef4444; font-size:11px; display:none; margin-top:2px;"></small>
         `;
         opportunityCustomFieldsContainer.appendChild(wrap);
     });
@@ -357,86 +581,96 @@ function renderOppCustomFieldInputs(existingValues = {}) {
 
 function collectOppCustomFields() {
     const customFields = {};
+    if (!oppCustomFields || oppCustomFields.length === 0) return customFields;
+
     const inputs = document.querySelectorAll(".opp-cf-input");
-    let firstErrorMsg = "";
-
-    document.querySelectorAll(".opp-cf-error").forEach(el => { el.style.display = "none"; el.textContent = ""; });
-
     for (const input of inputs) {
         const key = input.dataset.key;
-        const label = input.dataset.label;
+        const label = input.dataset.label || key;
         const isRequired = input.dataset.required === "true";
         const val = input.value.trim();
 
         if (isRequired && !val) {
-            const errEl = document.getElementById("opp_cf_err_" + key);
-            if (errEl) {
-                errEl.textContent = `Vui lòng nhập trường "${label}".`;
-                errEl.style.display = "block";
-            }
-            if (!firstErrorMsg) {
-                firstErrorMsg = `Trường tùy chỉnh "${label}" là bắt buộc.`;
-                input.focus();
-            }
+            throw new Error(`Trường tùy chỉnh "${label}" là bắt buộc.`);
         }
 
         if (val) {
-            customFields[key] = val;
+            const cfDef = oppCustomFields.find(f => f.key === key);
+            if (cfDef?.fieldType === "NUMBER") {
+                const num = Number(val);
+                if (isNaN(num)) throw new Error(`Trường "${label}" phải là số.`);
+                customFields[key] = num;
+            } else {
+                customFields[key] = val;
+            }
         }
     }
-
-    if (firstErrorMsg) {
-        throw new Error(firstErrorMsg);
-    }
-
     return customFields;
 }
 
-// Custom Field filter handlers
 oppCustomFieldSelect?.addEventListener("change", () => {
     const selectedKey = oppCustomFieldSelect.value;
-    const cfDef = oppCustomFields.find(f => f.key === selectedKey);
-    if (!cfDef) {
+    if (!selectedKey) {
         if (oppCustomFieldValue) { oppCustomFieldValue.style.display = "none"; oppCustomFieldValue.value = ""; }
         if (oppCustomFieldSelectValue) { oppCustomFieldSelectValue.style.display = "none"; oppCustomFieldSelectValue.value = ""; }
-    } else if (cfDef.fieldType === "SELECT") {
-        if (oppCustomFieldValue) { oppCustomFieldValue.style.display = "none"; oppCustomFieldValue.value = ""; }
+        loadOpportunities();
+        return;
+    }
+
+    const cfDef = oppCustomFields.find(f => f.key === selectedKey);
+    if (cfDef && cfDef.fieldType === "SELECT") {
+        if (oppCustomFieldValue) oppCustomFieldValue.style.display = "none";
         if (oppCustomFieldSelectValue) {
-            oppCustomFieldSelectValue.innerHTML = '<option value="">-- Chọn --</option>';
-            (cfDef.options || []).forEach(opt => {
+            oppCustomFieldSelectValue.style.display = "block";
+            oppCustomFieldSelectValue.innerHTML = '<option value="">-- Tất cả --</option>';
+            const options = Array.isArray(cfDef.options) ? cfDef.options : [];
+            options.forEach(opt => {
                 const o = document.createElement("option");
                 o.value = opt;
                 o.textContent = opt;
                 oppCustomFieldSelectValue.appendChild(o);
             });
-            oppCustomFieldSelectValue.style.display = "inline-block";
         }
     } else {
-        if (oppCustomFieldSelectValue) { oppCustomFieldSelectValue.style.display = "none"; oppCustomFieldSelectValue.value = ""; }
+        if (oppCustomFieldSelectValue) oppCustomFieldSelectValue.style.display = "none";
         if (oppCustomFieldValue) {
-            oppCustomFieldValue.placeholder = `Giá trị ${cfDef.label}...`;
-            oppCustomFieldValue.type = cfDef.fieldType === "NUMBER" ? "number" : (cfDef.fieldType === "DATE" ? "date" : "text");
-            oppCustomFieldValue.style.display = "inline-block";
+            oppCustomFieldValue.style.display = "block";
+            oppCustomFieldValue.placeholder = `Lọc theo ${cfDef ? cfDef.label : ''}...`;
         }
     }
-    loadOpportunities();
 });
 
-oppCustomFieldValue?.addEventListener("input", () => {
-    clearTimeout(searchDebounceTimer);
-    searchDebounceTimer = setTimeout(() => {
-        loadOpportunities();
-    }, 300);
-});
+oppCustomFieldValue?.addEventListener("input", debounce(loadOpportunities, 400));
+oppCustomFieldSelectValue?.addEventListener("change", loadOpportunities);
 
-oppCustomFieldSelectValue?.addEventListener("change", () => {
-    loadOpportunities();
-});
-
-// Excel Export Button handler for Opportunity
 btnExportOppExcel?.addEventListener("click", () => {
     const params = new URLSearchParams();
-    const kw = searchInput?.value.trim() || "";
+    const kw = (searchInput?.value || "").trim();
+    if (kw) params.append("keyword", kw);
+
+    const ownerVal = ownerFilter?.value || "";
+    if (ownerVal === "MINE" || ownerVal === "Tôi") {
+        params.append("ownerFilter", "MINE");
+    } else if (ownerVal && !isNaN(ownerVal)) {
+        params.append("ownerId", ownerVal);
+    }
+
+    const teamVal = teamFilter?.value || "";
+    if (teamVal) params.append("teamId", teamVal);
+
+    const leadSrcVal = leadSourceFilter?.value || "";
+    if (leadSrcVal) params.append("leadSource", leadSrcVal);
+
+    const preset = closeDatePreset?.value || "";
+    if (preset === "CUSTOM") {
+        if (closeDateFrom?.value) params.append("closeDateFrom", closeDateFrom.value);
+        if (closeDateTo?.value) params.append("closeDateTo", closeDateTo.value);
+    } else if (preset) {
+        const range = getCloseDateRangeFromPreset(preset);
+        if (range.from) params.append("closeDateFrom", range.from);
+        if (range.to) params.append("closeDateTo", range.to);
+    }
+
     const cfKey = oppCustomFieldSelect?.value || "";
     let cfVal = "";
     const cfDef = oppCustomFields.find(f => f.key === cfKey);
@@ -445,22 +679,27 @@ btnExportOppExcel?.addEventListener("click", () => {
     } else {
         cfVal = oppCustomFieldValue?.value.trim() || "";
     }
-
-    if (kw) params.append("keyword", kw);
     if (cfKey && cfVal) {
         params.append("customFieldKey", cfKey);
         params.append("customFieldValue", cfVal);
     }
 
     const url = `${API_BASE}/api/opportunities/export?${params.toString()}`;
-    window.open(url, "_blank");
+    window.location.href = url;
 });
-
-let searchDebounceTimer = null;
 
 document.getElementById("resetPipelineFilter")?.addEventListener("click", () => {
     if (searchInput) searchInput.value = "";
-    if (ownerFilter) ownerFilter.value = "";
+    if (ownerFilter) {
+        const scope = currentUser?.dataScope || "";
+        ownerFilter.value = (scope === "SELF" || (!scope.includes("ALL") && !scope.includes("TEAM"))) ? "MINE" : "";
+    }
+    if (teamFilter) teamFilter.value = "";
+    if (leadSourceFilter) leadSourceFilter.value = "";
+    if (closeDatePreset) closeDatePreset.value = "";
+    if (customDateRangeWrap) customDateRangeWrap.style.display = "none";
+    if (closeDateFrom) closeDateFrom.value = "";
+    if (closeDateTo) closeDateTo.value = "";
     if (oppCustomFieldSelect) oppCustomFieldSelect.value = "";
     if (oppCustomFieldValue) { oppCustomFieldValue.value = ""; oppCustomFieldValue.style.display = "none"; }
     if (oppCustomFieldSelectValue) { oppCustomFieldSelectValue.value = ""; oppCustomFieldSelectValue.style.display = "none"; }
@@ -488,10 +727,42 @@ opportunityForm?.addEventListener("submit", async event => {
     if (custError) custError.textContent = "";
 
     const customerId = Number(customerIdVal);
+
+    // Contact handling
+    const contactSelectVal = document.getElementById("opportunityContact")?.value;
+    let contactId = null;
+    let contactName = null;
+    if (contactSelectVal === "__manual__") {
+        contactName = fieldValue("opportunityContactManual");
+    } else if (contactSelectVal) {
+        contactId = Number(contactSelectVal);
+        const selectedContact = currentCustomerContacts.find(c => c.id === contactId);
+        if (selectedContact) {
+            contactName = selectedContact.name;
+        }
+    }
+
+    const leadSource = document.getElementById("opportunityLeadSource")?.value || null;
+
+    // Expected close date validation (SCRUM-72 Criteria 4: Ngày dự kiến chốt không được ở quá khứ khi tạo mới)
+    const expectedCloseDate = fieldValue("opportunityCloseDate") || null;
+    const closeDateError = document.getElementById("opportunityCloseDateError");
+    if (!editingOppId) {
+        if (!expectedCloseDate) {
+            if (closeDateError) closeDateError.textContent = "Vui lòng chọn ngày dự kiến chốt.";
+            return;
+        }
+        if (expectedCloseDate < todayString()) {
+            if (closeDateError) closeDateError.textContent = "Ngày dự kiến chốt không được ở trong quá khứ khi tạo mới cơ hội.";
+            return;
+        }
+    }
+    if (closeDateError) closeDateError.textContent = "";
+
     const stageId = Number(document.getElementById("opportunityStage").value) || stages[0]?.id;
     const probability = clamp(Number(document.getElementById("opportunityProbability").value) || 0, 0, 100);
+    const probabilityNote = fieldValue("opportunityProbabilityNote") || null;
     const amount = Math.max(0, Number(document.getElementById("opportunityValue").value) || 0);
-    const expectedCloseDate = fieldValue("opportunityCloseDate") || null;
 
     let customFields = {};
     try {
@@ -504,8 +775,12 @@ opportunityForm?.addEventListener("submit", async event => {
     const payload = {
         name,
         customerId,
+        contactId,
+        contactName,
+        leadSource,
         stageId,
         probability,
+        probabilityNote,
         amount,
         expectedCloseDate,
         customFields
@@ -748,23 +1023,13 @@ async function moveStageTo(oppId, targetStageId) {
 }
 
 /* =========================================================
-   RENDER BOARD & CARDS
+   RENDER BOARD & CARDS (Kanban Pipeline & Stagnation Alerts)
 ========================================================= */
 const STAGE_THEME_COLORS = ["#14b8a6", "#3b82f6", "#f59e0b", "#8b5cf6", "#10b981", "#ef4444"];
 
 function render() {
     if (!pipelineBoard) return;
     pipelineBoard.innerHTML = "";
-
-    const query = (searchInput?.value || "").trim().toLowerCase();
-    const owner = (ownerFilter?.value || "").trim();
-
-    const filtered = opportunities.filter(opp => {
-        const text = `${opp.name || ""} ${opp.customerName || ""}`.toLowerCase();
-        const searchOk = !query || text.includes(query);
-        const ownerOk = !owner || (opp.ownerName || "").includes(owner) || (owner === "Tôi");
-        return searchOk && ownerOk;
-    });
 
     stages.forEach((st, idx) => {
         const themeColor = STAGE_THEME_COLORS[idx % STAGE_THEME_COLORS.length];
@@ -773,7 +1038,7 @@ function render() {
         col.className = "pipeline-column";
         col.dataset.stage = String(st.id);
 
-        const stageOpps = filtered.filter(o => o.stageId === st.id);
+        const stageOpps = opportunities.filter(o => o.stageId === st.id);
         const stageTotal = stageOpps.reduce((sum, o) => sum + Number(o.amount || 0), 0);
 
         col.innerHTML = `
@@ -807,6 +1072,51 @@ function createCard(record) {
     const canPrev = currentStageIndex > 0;
     const canNext = currentStageIndex < stages.length - 1;
 
+    // Stagnation & Overdue alert calculations
+    const today = todayString();
+    const isOpen = (record.status || "OPEN").toUpperCase() !== "WON" && (record.status || "OPEN").toUpperCase() !== "LOST";
+    const isOverdue = isOpen && record.expectedCloseDate && record.expectedCloseDate < today;
+
+    let overdueDays = 0;
+    if (isOverdue) {
+        if (record.daysOverdue !== undefined && record.daysOverdue > 0) {
+            overdueDays = record.daysOverdue;
+        } else {
+            const diffMs = new Date() - new Date(record.expectedCloseDate);
+            overdueDays = Math.max(1, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+        }
+    }
+
+    let daysInStage = 0;
+    if (record.daysInStage !== undefined) {
+        daysInStage = record.daysInStage;
+    } else if (record.stageUpdatedAt) {
+        const diffMs = new Date() - new Date(record.stageUpdatedAt);
+        daysInStage = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+    }
+    const isStagnant = isOpen && daysInStage >= 7;
+
+    // Contact info HTML
+    let contactHtml = "";
+    if (record.contactName) {
+        contactHtml = `<div class="opp-contact-info" title="Người liên hệ chính">👤 <span>${escapeHtml(record.contactName)}</span></div>`;
+    }
+
+    // Lead source badge HTML
+    let sourceHtml = "";
+    if (record.leadSource) {
+        sourceHtml = `<span class="opp-badge opp-badge-source" title="Nguồn cơ hội">📍 ${escapeHtml(record.leadSource)}</span>`;
+    }
+
+    // Alerts HTML
+    let alertsHtml = "";
+    if (isOverdue) {
+        alertsHtml += `<div class="opp-badge opp-badge-danger" title="Cơ hội đã quá ngày dự kiến chốt">⚠️ Quá hạn chốt (${overdueDays} ngày)</div>`;
+    }
+    if (isStagnant) {
+        alertsHtml += `<div class="opp-badge opp-badge-warning" title="Cơ hội ở giai đoạn này đã ${daysInStage} ngày">⏳ Đình trệ (${daysInStage} ngày ở giai đoạn này)</div>`;
+    }
+
     card.innerHTML = `
         <button class="card-menu-btn" type="button" data-card-menu="${record.id}">⋮</button>
 
@@ -822,16 +1132,23 @@ function createCard(record) {
         <h3>${escapeHtml(record.name)}</h3>
 
         <div class="opportunity-customer">
-            ${escapeHtml(record.customerName || "Chưa chọn khách hàng")}
+            🏢 ${escapeHtml(record.customerName || "Chưa chọn khách hàng")}
         </div>
+
+        ${contactHtml}
 
         <strong class="opportunity-value">
             ${formatMoney(record.amount || 0)}
         </strong>
 
+        <div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:6px;">
+            ${sourceHtml}
+            ${alertsHtml}
+        </div>
+
         <div class="opportunity-meta">
             <span>${record.probability ?? 0}% xác suất</span>
-            <span>${escapeHtml(record.expectedCloseDate || "—")}</span>
+            <span>📅 ${escapeHtml(record.expectedCloseDate || "—")}</span>
         </div>
 
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;">
@@ -892,8 +1209,12 @@ async function openOpportunityDrawer(id = null) {
     const titleEl = document.getElementById("opportunityDrawerTitle");
     const nameErr = document.getElementById("opportunityNameError");
     const custErr = document.getElementById("opportunityCustomerError");
+    const closeDateErr = document.getElementById("opportunityCloseDateError");
     if (nameErr) nameErr.textContent = "";
     if (custErr) custErr.textContent = "";
+    if (closeDateErr) closeDateErr.textContent = "";
+
+    const closeDateInput = document.getElementById("opportunityCloseDate");
 
     if (id !== null) {
         const opp = opportunities.find(o => o.id === id);
@@ -901,10 +1222,14 @@ async function openOpportunityDrawer(id = null) {
             if (titleEl) titleEl.textContent = "Sửa cơ hội";
             setField("opportunityName", opp.name);
             setField("opportunityCustomer", opp.customerId);
+            await loadContactsForCustomer(opp.customerId, opp.contactId, opp.contactName);
+            setField("opportunityLeadSource", opp.leadSource);
             setField("opportunityValue", opp.amount);
+            if (closeDateInput) closeDateInput.removeAttribute("min");
             setField("opportunityCloseDate", opp.expectedCloseDate);
             setField("opportunityStage", opp.stageId);
             setField("opportunityProbability", opp.probability);
+            setField("opportunityProbabilityNote", opp.probabilityNote);
             setField("opportunityOwner", opp.ownerName);
 
             try {
@@ -917,10 +1242,15 @@ async function openOpportunityDrawer(id = null) {
     } else {
         if (titleEl) titleEl.textContent = "Thêm cơ hội";
         opportunityForm.reset();
+        if (closeDateInput) {
+            closeDateInput.min = todayString();
+        }
+        await loadContactsForCustomer(null);
         if (stages.length > 0) {
             setField("opportunityStage", stages[0].id);
             setField("opportunityProbability", stages[0].probability);
         }
+        setField("opportunityOwner", currentUser?.fullName || "Tôi");
         renderOppCustomFieldInputs({});
     }
 
@@ -1026,6 +1356,14 @@ function escapeHtml(val) {
 function todayString() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function debounce(fn, ms) {
+    let timer = null;
+    return function (...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), ms);
+    };
 }
 
 // Start

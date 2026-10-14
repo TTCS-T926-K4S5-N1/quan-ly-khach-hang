@@ -37,8 +37,26 @@ public class OpportunityService {
             int page,
             int size
     ) throws Exception {
+        return search(currentUserId, stageId, status, keyword, null, null, null, null, null, customFieldKey, customFieldValue, page, size);
+    }
+
+    public List<Map<String, Object>> search(
+            long currentUserId,
+            Long stageId,
+            String status,
+            String keyword,
+            Long ownerUserId,
+            Long teamId,
+            String closeDateFrom,
+            String closeDateTo,
+            String leadSource,
+            String customFieldKey,
+            String customFieldValue,
+            int page,
+            int size
+    ) throws Exception {
         DataScopeContext scope = dataScopeService.resolve(currentUserId, "opportunity", "read");
-        return opportunityDAO.search(scope, stageId, status, keyword, customFieldKey, customFieldValue, page, size);
+        return opportunityDAO.search(scope, stageId, status, keyword, ownerUserId, teamId, closeDateFrom, closeDateTo, leadSource, customFieldKey, customFieldValue, page, size);
     }
 
     public Map<String, Object> getById(long currentUserId, long id) throws Exception {
@@ -63,15 +81,34 @@ public class OpportunityService {
             throw new IllegalArgumentException("Tên cơ hội bán hàng là bắt buộc.");
         }
 
+        if (req.getCustomerId() == null) {
+            throw new IllegalArgumentException("Vui lòng chọn khách hàng cho cơ hội bán hàng.");
+        }
+
+        // SCRUM-72 Criteria 4: Ngày dự kiến chốt không được ở quá khứ khi tạo mới
+        if (req.getExpectedCloseDate() != null && !req.getExpectedCloseDate().isBlank()) {
+            try {
+                java.time.LocalDate closeDate = java.time.LocalDate.parse(req.getExpectedCloseDate().trim());
+                if (closeDate.isBefore(java.time.LocalDate.now())) {
+                    throw new IllegalArgumentException("Ngày dự kiến chốt không được ở trong quá khứ khi tạo mới cơ hội.");
+                }
+            } catch (java.time.format.DateTimeParseException e) {
+                throw new IllegalArgumentException("Định dạng ngày dự kiến chốt không hợp lệ (YYYY-MM-DD).");
+            }
+        }
+
         customFieldValueDAO.validateRequiredFields("OPPORTUNITY", req.getCustomFields());
 
         dataScopeService.resolve(currentUserId, "opportunity", "create");
 
         // If stage is provided, get default probability
-        if (req.getStageId() != null && req.getProbability() == null) {
+        if (req.getStageId() != null) {
             var stage = stageDAO.findById(req.getStageId());
             if (stage != null && stage.get("winProbability") != null) {
-                req.setProbability(((Number) stage.get("winProbability")).intValue());
+                int defaultProb = ((Number) stage.get("winProbability")).intValue();
+                if (req.getProbability() == null) {
+                    req.setProbability(defaultProb);
+                }
             }
         }
 

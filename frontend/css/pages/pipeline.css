@@ -39,19 +39,52 @@
 
 
 .pipeline-filter {
-    display: grid;
-
-    grid-template-columns:
-        minmax(240px,1fr)
-        200px
-        auto;
-
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 10px;
-
     padding: 12px;
-
     margin-bottom: 16px;
 }
+
+.opp-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.opp-badge-danger {
+    background: #fef2f2;
+    color: #ef4444;
+    border: 1px solid #fecaca;
+}
+
+.opp-badge-warning {
+    background: #fffbeb;
+    color: #d97706;
+    border: 1px solid #fde68a;
+}
+
+.opp-badge-source {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+.opp-contact-info {
+    font-size: 11px;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 3px;
+}
+
 
 
 .pipeline-board {

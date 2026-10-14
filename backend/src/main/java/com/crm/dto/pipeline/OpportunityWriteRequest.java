@@ -6,11 +6,14 @@ import java.util.Map;
 public class OpportunityWriteRequest {
     private String name;
     private Long customerId;
+    private Long contactId;
     private String contactName;
     private BigDecimal amount;
     private Long stageId;
     private Integer probability;
+    private String probabilityNote;
     private String expectedCloseDate;
+    private String leadSource;
     private String status;
     private Long winReasonId;
     private Long lossReasonId;
@@ -18,6 +21,30 @@ public class OpportunityWriteRequest {
     private String lostReason;
     private Long ownerUserId;
     private Map<String, Object> customFields;
+
+    public Long getContactId() {
+        return contactId;
+    }
+
+    public void setContactId(Long contactId) {
+        this.contactId = contactId;
+    }
+
+    public String getLeadSource() {
+        return leadSource;
+    }
+
+    public void setLeadSource(String leadSource) {
+        this.leadSource = leadSource;
+    }
+
+    public String getProbabilityNote() {
+        return probabilityNote;
+    }
+
+    public void setProbabilityNote(String probabilityNote) {
+        this.probabilityNote = probabilityNote;
+    }
 
     public String getName() {
         return name;

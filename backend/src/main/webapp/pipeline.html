@@ -226,23 +226,58 @@
             class="crm-input"
             type="search"
             placeholder="Tìm tên cơ hội / khách hàng..."
+            style="min-width: 180px; flex: 1;"
         >
 
         <select
             id="ownerFilter"
             class="crm-input"
+            style="min-width: 150px;"
         >
-            <option value="">
-                Tất cả người sở hữu
-            </option>
+            <option value="">Tất cả người sở hữu</option>
+            <option value="MINE" selected>Cơ hội của tôi</option>
+        </select>
 
-            <option value="Tôi">
-                Tôi
-            </option>
+        <select
+            id="teamFilter"
+            class="crm-input"
+            style="min-width: 150px;"
+        >
+            <option value="">Tất cả nhóm</option>
+        </select>
 
-            <option value="Nhóm">
-                Nhóm
-            </option>
+        <select
+            id="closeDatePreset"
+            class="crm-input"
+            style="min-width: 140px;"
+        >
+            <option value="">Tất cả ngày chốt</option>
+            <option value="OVERDUE">⚠️ Quá hạn chốt</option>
+            <option value="THIS_MONTH">Tháng này</option>
+            <option value="NEXT_MONTH">Tháng tới</option>
+            <option value="THIS_QUARTER">Quý này</option>
+            <option value="CUSTOM">Tùy chọn khoảng ngày</option>
+        </select>
+
+        <div id="customDateRangeWrap" style="display: none; align-items: center; gap: 6px;">
+            <input id="closeDateFrom" class="crm-input" type="date" title="Từ ngày" style="width: 130px;">
+            <span style="font-size: 12px; color: var(--crm-muted);">-</span>
+            <input id="closeDateTo" class="crm-input" type="date" title="Đến ngày" style="width: 130px;">
+        </div>
+
+        <select
+            id="leadSourceFilter"
+            class="crm-input"
+            style="min-width: 140px;"
+        >
+            <option value="">Tất cả nguồn</option>
+            <option value="Website / Tìm kiếm">Website / Tìm kiếm</option>
+            <option value="Mạng xã hội / Facebook">Mạng xã hội</option>
+            <option value="Hội thảo / Sự kiện">Hội thảo / Sự kiện</option>
+            <option value="Người quen giới thiệu">Người quen giới thiệu</option>
+            <option value="Email marketing / Chiến dịch">Email marketing</option>
+            <option value="Cold Call / Trực tiếp">Cold Call / Trực tiếp</option>
+            <option value="Khác">Khác</option>
         </select>
 
         <!-- Lọc trường tùy chỉnh -->
@@ -447,11 +482,49 @@
             <small id="opportunityCustomerError"></small>
         </label>
 
+        <div class="form-grid">
+            <label>
+                Người liên hệ chính
+
+                <select
+                    id="opportunityContact"
+                    class="crm-input"
+                >
+                    <option value="">-- Chọn người liên hệ --</option>
+                </select>
+                <input
+                    id="opportunityContactManual"
+                    class="crm-input"
+                    type="text"
+                    placeholder="Hoặc nhập tên người liên hệ..."
+                    style="margin-top: 6px; display: none;"
+                >
+            </label>
+
+            <label>
+                Nguồn cơ hội
+
+                <select
+                    id="opportunityLeadSource"
+                    class="crm-input"
+                >
+                    <option value="">-- Chọn nguồn cơ hội --</option>
+                    <option value="Website / Tìm kiếm">Website / Tìm kiếm</option>
+                    <option value="Mạng xã hội / Facebook">Mạng xã hội / Facebook</option>
+                    <option value="Hội thảo / Sự kiện">Hội thảo / Sự kiện</option>
+                    <option value="Người quen giới thiệu">Người quen giới thiệu</option>
+                    <option value="Email marketing / Chiến dịch">Email marketing / Chiến dịch</option>
+                    <option value="Cold Call / Trực tiếp">Cold Call / Trực tiếp</option>
+                    <option value="Khác">Khác</option>
+                </select>
+            </label>
+        </div>
+
 
         <div class="form-grid">
 
             <label>
-                Giá trị dự kiến
+                Giá trị dự kiến (VNĐ)
 
                 <input
                     id="opportunityValue"
@@ -459,18 +532,20 @@
                     type="number"
                     min="0"
                     step="1000"
+                    placeholder="0"
                 >
             </label>
 
 
             <label>
-                Ngày dự kiến chốt
+                Ngày dự kiến chốt <em>*</em>
 
                 <input
                     id="opportunityCloseDate"
                     class="crm-input"
                     type="date"
                 >
+                <small id="opportunityCloseDateError"></small>
             </label>
 
         </div>
@@ -479,7 +554,7 @@
         <div class="form-grid">
 
             <label>
-                Giai đoạn
+                Giai đoạn <em>*</em>
 
                 <select
                     id="opportunityStage"
@@ -519,6 +594,18 @@
 
         </div>
 
+        <div id="opportunityProbabilityNoteWrap" style="margin-top: 6px;">
+            <label>
+                Ghi chú điều chỉnh xác suất
+                <input
+                    id="opportunityProbabilityNote"
+                    class="crm-input"
+                    type="text"
+                    placeholder="Ghi chú lý do khi sửa xác suất thắng so với mặc định..."
+                >
+            </label>
+        </div>
+
 
         <label>
             Người sở hữu
@@ -527,6 +614,8 @@
                 id="opportunityOwner"
                 class="crm-input"
                 type="text"
+                readonly
+                style="background: var(--crm-bg-subtle, #f8fafc);"
             >
         </label>
 

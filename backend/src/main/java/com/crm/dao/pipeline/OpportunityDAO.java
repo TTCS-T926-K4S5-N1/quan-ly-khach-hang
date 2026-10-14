@@ -17,7 +17,7 @@ public class OpportunityDAO {
             int page,
             int size
     ) throws SQLException {
-        return search(scope, stageId, status, keyword, null, null, page, size);
+        return search(scope, stageId, status, keyword, null, null, null, null, null, null, null, page, size);
     }
 
     public List<Map<String, Object>> search(
@@ -30,16 +30,38 @@ public class OpportunityDAO {
             int page,
             int size
     ) throws SQLException {
+        return search(scope, stageId, status, keyword, null, null, null, null, null, customFieldKey, customFieldValue, page, size);
+    }
+
+    public List<Map<String, Object>> search(
+            DataScopeContext scope,
+            Long stageId,
+            String status,
+            String keyword,
+            Long ownerUserId,
+            Long teamId,
+            String closeDateFrom,
+            String closeDateTo,
+            String leadSource,
+            String customFieldKey,
+            String customFieldValue,
+            int page,
+            int size
+    ) throws SQLException {
         StringBuilder sql = new StringBuilder("""
                 SELECT
                     o.id,
                     o.name,
                     o.customer_id,
+                    o.contact_id,
                     o.contact_name,
                     o.amount,
                     o.stage_id,
+                    o.stage_updated_at,
                     o.probability,
+                    o.probability_note,
                     o.expected_close_date,
+                    o.lead_source,
                     o.status,
                     o.win_reason_id,
                     o.loss_reason_id,
@@ -51,11 +73,20 @@ public class OpportunityDAO {
                     ps.name AS stage_name,
                     ps.order_no AS stage_order,
                     u.full_name AS owner_name,
-                    comp.name AS competitor_name
+                    u.team_id,
+                    t.name AS team_name,
+                    comp.name AS competitor_name,
+                    ct.name AS contact_person_name,
+                    ct.phone AS contact_phone,
+                    ct.email AS contact_email,
+                    DATEDIFF(NOW(), o.stage_updated_at) AS days_in_stage,
+                    DATEDIFF(NOW(), o.expected_close_date) AS days_overdue
                 FROM opportunities o
                 LEFT JOIN customers c ON c.id = o.customer_id
+                LEFT JOIN contacts ct ON ct.id = o.contact_id
                 LEFT JOIN pipeline_stages ps ON ps.id = o.stage_id
                 LEFT JOIN users u ON u.id = o.owner_user_id
+                LEFT JOIN teams t ON t.id = u.team_id
                 LEFT JOIN competitors comp ON comp.id = o.competitor_id
                 WHERE o.is_deleted = 0
                 """);
@@ -63,6 +94,32 @@ public class OpportunityDAO {
         List<Object> params = new ArrayList<>();
         if (scope != null) {
             scope.appendOwnerPredicate("o.owner_user_id", sql, params);
+        }
+
+        if (ownerUserId != null && ownerUserId > 0) {
+            sql.append(" AND o.owner_user_id = ?");
+            params.add(ownerUserId);
+        }
+
+        if (teamId != null && teamId > 0) {
+            sql.append(" AND u.team_id = ?");
+            params.add(teamId);
+        }
+
+        if (closeDateFrom != null && !closeDateFrom.isBlank()) {
+            sql.append(" AND o.expected_close_date >= ?");
+            params.add(java.sql.Date.valueOf(closeDateFrom.trim()));
+        }
+
+        if (closeDateTo != null && !closeDateTo.isBlank()) {
+            sql.append(" AND o.expected_close_date <= ?");
+            params.add(java.sql.Date.valueOf(closeDateTo.trim()));
+        }
+
+        if (leadSource != null && !leadSource.isBlank()) {
+            sql.append(" AND (o.lead_source = ? OR LOWER(o.lead_source) LIKE ?)");
+            params.add(leadSource.trim());
+            params.add("%" + leadSource.trim().toLowerCase() + "%");
         }
 
         if (stageId != null) {
@@ -76,8 +133,9 @@ public class OpportunityDAO {
         }
 
         if (keyword != null && !keyword.isBlank()) {
-            sql.append(" AND (LOWER(o.name) LIKE ? OR LOWER(o.contact_name) LIKE ? OR LOWER(c.name) LIKE ?)");
+            sql.append(" AND (LOWER(o.name) LIKE ? OR LOWER(o.contact_name) LIKE ? OR LOWER(c.name) LIKE ? OR LOWER(ct.name) LIKE ?)");
             String kw = "%" + keyword.trim().toLowerCase() + "%";
+            params.add(kw);
             params.add(kw);
             params.add(kw);
             params.add(kw);
@@ -128,11 +186,15 @@ public class OpportunityDAO {
                     o.id,
                     o.name,
                     o.customer_id,
+                    o.contact_id,
                     o.contact_name,
                     o.amount,
                     o.stage_id,
+                    o.stage_updated_at,
                     o.probability,
+                    o.probability_note,
                     o.expected_close_date,
+                    o.lead_source,
                     o.status,
                     o.win_reason_id,
                     o.loss_reason_id,
@@ -144,11 +206,20 @@ public class OpportunityDAO {
                     ps.name AS stage_name,
                     ps.order_no AS stage_order,
                     u.full_name AS owner_name,
-                    comp.name AS competitor_name
+                    u.team_id,
+                    t.name AS team_name,
+                    comp.name AS competitor_name,
+                    ct.name AS contact_person_name,
+                    ct.phone AS contact_phone,
+                    ct.email AS contact_email,
+                    DATEDIFF(NOW(), o.stage_updated_at) AS days_in_stage,
+                    DATEDIFF(NOW(), o.expected_close_date) AS days_overdue
                 FROM opportunities o
                 LEFT JOIN customers c ON c.id = o.customer_id
+                LEFT JOIN contacts ct ON ct.id = o.contact_id
                 LEFT JOIN pipeline_stages ps ON ps.id = o.stage_id
                 LEFT JOIN users u ON u.id = o.owner_user_id
+                LEFT JOIN teams t ON t.id = u.team_id
                 LEFT JOIN competitors comp ON comp.id = o.competitor_id
                 WHERE o.id = ? AND o.is_deleted = 0
                 """;
@@ -168,10 +239,11 @@ public class OpportunityDAO {
     public long create(OpportunityWriteRequest req, long defaultOwnerId) throws SQLException {
         String sql = """
                 INSERT INTO opportunities (
-                    name, customer_id, contact_name, amount, stage_id, probability,
-                    expected_close_date, status, win_reason_id, loss_reason_id, competitor_id,
+                    name, customer_id, contact_id, contact_name, amount, stage_id,
+                    stage_updated_at, probability, probability_note, expected_close_date,
+                    lead_source, status, win_reason_id, loss_reason_id, competitor_id,
                     lost_reason, owner_user_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         long ownerId = req.getOwnerUserId() != null ? req.getOwnerUserId() : defaultOwnerId;
@@ -179,17 +251,20 @@ public class OpportunityDAO {
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setString(1, req.getName());
             stmt.setObject(2, req.getCustomerId(), Types.BIGINT);
-            stmt.setString(3, req.getContactName());
-            stmt.setBigDecimal(4, req.getAmount());
-            stmt.setObject(5, req.getStageId(), Types.BIGINT);
-            stmt.setObject(6, req.getProbability(), Types.INTEGER);
-            stmt.setObject(7, req.getExpectedCloseDate() != null && !req.getExpectedCloseDate().isBlank() ? java.sql.Date.valueOf(req.getExpectedCloseDate()) : null, Types.DATE);
-            stmt.setString(8, req.getStatus());
-            stmt.setObject(9, req.getWinReasonId(), Types.BIGINT);
-            stmt.setObject(10, req.getLossReasonId(), Types.BIGINT);
-            stmt.setObject(11, req.getCompetitorId(), Types.BIGINT);
-            stmt.setString(12, req.getLostReason());
-            stmt.setLong(13, ownerId);
+            stmt.setObject(3, req.getContactId(), Types.BIGINT);
+            stmt.setString(4, req.getContactName());
+            stmt.setBigDecimal(5, req.getAmount());
+            stmt.setObject(6, req.getStageId(), Types.BIGINT);
+            stmt.setObject(7, req.getProbability(), Types.INTEGER);
+            stmt.setString(8, req.getProbabilityNote());
+            stmt.setObject(9, req.getExpectedCloseDate() != null && !req.getExpectedCloseDate().isBlank() ? java.sql.Date.valueOf(req.getExpectedCloseDate()) : null, Types.DATE);
+            stmt.setString(10, req.getLeadSource());
+            stmt.setString(11, req.getStatus());
+            stmt.setObject(12, req.getWinReasonId(), Types.BIGINT);
+            stmt.setObject(13, req.getLossReasonId(), Types.BIGINT);
+            stmt.setObject(14, req.getCompetitorId(), Types.BIGINT);
+            stmt.setString(15, req.getLostReason());
+            stmt.setLong(16, ownerId);
 
             stmt.executeUpdate();
             try (ResultSet rs = stmt.getGeneratedKeys()) {
@@ -204,9 +279,9 @@ public class OpportunityDAO {
     public void update(long id, OpportunityWriteRequest req) throws SQLException {
         String sql = """
                 UPDATE opportunities SET
-                    name = ?, customer_id = ?, contact_name = ?, amount = ?, stage_id = ?,
-                    probability = ?, expected_close_date = ?, status = ?, win_reason_id = ?,
-                    loss_reason_id = ?, competitor_id = ?, lost_reason = ?
+                    name = ?, customer_id = ?, contact_id = ?, contact_name = ?, amount = ?, stage_id = ?,
+                    probability = ?, probability_note = ?, expected_close_date = ?, lead_source = ?,
+                    status = ?, win_reason_id = ?, loss_reason_id = ?, competitor_id = ?, lost_reason = ?
                 WHERE id = ? AND is_deleted = 0
                 """;
 
@@ -214,24 +289,27 @@ public class OpportunityDAO {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, req.getName());
             stmt.setObject(2, req.getCustomerId(), Types.BIGINT);
-            stmt.setString(3, req.getContactName());
-            stmt.setBigDecimal(4, req.getAmount());
-            stmt.setObject(5, req.getStageId(), Types.BIGINT);
-            stmt.setObject(6, req.getProbability(), Types.INTEGER);
-            stmt.setObject(7, req.getExpectedCloseDate() != null && !req.getExpectedCloseDate().isBlank() ? java.sql.Date.valueOf(req.getExpectedCloseDate()) : null, Types.DATE);
-            stmt.setString(8, req.getStatus());
-            stmt.setObject(9, req.getWinReasonId(), Types.BIGINT);
-            stmt.setObject(10, req.getLossReasonId(), Types.BIGINT);
-            stmt.setObject(11, req.getCompetitorId(), Types.BIGINT);
-            stmt.setString(12, req.getLostReason());
-            stmt.setLong(13, id);
+            stmt.setObject(3, req.getContactId(), Types.BIGINT);
+            stmt.setString(4, req.getContactName());
+            stmt.setBigDecimal(5, req.getAmount());
+            stmt.setObject(6, req.getStageId(), Types.BIGINT);
+            stmt.setObject(7, req.getProbability(), Types.INTEGER);
+            stmt.setString(8, req.getProbabilityNote());
+            stmt.setObject(9, req.getExpectedCloseDate() != null && !req.getExpectedCloseDate().isBlank() ? java.sql.Date.valueOf(req.getExpectedCloseDate()) : null, Types.DATE);
+            stmt.setString(10, req.getLeadSource());
+            stmt.setString(11, req.getStatus());
+            stmt.setObject(12, req.getWinReasonId(), Types.BIGINT);
+            stmt.setObject(13, req.getLossReasonId(), Types.BIGINT);
+            stmt.setObject(14, req.getCompetitorId(), Types.BIGINT);
+            stmt.setString(15, req.getLostReason());
+            stmt.setLong(16, id);
 
             stmt.executeUpdate();
         }
     }
 
     public void updateStage(long id, long targetStageId, int probability) throws SQLException {
-        String sql = "UPDATE opportunities SET stage_id = ?, probability = ? WHERE id = ? AND is_deleted = 0";
+        String sql = "UPDATE opportunities SET stage_id = ?, probability = ?, stage_updated_at = NOW() WHERE id = ? AND is_deleted = 0";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, targetStageId);
@@ -274,13 +352,26 @@ public class OpportunityDAO {
         map.put("name", rs.getString("name"));
         map.put("customerId", rs.getObject("customer_id"));
         map.put("customerName", rs.getString("customer_name"));
-        map.put("contactName", rs.getString("contact_name"));
+        map.put("contactId", rs.getObject("contact_id"));
+        String contactName = rs.getString("contact_name");
+        if ((contactName == null || contactName.isBlank()) && rs.getString("contact_person_name") != null) {
+            contactName = rs.getString("contact_person_name");
+        }
+        map.put("contactName", contactName);
+        map.put("contactPersonName", rs.getString("contact_person_name"));
+        map.put("contactPhone", rs.getString("contact_phone"));
+        map.put("contactEmail", rs.getString("contact_email"));
         map.put("amount", rs.getBigDecimal("amount"));
         map.put("stageId", rs.getObject("stage_id"));
         map.put("stageName", rs.getString("stage_name"));
         map.put("stageOrder", rs.getObject("stage_order"));
+        map.put("stageUpdatedAt", rs.getTimestamp("stage_updated_at"));
+        map.put("daysInStage", rs.getObject("days_in_stage") != null ? rs.getInt("days_in_stage") : 0);
+        map.put("daysOverdue", rs.getObject("days_overdue") != null ? rs.getInt("days_overdue") : 0);
         map.put("probability", rs.getObject("probability"));
+        map.put("probabilityNote", rs.getString("probability_note"));
         map.put("expectedCloseDate", rs.getDate("expected_close_date"));
+        map.put("leadSource", rs.getString("lead_source"));
         map.put("status", rs.getString("status"));
         map.put("winReasonId", rs.getObject("win_reason_id"));
         map.put("lossReasonId", rs.getObject("loss_reason_id"));
@@ -289,6 +380,8 @@ public class OpportunityDAO {
         map.put("lostReason", rs.getString("lost_reason"));
         map.put("ownerUserId", rs.getLong("owner_user_id"));
         map.put("ownerName", rs.getString("owner_name"));
+        map.put("teamId", rs.getObject("team_id"));
+        map.put("teamName", rs.getString("team_name"));
         map.put("createdAt", rs.getTimestamp("created_at"));
         return map;
     }

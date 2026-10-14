@@ -33,12 +33,21 @@ public class OpportunityServlet extends HttpServlet {
                 String keyword = req.getParameter("keyword");
                 String status = req.getParameter("status");
                 Long stageId = longParam(req, "stageId");
+                Long ownerId = longParam(req, "ownerId");
+                String ownerFilter = req.getParameter("ownerFilter");
+                if (ownerId == null && ("MINE".equalsIgnoreCase(ownerFilter) || "Tôi".equalsIgnoreCase(ownerFilter))) {
+                    ownerId = currentUserId;
+                }
+                Long teamId = longParam(req, "teamId");
+                String closeDateFrom = req.getParameter("closeDateFrom");
+                String closeDateTo = req.getParameter("closeDateTo");
+                String leadSource = req.getParameter("leadSource");
                 String customFieldKey = req.getParameter("customFieldKey");
                 String customFieldValue = req.getParameter("customFieldValue");
                 int page = intParam(req, "page", 1);
                 int size = intParam(req, "size", 100);
 
-                var items = opportunityService.search(currentUserId, stageId, status, keyword, customFieldKey, customFieldValue, page, size);
+                var items = opportunityService.search(currentUserId, stageId, status, keyword, ownerId, teamId, closeDateFrom, closeDateTo, leadSource, customFieldKey, customFieldValue, page, size);
                 ResponseUtil.json(resp, 200, ApiResponse.success("Lấy danh sách cơ hội thành công", items));
                 return;
             }
@@ -48,10 +57,19 @@ public class OpportunityServlet extends HttpServlet {
                 String keyword = req.getParameter("keyword");
                 String status = req.getParameter("status");
                 Long stageId = longParam(req, "stageId");
+                Long ownerId = longParam(req, "ownerId");
+                String ownerFilter = req.getParameter("ownerFilter");
+                if (ownerId == null && ("MINE".equalsIgnoreCase(ownerFilter) || "Tôi".equalsIgnoreCase(ownerFilter))) {
+                    ownerId = currentUserId;
+                }
+                Long teamId = longParam(req, "teamId");
+                String closeDateFrom = req.getParameter("closeDateFrom");
+                String closeDateTo = req.getParameter("closeDateTo");
+                String leadSource = req.getParameter("leadSource");
                 String customFieldKey = req.getParameter("customFieldKey");
                 String customFieldValue = req.getParameter("customFieldValue");
 
-                var items = opportunityService.search(currentUserId, stageId, status, keyword, customFieldKey, customFieldValue, 1, 10000);
+                var items = opportunityService.search(currentUserId, stageId, status, keyword, ownerId, teamId, closeDateFrom, closeDateTo, leadSource, customFieldKey, customFieldValue, 1, 10000);
 
                 com.crm.dao.customfields.CustomFieldValueDAO cfDao = new com.crm.dao.customfields.CustomFieldValueDAO();
                 List<Map<String, Object>> activeFields = cfDao.getActiveFields("OPPORTUNITY");
