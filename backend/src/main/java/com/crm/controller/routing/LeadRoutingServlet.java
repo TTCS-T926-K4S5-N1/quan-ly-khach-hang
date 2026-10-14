@@ -57,7 +57,7 @@ public class LeadRoutingServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         resp.setHeader("Cache-Control", "no-store");
         try {
-            requireUser(req);
+            long userId = requireUser(req);
             String path = req.getPathInfo();
             if (path == null) path = "";
 
@@ -122,6 +122,14 @@ public class LeadRoutingServlet extends HttpServlet {
                 }
                 var list = assignmentService.getAssignmentLogs(limit);
                 ResponseUtil.json(resp, 200, ApiResponse.success("Lấy nhật ký phân bổ thành công", list));
+                return;
+            }
+
+            // 7. Cảnh báo vi phạm SLA
+            if (path.equals("/sla/alerts")) {
+                String status = req.getParameter("status");
+                var alerts = new com.crm.service.leads.LeadConversionService().getSlaAlerts(userId, status);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Lấy danh sách cảnh báo SLA thành công", alerts));
                 return;
             }
 
@@ -196,6 +204,28 @@ public class LeadRoutingServlet extends HttpServlet {
             if (path.equals("/assignment/run-now")) {
                 int count = assignmentService.runBatchAutoAssignment();
                 ResponseUtil.json(resp, 200, ApiResponse.success("Đã phân bổ tự động thành công " + count + " lead theo quy tắc", count));
+                return;
+            }
+
+            // 6. Quét vi phạm SLA ngay lập tức
+            if (path.equals("/sla/scan-now")) {
+                int breaches = new com.crm.service.leads.LeadConversionService().scanAndFlagSlaBreaches();
+                ResponseUtil.json(resp, 200, ApiResponse.success("Quét SLA thành công. Phát hiện " + breaches + " lead vi phạm.", breaches));
+                return;
+            }
+
+            // 7. Trưởng nhóm thu hồi và phân bổ lại lead quá hạn SLA
+            if (path.equals("/sla/reassign")) {
+                Map<String, Object> body = JsonUtil.getGson().fromJson(readRequestBody(req), JsonUtil.OBJECT_MAP_TYPE);
+                if (body == null || !body.containsKey("leadId") || !body.containsKey("newOwnerId")) {
+                    ResponseUtil.json(resp, 400, ApiResponse.error("Thiếu leadId hoặc newOwnerId", null));
+                    return;
+                }
+                long leadId = ((Number) body.get("leadId")).longValue();
+                long newOwnerId = ((Number) body.get("newOwnerId")).longValue();
+                String notes = body.get("notes") != null ? body.get("notes").toString() : "Thu hồi và gán lại do quá hạn SLA phản hồi";
+                boolean ok = new com.crm.service.leads.LeadConversionService().reassignSlaBreachedLead(leadId, newOwnerId, userId, notes);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Thu hồi và phân bổ lại lead thành công!", ok));
                 return;
             }
 

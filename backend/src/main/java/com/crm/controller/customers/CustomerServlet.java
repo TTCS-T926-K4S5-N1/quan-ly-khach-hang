@@ -51,6 +51,10 @@ public class CustomerServlet extends HttpServlet {
                 criteria.setScoreGrade(req.getParameter("scoreGrade"));
                 criteria.setAssignmentStatus(req.getParameter("assignmentStatus"));
                 criteria.setSortBy(req.getParameter("sortBy"));
+                String slaBreachedStr = req.getParameter("slaBreached");
+                if (slaBreachedStr != null && !slaBreachedStr.isBlank()) {
+                    criteria.setSlaBreached(Boolean.parseBoolean(slaBreachedStr.trim()));
+                }
                 criteria.setPage(intParam(req, "page", 1));
                 criteria.setSize(intParam(req, "size", 20));
 

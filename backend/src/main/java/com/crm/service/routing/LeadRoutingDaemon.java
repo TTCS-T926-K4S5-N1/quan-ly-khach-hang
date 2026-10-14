@@ -41,8 +41,14 @@ public class LeadRoutingDaemon {
                 if (assigned > 0) {
                     LOGGER.info("[LeadRoutingDaemon] Đã tự động phân bổ " + assigned + " lead trong chu kỳ chạy nền");
                 }
+
+                // Quét phát hiện lead vi phạm SLA phản hồi
+                int slaBreaches = new com.crm.service.leads.LeadConversionService().scanAndFlagSlaBreaches();
+                if (slaBreaches > 0) {
+                    LOGGER.warning("[LeadRoutingDaemon] Phát hiện " + slaBreaches + " lead vi phạm SLA phản hồi!");
+                }
             } catch (Exception e) {
-                LOGGER.log(Level.WARNING, "[LeadRoutingDaemon] Lỗi khi chạy phân bổ nền: " + e.getMessage(), e);
+                LOGGER.log(Level.WARNING, "[LeadRoutingDaemon] Lỗi khi chạy phân bổ/SLA nền: " + e.getMessage(), e);
             }
         }, 15, 60, TimeUnit.SECONDS);
 

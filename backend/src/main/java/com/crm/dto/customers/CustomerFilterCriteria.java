@@ -164,4 +164,14 @@ public class CustomerFilterCriteria {
     public void setSortBy(String sortBy) {
         this.sortBy = sortBy;
     }
+
+    private Boolean slaBreached;
+
+    public Boolean getSlaBreached() {
+        return slaBreached;
+    }
+
+    public void setSlaBreached(Boolean slaBreached) {
+        this.slaBreached = slaBreached;
+    }
 }

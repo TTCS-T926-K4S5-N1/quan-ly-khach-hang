@@ -133,6 +133,12 @@ public class CustomerService {
             return null;
         }
 
+        // Quy tắc nghiệp vụ User Story 4: Lead chuyển sang trạng thái Đã chuyển đổi và không sửa được nữa
+        String currentStatus = (String) existing.get("status");
+        if ("CONVERTED".equalsIgnoreCase(currentStatus)) {
+            throw new IllegalStateException("Lead này đã được chuyển đổi thành Khách hàng và Cơ hội bán hàng, dữ liệu ở chế độ chỉ đọc và không thể chỉnh sửa.");
+        }
+
         long ownerId = (Long) existing.get("ownerUserId");
         if (!scope.canAccessOwner(ownerId)) {
             throw new SecurityException("Bạn không có quyền truy cập dữ liệu này do giới hạn phạm vi sở hữu.");
@@ -158,6 +164,11 @@ public class CustomerService {
         Map<String, Object> existing = customerDAO.findById(id);
         if (existing == null) {
             throw new NoSuchElementException("Khách hàng không tồn tại.");
+        }
+
+        String currentStatus = (String) existing.get("status");
+        if ("CONVERTED".equalsIgnoreCase(currentStatus)) {
+            throw new IllegalStateException("Lead này đã được chuyển đổi, không thể xóa để bảo đảm toàn vẹn dữ liệu lịch sử.");
         }
 
         long ownerId = (Long) existing.get("ownerUserId");

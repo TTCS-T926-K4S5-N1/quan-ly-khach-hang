@@ -79,6 +79,15 @@ public class Customer360DAO {
                     c.score_grade,
                     c.assignment_status,
                     c.score_breakdown,
+                    c.sla_breached,
+                    c.sla_deadline,
+                    c.accepted_at,
+                    c.rejected_at,
+                    c.rejection_reason,
+                    c.converted_at,
+                    c.converted_customer_id,
+                    c.converted_contact_id,
+                    c.converted_opportunity_id,
                     th.label AS score_grade_label,
                     th.color AS score_grade_color,
                     th.icon AS score_grade_icon,
@@ -104,6 +113,7 @@ public class Customer360DAO {
                     map.put("companyName", rs.getString("name"));
                     map.put("taxCode", rs.getString("tax_code"));
                     map.put("status", rs.getString("status"));
+                    map.put("isConverted", "CONVERTED".equalsIgnoreCase(rs.getString("status")));
                     map.put("email", rs.getString("email"));
                     map.put("phone", rs.getString("phone"));
                     map.put("website", rs.getString("website"));
@@ -121,6 +131,15 @@ public class Customer360DAO {
                     map.put("scoreGradeIcon", rs.getString("score_grade_icon"));
                     map.put("assignmentStatus", rs.getString("assignment_status"));
                     map.put("scoreBreakdown", rs.getString("score_breakdown"));
+                    map.put("slaBreached", rs.getBoolean("sla_breached"));
+                    map.put("slaDeadline", rs.getTimestamp("sla_deadline"));
+                    map.put("acceptedAt", rs.getTimestamp("accepted_at"));
+                    map.put("rejectedAt", rs.getTimestamp("rejected_at"));
+                    map.put("rejectionReason", rs.getString("rejection_reason"));
+                    map.put("convertedAt", rs.getTimestamp("converted_at"));
+                    map.put("convertedCustomerId", rs.getObject("converted_customer_id"));
+                    map.put("convertedContactId", rs.getObject("converted_contact_id"));
+                    map.put("convertedOpportunityId", rs.getObject("converted_opportunity_id"));
                     map.put("createdAt", rs.getTimestamp("created_at"));
                     return map;
                 }

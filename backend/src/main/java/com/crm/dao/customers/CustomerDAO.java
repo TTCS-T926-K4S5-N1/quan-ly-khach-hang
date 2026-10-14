@@ -45,6 +45,12 @@ public class CustomerDAO {
                     c.lead_score,
                     c.score_grade,
                     c.assignment_status,
+                    c.sla_breached,
+                    c.sla_deadline,
+                    c.accepted_at,
+                    c.converted_at,
+                    c.converted_customer_id,
+                    c.converted_opportunity_id,
                     c.industry_id,
                     c.company_size_id,
                     c.region_id,
@@ -262,6 +268,15 @@ public class CustomerDAO {
                 params.add(criteria.getAssignmentStatus().trim());
             }
         }
+
+        // 14. Lọc theo vi phạm SLA phản hồi
+        if (criteria.getSlaBreached() != null) {
+            if (criteria.getSlaBreached()) {
+                sql.append(" AND c.sla_breached = 1");
+            } else {
+                sql.append(" AND (c.sla_breached = 0 OR c.sla_breached IS NULL)");
+            }
+        }
     }
 
     public Map<String, Object> findById(long id) throws SQLException {
@@ -283,6 +298,12 @@ public class CustomerDAO {
                     c.lead_score,
                     c.score_grade,
                     c.assignment_status,
+                    c.sla_breached,
+                    c.sla_deadline,
+                    c.accepted_at,
+                    c.converted_at,
+                    c.converted_customer_id,
+                    c.converted_opportunity_id,
                     c.parent_id,
                     p.name AS parent_name,
                     (SELECT COUNT(*) FROM customers sub WHERE sub.parent_id = c.id AND sub.is_deleted = 0) AS subsidiary_count,
@@ -572,6 +593,23 @@ public class CustomerDAO {
             map.put("leadScore", 0);
             map.put("scoreGrade", "COLD");
             map.put("assignmentStatus", "UNASSIGNED");
+        }
+
+        // SLA & Chuyển đổi Lead
+        try {
+            map.put("slaBreached", rs.getBoolean("sla_breached"));
+            map.put("slaDeadline", rs.getTimestamp("sla_deadline"));
+            map.put("acceptedAt", rs.getTimestamp("accepted_at"));
+            map.put("convertedAt", rs.getTimestamp("converted_at"));
+            map.put("convertedCustomerId", rs.getObject("converted_customer_id"));
+            map.put("convertedOpportunityId", rs.getObject("converted_opportunity_id"));
+        } catch (SQLException ignored) {
+            map.put("slaBreached", false);
+            map.put("slaDeadline", null);
+            map.put("acceptedAt", null);
+            map.put("convertedAt", null);
+            map.put("convertedCustomerId", null);
+            map.put("convertedOpportunityId", null);
         }
 
         return map;

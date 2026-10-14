@@ -44,6 +44,8 @@ const scoreGradeFilter = document.getElementById("scoreGradeFilter");
 const assignmentStatusFilter = document.getElementById("assignmentStatusFilter");
 const btnSortByScore = document.getElementById("btnSortByScore");
 let isSortByScoreActive = false;
+const btnSlaBreachedFilter = document.getElementById("btnSlaBreachedFilter");
+let isSlaBreachedActive = false;
 const btnResetFilters = document.getElementById("btnResetFilters");
 const savedFilterChips = document.getElementById("savedFilterChips");
 const filterResultCount = document.getElementById("filterResultCount");
@@ -810,6 +812,13 @@ function resetAllFilters() {
     if (regionFilter) regionFilter.value = "";
     if (ownerFilter) ownerFilter.value = "";
 
+    isSlaBreachedActive = false;
+    if (btnSlaBreachedFilter) {
+        btnSlaBreachedFilter.style.background = "#fef2f2";
+        btnSlaBreachedFilter.style.color = "#dc2626";
+        btnSlaBreachedFilter.innerHTML = "🚨 Quá SLA phản hồi";
+    }
+
     if (customFieldSelectFilter) customFieldSelectFilter.value = "";
     if (customFieldValueFilter) { customFieldValueFilter.value = ""; customFieldValueFilter.style.display = "none"; }
     if (customFieldSelectValueFilter) { customFieldSelectValueFilter.value = ""; customFieldSelectValueFilter.style.display = "none"; }
@@ -937,6 +946,21 @@ btnSortByScore?.addEventListener("click", () => {
     loadCustomers(1);
 });
 
+btnSlaBreachedFilter?.addEventListener("click", () => {
+    isSlaBreachedActive = !isSlaBreachedActive;
+    if (isSlaBreachedActive) {
+        btnSlaBreachedFilter.style.background = "#dc2626";
+        btnSlaBreachedFilter.style.color = "#ffffff";
+        btnSlaBreachedFilter.innerHTML = "🚨 Đang lọc Quá SLA ▲";
+    } else {
+        btnSlaBreachedFilter.style.background = "#fef2f2";
+        btnSlaBreachedFilter.style.color = "#dc2626";
+        btnSlaBreachedFilter.innerHTML = "🚨 Quá SLA phản hồi";
+    }
+    currentPage = 1;
+    loadCustomers(1);
+});
+
 custPageSizeSelect?.addEventListener("change", (e) => {
     pageSize = Number(e.target.value) || 10;
     currentPage = 1;
@@ -1055,6 +1079,7 @@ async function loadCustomers(targetPage = currentPage) {
         if (sGrade) params.append("scoreGrade", sGrade);
         if (aStatus) params.append("assignmentStatus", aStatus);
         if (isSortByScoreActive) params.append("sortBy", "score");
+        if (isSlaBreachedActive) params.append("slaBreached", "true");
         if (own) {
             if (own === "MINE") params.append("ownerFilter", "MINE");
             else params.append("ownerUserId", own);
@@ -1189,6 +1214,7 @@ function updateFilterSummary(total) {
     if (companySizeFilter?.value) tags.push({ label: `Quy mô: ${companySizeFilter.options[companySizeFilter.selectedIndex]?.text.replace(/^[^\s]+\s/, "")}`, clear: () => { companySizeFilter.value = ""; loadCustomers(); } });
     if (regionFilter?.value) tags.push({ label: `Khu vực: ${regionFilter.options[regionFilter.selectedIndex]?.text.replace(/^[^\s]+\s/, "")}`, clear: () => { regionFilter.value = ""; loadCustomers(); } });
     if (ownerFilter?.value) tags.push({ label: `Sở hữu: ${ownerFilter.options[ownerFilter.selectedIndex]?.text.replace(/^[^\s]+\s/, "")}`, clear: () => { ownerFilter.value = ""; loadCustomers(); } });
+    if (isSlaBreachedActive) tags.push({ label: `🚨 Quá SLA phản hồi`, clear: () => { isSlaBreachedActive = false; if (btnSlaBreachedFilter) { btnSlaBreachedFilter.style.background = "#fef2f2"; btnSlaBreachedFilter.style.color = "#dc2626"; btnSlaBreachedFilter.innerHTML = "🚨 Quá SLA phản hồi"; } loadCustomers(); } });
 
     const activeCfKey = customFieldSelectFilter?.value;
     const activeCfDef = customerCustomFields.find(f => f.key === activeCfKey);
@@ -1325,24 +1351,89 @@ function renderDesktopRow(record, index) {
             })()}
         </td>
         <td>
+            ${(function() {
+                if (record.slaBreached) {
+                    return `<div style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; background:#fef2f2; color:#dc2626; border:1px solid #f87171;" title="Quá hạn phản hồi SLA!">
+                        <span>⚠️ Quá SLA</span>
+                    </div>
+                    ${record.slaBreachedAt ? `<div class="customer-sub" style="color:#ef4444; font-size:10.5px; margin-top:2px;">${escapeHtml(record.slaBreachedAt.substring(0, 16).replace('T', ' '))}</div>` : ''}`;
+                } else if (record.status === "CONVERTED") {
+                    return `<span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; background:#f3e8ff; color:#7e22ce; border:1px solid #d8b4fe; padding:2px 8px; border-radius:10px; font-weight:600;">
+                        👑 Đã chuyển đổi
+                    </span>`;
+                } else if (record.status === "DANG_CHAM_SOC") {
+                    return `<span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; padding:2px 8px; border-radius:10px; font-weight:600;">
+                        📞 Đang chăm sóc
+                    </span>`;
+                } else if (record.slaDeadline) {
+                    const deadline = new Date(record.slaDeadline);
+                    const now = new Date();
+                    const diffHours = (deadline - now) / (1000 * 60 * 60);
+                    if (diffHours < 0) {
+                        return `<span style="font-size:11px; font-weight:700; color:#dc2626;">⚠️ Quá hạn</span>`;
+                    } else {
+                        const h = Math.floor(diffHours);
+                        const m = Math.floor((diffHours - h) * 60);
+                        return `<div style="display:flex; flex-direction:column; gap:1px;">
+                            <span style="font-size:11px; font-weight:600; color:#0284c7;">⏱️ Còn ${h}h ${m}m</span>
+                            <span class="customer-sub" style="font-size:10px;">Hạn: ${escapeHtml(record.slaDeadline.substring(11, 16))}</span>
+                        </div>`;
+                    }
+                } else if (record.assignmentStatus === "UNASSIGNED") {
+                    return `<span style="font-size:11px; color:#94a3b8; font-style:italic;">Chờ phân bổ</span>`;
+                } else {
+                    return `<span style="font-size:11px; color:#94a3b8;">—</span>`;
+                }
+            })()}
+        </td>
+        <td>
             <span style="font-weight:500;">${escapeHtml(record.ownerName || record.owner || "—")}</span>
             ${record.assignmentStatus === "UNASSIGNED" ? `<span style="display:block; font-size:10.5px; color:#d97706; font-weight:600;">(Chờ phân bổ)</span>` : ""}
         </td>
         <td class="action-col">
-            <div class="row-action-wrap">
-                <button class="row-action-button" type="button" data-action-menu="${index}">
-                    ⋮
-                </button>
-                <div class="row-action-menu" data-menu="${index}">
-                    <a href="customer-360?id=${record.id}">
-                        🔍 Xem chi tiết (360)
-                    </a>
-                    <button type="button" data-edit="${index}">
-                        ✏️ Sửa
+            <div style="display:flex; align-items:center; gap:6px; justify-content:flex-end;">
+                ${(function() {
+                    if (record.status === "CONVERTED") {
+                        return `<span style="font-size:11px; color:#6b21a8; font-weight:600; padding:2px 6px; background:#faf5ff; border:1px solid #e9d5ff; border-radius:4px;">🔒 Khóa</span>`;
+                    }
+                    let btns = "";
+                    if ((record.status === "TIEM_NANG" || !record.status) && record.assignmentStatus === "ASSIGNED") {
+                        btns += `
+                            <button type="button" class="crm-btn" style="padding:4px 8px; font-size:11px; font-weight:700; background:#059669; color:#fff; border:none; border-radius:4px; cursor:pointer;" data-accept-id="${record.id}" title="Tiếp nhận lead này để chăm sóc">✅ Nhận</button>
+                            <button type="button" class="crm-btn" style="padding:4px 8px; font-size:11px; font-weight:700; background:#dc2626; color:#fff; border:none; border-radius:4px; cursor:pointer;" data-reject-id="${record.id}" data-reject-name="${escapeHtml(record.companyName || record.name)}" title="Từ chối tiếp nhận lead (yêu cầu lý do)">❌ Từ chối</button>
+                        `;
+                    }
+                    if (record.status !== "KHACH_HANG" && record.status !== "CHINH_THUC") {
+                        btns += `
+                            <button type="button" class="crm-btn" style="padding:4px 8px; font-size:11px; font-weight:700; background:#7c3aed; color:#fff; border:none; border-radius:4px; cursor:pointer;" data-convert-id="${record.id}" title="Chuyển đổi lead thành Khách hàng & Cơ hội bán hàng">⚡ Chuyển đổi</button>
+                        `;
+                    }
+                    return btns;
+                })()}
+                <div class="row-action-wrap">
+                    <button class="row-action-button" type="button" data-action-menu="${index}">
+                        ⋮
                     </button>
-                    <button type="button" class="danger" data-delete="${index}">
-                        🗑️ Xóa
-                    </button>
+                    <div class="row-action-menu" data-menu="${index}">
+                        <a href="customer-360?id=${record.id}">
+                            🔍 Xem chi tiết (360)
+                        </a>
+                        ${record.status === "CONVERTED" ? `
+                            <button type="button" style="color:#94a3b8; cursor:not-allowed;" title="Lead đã chuyển đổi, không thể chỉnh sửa" onclick="alert('Lead này đã chuyển đổi thành khách hàng chính thức và đã bị khóa bảo vệ. Không thể chỉnh sửa trực tiếp thông tin lead gốc!')">
+                                🔒 Sửa (Đã khóa)
+                            </button>
+                            <button type="button" style="color:#94a3b8; cursor:not-allowed;" title="Không thể xóa lead đã chuyển đổi" onclick="alert('Không thể xóa Lead đã chuyển đổi thành công để bảo toàn lịch sử dữ liệu!')">
+                                🔒 Xóa (Đã khóa)
+                            </button>
+                        ` : `
+                            <button type="button" data-edit="${index}">
+                                ✏️ Sửa
+                            </button>
+                            <button type="button" class="danger" data-delete="${index}">
+                                🗑️ Xóa
+                            </button>
+                        `}
+                    </div>
                 </div>
             </div>
         </td>
@@ -1381,8 +1472,29 @@ function renderMobileCard(record, index) {
             ${contactLine}
             <span>🏢 Ngành: ${escapeHtml(record.industryName || "—")} (${escapeHtml(record.companySizeName || "—")})</span>
             <span>👤 Phụ trách: ${escapeHtml(record.ownerName || record.owner || "—")}</span>
+            ${record.slaBreached ? `<div style="margin-top:4px;"><span style="font-size:11px; font-weight:700; color:#dc2626; background:#fef2f2; border:1px solid #f87171; padding:2px 6px; border-radius:10px;">⚠️ Quá SLA phản hồi</span></div>` : ""}
         </div>
-        <div style="display:flex; gap:8px; margin-top:12px;">
+        <div style="display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;">
+            ${(function() {
+                if (record.status === "CONVERTED") {
+                    return `<span style="font-size:11.5px; color:#6b21a8; font-weight:600; padding:4px 8px; background:#faf5ff; border:1px solid #e9d5ff; border-radius:6px;">🔒 Lead đã chuyển đổi (Đã khóa)</span>`;
+                }
+                let btns = "";
+                if ((record.status === "TIEM_NANG" || !record.status) && record.assignmentStatus === "ASSIGNED") {
+                    btns += `
+                        <button type="button" class="crm-btn" style="flex:1; padding:5px 8px; font-size:11.5px; font-weight:700; background:#059669; color:#fff; border:none; border-radius:6px;" data-accept-id="${record.id}">✅ Nhận lead</button>
+                        <button type="button" class="crm-btn" style="flex:1; padding:5px 8px; font-size:11.5px; font-weight:700; background:#dc2626; color:#fff; border:none; border-radius:6px;" data-reject-id="${record.id}" data-reject-name="${escapeHtml(record.companyName || record.name)}">❌ Từ chối</button>
+                    `;
+                }
+                if (record.status !== "KHACH_HANG" && record.status !== "CHINH_THUC") {
+                    btns += `
+                        <button type="button" class="crm-btn" style="flex:1; padding:5px 8px; font-size:11.5px; font-weight:700; background:#7c3aed; color:#fff; border:none; border-radius:6px;" data-convert-id="${record.id}">⚡ Chuyển đổi</button>
+                    `;
+                }
+                return btns;
+            })()}
+        </div>
+        <div style="display:flex; gap:8px; margin-top:8px;">
             ${record.primaryContactPhone ? `
                 <a href="tel:${escapeHtml(record.primaryContactPhone)}" class="crm-btn crm-btn-primary" style="flex:1; text-align:center; text-decoration:none; background:#059669; border-color:#059669;">
                     📞 Gọi ngay
@@ -1412,7 +1524,13 @@ document.addEventListener("click", async event => {
 
     const editButton = event.target.closest("[data-edit]");
     if (editButton) {
-        openDrawer(Number(editButton.dataset.edit));
+        const idx = Number(editButton.dataset.edit);
+        const record = records[idx];
+        if (record && record.status === "CONVERTED") {
+            alert("Lead này đã được chuyển đổi thành khách hàng chính thức và đã bị khóa bảo vệ. Không thể chỉnh sửa trực tiếp thông tin lead gốc!");
+            return;
+        }
+        openDrawer(idx);
         return;
     }
 
@@ -1420,6 +1538,10 @@ document.addEventListener("click", async event => {
     if (deleteButton) {
         const index = Number(deleteButton.dataset.delete);
         const record = records[index];
+        if (record && record.status === "CONVERTED") {
+            alert("Không thể xóa Lead đã chuyển đổi thành công để bảo toàn dữ liệu lịch sử và chuỗi kiểm toán!");
+            return;
+        }
         if (record && confirm(`Bạn có chắc chắn muốn xóa khách hàng "${record.companyName || record.name}"?`)) {
             try {
                 await api(`/api/customers/${record.id}`, { method: "DELETE" });
@@ -1496,6 +1618,10 @@ function statusClass(status) {
         case "MOI":
         case "Mới":
             return "status-new-lead";
+        case "DANG_CHAM_SOC":
+            return "status-dealing";
+        case "CONVERTED":
+            return "status-customer";
         case "Đang giao dịch":
         case "DANG_GIAO_DICH":
             return "status-dealing";
@@ -1518,6 +1644,10 @@ function statusLabel(status) {
             return "Mới (Lead)";
         case "TIEM_NANG":
             return "Tiềm năng";
+        case "DANG_CHAM_SOC":
+            return "Đang chăm sóc";
+        case "CONVERTED":
+            return "Đã chuyển đổi";
         case "KHACH_HANG":
         case "CHINH_THUC":
             return "Khách hàng";
@@ -1813,10 +1943,321 @@ async function handleManualLeadSubmit(e) {
 }
 
 /* =========================================================
+   SLA MANAGEMENT & LEAD CONVERSION (STORY 3 & 4)
+========================================================= */
+
+function openRejectModal(id, leadName) {
+    const overlay = document.getElementById("rejectLeadModalOverlay");
+    const idInput = document.getElementById("rejectLeadId");
+    const subTitle = document.getElementById("rejectLeadSubtitle");
+    const reasonSelect = document.getElementById("rejectReasonSelect");
+    const reasonText = document.getElementById("rejectReasonText");
+    const err = document.getElementById("rejectReasonError");
+
+    if (idInput) idInput.value = id;
+    if (subTitle) subTitle.textContent = `Lead: "${leadName}" (Mã: #${id}) - Sẽ trả về hàng chờ phân bổ`;
+    if (reasonSelect) reasonSelect.value = "";
+    if (reasonText) reasonText.value = "";
+    if (err) { err.textContent = ""; err.style.display = "none"; }
+    if (overlay) overlay.style.display = "flex";
+}
+
+async function openConvertModal(id) {
+    const overlay = document.getElementById("convertLeadModalOverlay");
+    const form = document.getElementById("convertLeadForm");
+    const convertIdInput = document.getElementById("convertLeadId");
+    const subTitle = document.getElementById("convertLeadSubtitle");
+    const activitiesBadge = document.getElementById("convertActivitiesBadge");
+
+    if (form) form.reset();
+    if (convertIdInput) convertIdInput.value = id;
+
+    try {
+        const preview = await api(`/api/leads/${id}/convert-preview`);
+        if (subTitle) subTitle.textContent = `Lead: "${preview.leadName || ''}" (SĐT: ${preview.leadPhone || '—'})`;
+        if (activitiesBadge) {
+            activitiesBadge.textContent = `Toàn bộ thông tin lead và ${preview.activitiesCount || 0} hoạt động tương tác trước đó sẽ được tự động chuyển sang Khách hàng & Cơ hội mới. Lead gốc sẽ khóa chỉnh sửa để bảo đảm lịch sử.`;
+        }
+
+        setValue("cvCustName", preview.suggestedCompanyName || preview.leadName);
+        setValue("cvCustTaxCode", preview.leadTaxCode || "");
+        setValue("cvCustPhone", preview.leadPhone || "");
+        setValue("cvCustEmail", preview.leadEmail || "");
+        setValue("cvCustWebsite", preview.leadWebsite || "");
+
+        setValue("cvContactName", preview.leadContactName || preview.leadName);
+        setValue("cvContactTitle", preview.leadContactTitle || "Đại diện");
+        setValue("cvContactPhone", preview.leadPhone || "");
+        setValue("cvContactEmail", preview.leadEmail || "");
+
+        setValue("cvOppName", preview.suggestedOpportunityName || `Cơ hội - ${preview.suggestedCompanyName || preview.leadName}`);
+        setValue("cvOppAmount", preview.suggestedDealAmount ? String(preview.suggestedDealAmount) : "10000000");
+
+        const d = new Date();
+        d.setDate(d.getDate() + 30);
+        setValue("cvExpectedCloseDate", d.toISOString().substring(0, 10));
+
+        const custModeNew = document.getElementById("custModeNew");
+        if (custModeNew) custModeNew.checked = true;
+        const wrapCustNew = document.getElementById("wrapCustNew");
+        const wrapCustExist = document.getElementById("wrapCustExist");
+        if (wrapCustNew) wrapCustNew.style.display = "block";
+        if (wrapCustExist) wrapCustExist.style.display = "none";
+
+        const cvCreateOpp = document.getElementById("cvCreateOpportunity");
+        if (cvCreateOpp) cvCreateOpp.checked = true;
+        const wrapOpp = document.getElementById("wrapOppFields");
+        if (wrapOpp) wrapOpp.style.display = "block";
+
+        if (overlay) overlay.style.display = "flex";
+    } catch (err) {
+        alert("Lỗi khi chuẩn bị chuyển đổi lead: " + err.message);
+    }
+}
+
+async function loadExistingCustomersForSelect() {
+    const sel = document.getElementById("cvExistingCustomerId");
+    if (!sel) return;
+    try {
+        const res = await api("/api/customers?status=KHACH_HANG&size=100");
+        const items = res?.items || [];
+        sel.innerHTML = '<option value="">-- Chọn khách hàng doanh nghiệp có sẵn --</option>';
+        items.forEach(c => {
+            const opt = document.createElement("option");
+            opt.value = c.id;
+            opt.textContent = `${c.companyName || c.name} (MST: ${c.taxCode || '—'})`;
+            sel.appendChild(opt);
+        });
+    } catch (e) {
+        console.warn("Could not load existing customers:", e);
+    }
+}
+
+function initSlaAndConversion() {
+    // 1. Reject Modal
+    const rejectModal = document.getElementById("rejectLeadModalOverlay");
+    const closeRejectBtn = document.getElementById("btnCloseRejectModal");
+    const cancelRejectBtn = document.getElementById("btnCancelRejectModal");
+    const rejectForm = document.getElementById("rejectLeadForm");
+    const reasonSelect = document.getElementById("rejectReasonSelect");
+    const reasonText = document.getElementById("rejectReasonText");
+
+    const closeRejectModal = () => {
+        if (rejectModal) rejectModal.style.display = "none";
+        if (rejectForm) rejectForm.reset();
+        const err = document.getElementById("rejectReasonError");
+        if (err) { err.textContent = ""; err.style.display = "none"; }
+    };
+
+    closeRejectBtn?.addEventListener("click", closeRejectModal);
+    cancelRejectBtn?.addEventListener("click", closeRejectModal);
+    rejectModal?.addEventListener("click", e => {
+        if (e.target === rejectModal) closeRejectModal();
+    });
+
+    reasonSelect?.addEventListener("change", () => {
+        if (reasonSelect.value && reasonSelect.value !== "OTHER") {
+            reasonText.value = reasonSelect.value;
+        } else if (reasonSelect.value === "OTHER") {
+            reasonText.value = "";
+            reasonText.focus();
+        }
+    });
+
+    rejectForm?.addEventListener("submit", async e => {
+        e.preventDefault();
+        const leadId = document.getElementById("rejectLeadId")?.value;
+        const reason = reasonText?.value.trim();
+        const err = document.getElementById("rejectReasonError");
+
+        if (!reason) {
+            if (err) {
+                err.textContent = "Vui lòng nhập lý do từ chối (bắt buộc theo quy định SLA).";
+                err.style.display = "block";
+            }
+            reasonText?.focus();
+            return;
+        }
+
+        const submitBtn = rejectForm.querySelector('button[type="submit"]');
+        const origText = submitBtn?.textContent || "";
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "⏳ Đang xử lý..."; }
+
+        try {
+            await api(`/api/leads/${leadId}/reject`, {
+                method: "POST",
+                body: JSON.stringify({ reason })
+            });
+
+            closeRejectModal();
+            if (typeof window.crmToast === "function") {
+                window.crmToast("✓ Đã từ chối tiếp nhận lead. Lead đã quay lại hàng chờ phân bổ.", "info");
+            } else {
+                alert("✓ Đã từ chối tiếp nhận lead. Lead đã quay lại hàng chờ phân bổ.");
+            }
+            await loadCustomers();
+        } catch (error) {
+            alert("Lỗi khi từ chối lead: " + error.message);
+        } finally {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = origText; }
+        }
+    });
+
+    // 2. Convert Modal
+    const convertModal = document.getElementById("convertLeadModalOverlay");
+    const closeConvertBtn = document.getElementById("btnCloseConvertModal");
+    const cancelConvertBtn = document.getElementById("btnCancelConvertModal");
+    const convertForm = document.getElementById("convertLeadForm");
+    const custModeNew = document.getElementById("custModeNew");
+    const custModeExist = document.getElementById("custModeExist");
+    const wrapCustNew = document.getElementById("wrapCustNew");
+    const wrapCustExist = document.getElementById("wrapCustExist");
+    const cvCreateOpportunity = document.getElementById("cvCreateOpportunity");
+    const wrapOppFields = document.getElementById("wrapOppFields");
+
+    const closeConvertModal = () => {
+        if (convertModal) convertModal.style.display = "none";
+        if (convertForm) convertForm.reset();
+    };
+
+    closeConvertBtn?.addEventListener("click", closeConvertModal);
+    cancelConvertBtn?.addEventListener("click", closeConvertModal);
+    convertModal?.addEventListener("click", e => {
+        if (e.target === convertModal) closeConvertModal();
+    });
+
+    custModeNew?.addEventListener("change", () => {
+        if (wrapCustNew) wrapCustNew.style.display = "block";
+        if (wrapCustExist) wrapCustExist.style.display = "none";
+    });
+
+    custModeExist?.addEventListener("change", () => {
+        if (wrapCustNew) wrapCustNew.style.display = "none";
+        if (wrapCustExist) wrapCustExist.style.display = "block";
+        loadExistingCustomersForSelect();
+    });
+
+    cvCreateOpportunity?.addEventListener("change", () => {
+        if (wrapOppFields) wrapOppFields.style.display = cvCreateOpportunity.checked ? "block" : "none";
+    });
+
+    convertForm?.addEventListener("submit", async e => {
+        e.preventDefault();
+        const leadId = document.getElementById("convertLeadId")?.value;
+        const isNew = custModeNew?.checked;
+
+        const payload = {
+            customerMode: isNew ? "NEW" : "EXISTING",
+            companyName: isNew ? value("cvCustName") : null,
+            existingCustomerId: !isNew && value("cvExistingCustomerId") ? Number(value("cvExistingCustomerId")) : null,
+            taxCode: value("cvCustTaxCode"),
+            companyPhone: value("cvCustPhone"),
+            companyEmail: value("cvCustEmail"),
+            companyWebsite: value("cvCustWebsite"),
+
+            contactName: value("cvContactName"),
+            contactTitle: value("cvContactTitle"),
+            contactPhone: value("cvContactPhone"),
+            contactEmail: value("cvContactEmail"),
+            buyingRole: value("cvBuyingRole") || "INFLUENCER",
+
+            createOpportunity: cvCreateOpportunity?.checked ?? true,
+            opportunityName: value("cvOppName"),
+            opportunityAmount: value("cvOppAmount") ? Number(value("cvOppAmount")) : 0,
+            pipelineStageId: value("cvStageId") ? Number(value("cvStageId")) : 1,
+            expectedCloseDate: value("cvExpectedCloseDate") || null
+        };
+
+        if (isNew && !payload.companyName) {
+            alert("Vui lòng nhập tên công ty / doanh nghiệp.");
+            document.getElementById("cvCustName")?.focus();
+            return;
+        }
+        if (!isNew && !payload.existingCustomerId) {
+            alert("Vui lòng chọn khách hàng doanh nghiệp có sẵn từ danh sách.");
+            document.getElementById("cvExistingCustomerId")?.focus();
+            return;
+        }
+        if (!payload.contactName) {
+            alert("Vui lòng nhập họ và tên người liên hệ.");
+            document.getElementById("cvContactName")?.focus();
+            return;
+        }
+        if (payload.createOpportunity && !payload.opportunityName) {
+            alert("Vui lòng nhập tên cơ hội kinh doanh.");
+            document.getElementById("cvOppName")?.focus();
+            return;
+        }
+
+        const submitBtn = convertForm.querySelector('button[type="submit"]');
+        const origText = submitBtn?.textContent || "";
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "⏳ Đang chuyển đổi..."; }
+
+        try {
+            const res = await api(`/api/leads/${leadId}/convert`, {
+                method: "POST",
+                body: JSON.stringify(payload)
+            });
+
+            closeConvertModal();
+            const msg = `🎉 Chuyển đổi Lead thành công!\n` +
+                        `• Khách hàng doanh nghiệp: #${res.customerId} - ${res.companyName || ''}\n` +
+                        `• Người liên hệ: #${res.contactId} - ${res.contactName || ''}\n` +
+                        (res.opportunityId ? `• Cơ hội bán hàng: #${res.opportunityId} - ${res.opportunityName || ''}\n` : '') +
+                        `• Đã chuyển ${res.activitiesMoved || 0} hoạt động tương tác vào khách hàng mới.\n` +
+                        `Lead gốc đã được khóa bảo vệ.`;
+            alert(msg);
+            await loadCustomers();
+        } catch (error) {
+            alert("Lỗi khi chuyển đổi lead: " + error.message);
+        } finally {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = origText; }
+        }
+    });
+
+    // 3. Delegate Accept / Reject / Convert click
+    document.addEventListener("click", async e => {
+        const acceptBtn = e.target.closest("[data-accept-id]");
+        if (acceptBtn) {
+            const id = Number(acceptBtn.dataset.acceptId);
+            if (!confirm("Bạn có chắc chắn muốn tiếp nhận lead này để chăm sóc?")) return;
+            try {
+                await api(`/api/leads/${id}/accept`, { method: "POST" });
+                if (typeof window.crmToast === "function") {
+                    window.crmToast("✓ Đã tiếp nhận lead thành công! Trạng thái chuyển sang Đang chăm sóc.", "success");
+                } else {
+                    alert("✓ Đã tiếp nhận lead thành công! Trạng thái chuyển sang Đang chăm sóc.");
+                }
+                await loadCustomers();
+            } catch (err) {
+                alert("Lỗi khi tiếp nhận lead: " + err.message);
+            }
+            return;
+        }
+
+        const rejectBtn = e.target.closest("[data-reject-id]");
+        if (rejectBtn) {
+            const id = Number(rejectBtn.dataset.rejectId);
+            const name = rejectBtn.dataset.rejectName || "";
+            openRejectModal(id, name);
+            return;
+        }
+
+        const convertBtn = e.target.closest("[data-convert-id]");
+        if (convertBtn) {
+            const id = Number(convertBtn.dataset.convertId);
+            await openConvertModal(id);
+            return;
+        }
+    });
+}
+
+/* =========================================================
    INITIALIZATION
 ========================================================= */
 async function init() {
     initManualLeadModal();
+    initSlaAndConversion();
     await initUserProfile();
     await loadCustomerCustomFields();
     await loadOwnersIntoFilter();

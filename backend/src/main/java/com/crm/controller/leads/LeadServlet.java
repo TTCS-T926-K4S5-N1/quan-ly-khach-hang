@@ -37,6 +37,7 @@ public class LeadServlet extends HttpServlet {
 
     private final LeadImportService importService = new LeadImportService();
     private final CustomerMergeDAO customerMergeDAO = new CustomerMergeDAO();
+    private final com.crm.service.leads.LeadConversionService conversionService = new com.crm.service.leads.LeadConversionService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -90,6 +91,18 @@ public class LeadServlet extends HttpServlet {
                 String email = req.getParameter("email");
                 var suggestion = customerMergeDAO.suggestExistingCustomer(email, phone, name);
                 ResponseUtil.json(resp, 200, ApiResponse.success("Gợi ý gắn vào khách hàng thành công", suggestion));
+                return;
+            }
+
+            // 5. Xem trước thông tin chuyển đổi Lead
+            if (pathInfo != null && pathInfo.matches("^/\\d+/convert-preview$")) {
+                long leadId = Long.parseLong(pathInfo.substring(1, pathInfo.indexOf("/convert-preview")));
+                var preview = conversionService.getConversionPreview(leadId);
+                if (preview == null) {
+                    ResponseUtil.json(resp, 404, ApiResponse.error("Không tìm thấy Lead", null));
+                    return;
+                }
+                ResponseUtil.json(resp, 200, ApiResponse.success("Lấy thông tin xem trước chuyển đổi thành công", preview));
                 return;
             }
 
@@ -153,6 +166,47 @@ public class LeadServlet extends HttpServlet {
 
                 var commitResult = importService.commitImport(batchToken, skipErrors, campaignId, userId);
                 ResponseUtil.json(resp, 200, ApiResponse.success("Nhập danh sách lead thành công", commitResult));
+                return;
+            }
+
+            // 4. Nhân viên nhận Lead (Accept Lead -> Đang chăm sóc)
+            if (pathInfo != null && pathInfo.matches("^/\\d+/accept$")) {
+                long leadId = Long.parseLong(pathInfo.substring(1, pathInfo.indexOf("/accept")));
+                boolean ok = conversionService.acceptLead(leadId, userId);
+                if (!ok) {
+                    ResponseUtil.json(resp, 400, ApiResponse.error("Không thể nhận lead hoặc lead không tồn tại", null));
+                    return;
+                }
+                ResponseUtil.json(resp, 200, ApiResponse.success("Đã tiếp nhận lead thành công! Trạng thái lead đã chuyển sang Đang chăm sóc.", null));
+                return;
+            }
+
+            // 5. Nhân viên từ chối Lead (bắt buộc có lý do, lead quay lại hàng chờ phân bổ)
+            if (pathInfo != null && pathInfo.matches("^/\\d+/reject$")) {
+                long leadId = Long.parseLong(pathInfo.substring(1, pathInfo.indexOf("/reject")));
+                com.crm.dto.leads.LeadRejectRequest rejectReq = JsonUtil.getGson().fromJson(readRequestBody(req), com.crm.dto.leads.LeadRejectRequest.class);
+                if (rejectReq == null || rejectReq.getReason() == null || rejectReq.getReason().trim().isBlank()) {
+                    ResponseUtil.json(resp, 400, ApiResponse.error("Bắt buộc phải nhập lý do khi từ chối nhận lead", null));
+                    return;
+                }
+                boolean ok = conversionService.rejectLead(leadId, userId, rejectReq.getReason().trim());
+                if (!ok) {
+                    ResponseUtil.json(resp, 400, ApiResponse.error("Không thể từ chối lead", null));
+                    return;
+                }
+                ResponseUtil.json(resp, 200, ApiResponse.success("Đã từ chối nhận lead. Lead đã quay trở lại hàng chờ phân bổ.", null));
+                return;
+            }
+
+            // 6. Chuyển đổi Lead thành Khách hàng, Liên hệ & Cơ hội bán hàng (Convert Lead)
+            if (pathInfo != null && pathInfo.matches("^/\\d+/convert$")) {
+                long leadId = Long.parseLong(pathInfo.substring(1, pathInfo.indexOf("/convert")));
+                com.crm.dto.leads.LeadConvertRequest convertReq = JsonUtil.getGson().fromJson(readRequestBody(req), com.crm.dto.leads.LeadConvertRequest.class);
+                if (convertReq == null) convertReq = new com.crm.dto.leads.LeadConvertRequest();
+                convertReq.setLeadId(leadId);
+
+                var convertResult = conversionService.convertLead(leadId, userId, convertReq);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Chuyển đổi Lead thành Khách hàng, Người liên hệ và Cơ hội bán hàng thành công!", convertResult));
                 return;
             }
 
@@ -296,6 +350,7 @@ public class LeadServlet extends HttpServlet {
 
                 Map<String, Object> respData = new LinkedHashMap<>();
                 respData.put("id", customerId);
+                respData.put("leadId", customerId);
                 respData.put("name", customerName);
                 respData.put("fullName", body.getFullName());
                 respData.put("leadSource", body.getLeadSource());

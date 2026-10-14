@@ -324,7 +324,7 @@ public class LeadAssignmentDAO {
 
             // Gán Lead cho Target User
             String updateLeadSql = "UPDATE customers SET owner_user_id = ?, assignment_status = 'ASSIGNED', " +
-                                  "assigned_rule_id = ?, assigned_at = NOW() WHERE id = ?";
+                                  "assigned_rule_id = ?, assigned_at = NOW(), sla_deadline = DATE_ADD(NOW(), INTERVAL 4 HOUR), sla_breached = 0 WHERE id = ?";
             try (PreparedStatement ps = conn.prepareStatement(updateLeadSql)) {
                 ps.setLong(1, targetUserId);
                 ps.setLong(2, matchedRule.getId());
@@ -362,7 +362,7 @@ public class LeadAssignmentDAO {
      */
     public void manualAssignLead(long leadId, long targetUserId, long byUserId, String notes) {
         String updateSql = "UPDATE customers SET owner_user_id = ?, assignment_status = 'ASSIGNED', " +
-                           "assigned_rule_id = NULL, assigned_at = NOW() WHERE id = ?";
+                           "assigned_rule_id = NULL, assigned_at = NOW(), sla_deadline = DATE_ADD(NOW(), INTERVAL 4 HOUR), sla_breached = 0 WHERE id = ?";
         String logSql = "INSERT INTO lead_assignment_logs (lead_id, rule_id, assigned_to_user_id, " +
                         "assigned_by_user_id, method, rule_name, notes) VALUES (?, NULL, ?, ?, 'MANUAL_DISPATCH', 'Phân bổ thủ công từ hàng chờ', ?)";
 
