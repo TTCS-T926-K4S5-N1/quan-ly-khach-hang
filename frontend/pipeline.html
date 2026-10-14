@@ -94,14 +94,14 @@
             Quản lý
         </div>
 
-        <a href="#" class="crm-nav-item">
+        <a href="products" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4-8 4-8-4 8-4ZM4 7v10l8 4 8-4V7M12 11v10"/></svg></span>
             <span class="crm-nav-label">Sản phẩm</span>
         </a>
 
-        <a href="#" class="crm-nav-item">
-            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m9 3 6 0 1 4 4 1 1 6-4 2-1 4-6 1-2-4-4-1-1-6 4-2 1-4Z"/></svg></span>
-            <span class="crm-nav-label">Cấu hình</span>
+        <a href="custom-fields" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18M3 12h18"/></svg></span>
+            <span class="crm-nav-label">Trường tùy chỉnh</span>
         </a>
 
     </nav>
@@ -196,13 +196,25 @@
         </div>
 
 
-        <button
-            id="addOpportunityButton"
-            class="crm-btn crm-btn-primary"
-            type="button"
-        >
-            + Thêm cơ hội
-        </button>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <button
+                id="btnExportOppExcel"
+                class="crm-btn crm-btn-secondary"
+                type="button"
+                style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600;"
+                title="Xuất danh sách cơ hội ra file Excel bao gồm trường tùy chỉnh"
+            >
+                📥 Xuất Excel
+            </button>
+
+            <button
+                id="addOpportunityButton"
+                class="crm-btn crm-btn-primary"
+                type="button"
+            >
+                + Thêm cơ hội
+            </button>
+        </div>
 
     </section>
 
@@ -232,6 +244,17 @@
                 Nhóm
             </option>
         </select>
+
+        <!-- Lọc trường tùy chỉnh -->
+        <div id="oppCustomFieldFilterWrap" style="display: flex; gap: 6px; align-items: center;">
+            <select id="oppCustomFieldSelect" class="crm-input" style="min-width: 170px;">
+                <option value="">✨ Lọc trường tùy chỉnh</option>
+            </select>
+            <input id="oppCustomFieldValue" class="crm-input" type="text" placeholder="Nhập giá trị lọc..." style="min-width: 130px; display: none;">
+            <select id="oppCustomFieldSelectValue" class="crm-input" style="min-width: 130px; display: none;">
+                <option value="">-- Chọn --</option>
+            </select>
+        </div>
 
         <button
             id="resetPipelineFilter"
@@ -507,6 +530,15 @@
             >
         </label>
 
+        <!-- Dynamic Custom Fields Section -->
+        <div id="opportunityCustomFieldsSection" style="margin-top: 16px; border-top: 1px dashed var(--crm-border); padding-top: 16px;">
+            <div style="font-weight: 600; font-size: 13px; color: var(--crm-muted); text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                <span>✨ Trường tuỳ chỉnh</span>
+            </div>
+            <div id="opportunityCustomFieldsContainer" style="display: flex; flex-direction: column; gap: 12px;">
+                <!-- Dynamically loaded fields will be rendered here -->
+            </div>
+        </div>
 
         <footer class="drawer-footer">
 

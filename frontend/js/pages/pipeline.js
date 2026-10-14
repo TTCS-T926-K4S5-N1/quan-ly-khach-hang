@@ -20,6 +20,15 @@ const opportunityForm = document.getElementById("opportunityForm");
 const searchInput = document.getElementById("pipelineSearch");
 const ownerFilter = document.getElementById("ownerFilter");
 
+// Custom Fields state & elements for Opportunity
+let oppCustomFields = [];
+const btnExportOppExcel = document.getElementById("btnExportOppExcel");
+const oppCustomFieldSelect = document.getElementById("oppCustomFieldSelect");
+const oppCustomFieldValue = document.getElementById("oppCustomFieldValue");
+const oppCustomFieldSelectValue = document.getElementById("oppCustomFieldSelectValue");
+const opportunityCustomFieldsSection = document.getElementById("opportunityCustomFieldsSection");
+const opportunityCustomFieldsContainer = document.getElementById("opportunityCustomFieldsContainer");
+
 const dealModal = document.getElementById("closeDealModal");
 const dealOverlay = document.getElementById("closeDealOverlay");
 
@@ -70,6 +79,7 @@ async function initPipeline() {
             loadStages(),
             loadWinLossAndCompetitors(),
             loadCustomers(),
+            loadOppCustomFields(),
             loadOpportunities()
         ]);
     } catch (err) {
@@ -145,7 +155,21 @@ async function loadCustomers() {
 
 async function loadOpportunities() {
     try {
-        const list = await api("/api/opportunities");
+        const params = new URLSearchParams();
+        const cfKey = oppCustomFieldSelect?.value || "";
+        let cfVal = "";
+        const cfDef = oppCustomFields.find(f => f.key === cfKey);
+        if (cfDef?.fieldType === "SELECT") {
+            cfVal = oppCustomFieldSelectValue?.value || "";
+        } else {
+            cfVal = oppCustomFieldValue?.value.trim() || "";
+        }
+        if (cfKey && cfVal) {
+            params.append("customFieldKey", cfKey);
+            params.append("customFieldValue", cfVal);
+        }
+        const qs = params.toString() ? "?" + params.toString() : "";
+        const list = await api("/api/opportunities" + qs);
         if (Array.isArray(list)) {
             opportunities = list;
             // Sync with localStorage for offline / dashboard view
@@ -258,10 +282,189 @@ document.getElementById("opportunityStage")?.addEventListener("change", event =>
 searchInput?.addEventListener("input", render);
 ownerFilter?.addEventListener("change", render);
 
+/* Custom Fields Logic for Opportunity */
+async function loadOppCustomFields() {
+    try {
+        const res = await api("/api/custom-fields?entityType=OPPORTUNITY&active=true");
+        oppCustomFields = Array.isArray(res?.data) ? res.data : [];
+        populateOppCustomFieldFilterSelect();
+    } catch (e) {
+        console.warn("Could not load opportunity custom fields:", e);
+        oppCustomFields = [];
+    }
+}
+
+function populateOppCustomFieldFilterSelect() {
+    if (!oppCustomFieldSelect) return;
+    const currentVal = oppCustomFieldSelect.value;
+    oppCustomFieldSelect.innerHTML = '<option value="">✨ Lọc trường tùy chỉnh</option>';
+    oppCustomFields.forEach(cf => {
+        const opt = document.createElement("option");
+        opt.value = cf.key;
+        opt.textContent = `${cf.label} (${cf.fieldType})`;
+        oppCustomFieldSelect.appendChild(opt);
+    });
+    if (currentVal) oppCustomFieldSelect.value = currentVal;
+}
+
+function renderOppCustomFieldInputs(existingValues = {}) {
+    if (!opportunityCustomFieldsContainer) return;
+    opportunityCustomFieldsContainer.innerHTML = "";
+
+    if (!oppCustomFields || oppCustomFields.length === 0) {
+        if (opportunityCustomFieldsSection) opportunityCustomFieldsSection.style.display = "none";
+        return;
+    }
+
+    if (opportunityCustomFieldsSection) opportunityCustomFieldsSection.style.display = "block";
+
+    oppCustomFields.forEach(cf => {
+        const wrap = document.createElement("div");
+        wrap.className = "field-group";
+        const val = existingValues[cf.key] !== undefined && existingValues[cf.key] !== null ? String(existingValues[cf.key]) : "";
+
+        let inputHtml = "";
+        const requiredAttr = cf.required ? 'data-required="true"' : 'data-required="false"';
+        const requiredAsterisk = cf.required ? '<em style="color:#ef4444; font-weight:700;"> *</em>' : '';
+
+        if (cf.fieldType === "TEXT") {
+            inputHtml = `<input id="opp_cf_${cf.key}" class="crm-input opp-cf-input" type="text" data-key="${cf.key}" data-label="${escapeHtml(cf.label)}" ${requiredAttr} value="${escapeHtml(val)}" placeholder="Nhập ${escapeHtml(cf.label)}...">`;
+        } else if (cf.fieldType === "NUMBER") {
+            inputHtml = `<input id="opp_cf_${cf.key}" class="crm-input opp-cf-input" type="number" step="any" data-key="${cf.key}" data-label="${escapeHtml(cf.label)}" ${requiredAttr} value="${escapeHtml(val)}" placeholder="0">`;
+        } else if (cf.fieldType === "DATE") {
+            inputHtml = `<input id="opp_cf_${cf.key}" class="crm-input opp-cf-input" type="date" data-key="${cf.key}" data-label="${escapeHtml(cf.label)}" ${requiredAttr} value="${escapeHtml(val)}">`;
+        } else if (cf.fieldType === "SELECT") {
+            const options = Array.isArray(cf.options) ? cf.options : [];
+            const optsHtml = options.map(opt => `<option value="${escapeHtml(opt)}" ${opt === val ? 'selected' : ''}>${escapeHtml(opt)}</option>`).join("");
+            inputHtml = `<select id="opp_cf_${cf.key}" class="crm-input opp-cf-input" data-key="${cf.key}" data-label="${escapeHtml(cf.label)}" ${requiredAttr}>
+                <option value="">-- Chọn ${escapeHtml(cf.label)} --</option>
+                ${optsHtml}
+            </select>`;
+        } else {
+            inputHtml = `<input id="opp_cf_${cf.key}" class="crm-input opp-cf-input" type="text" data-key="${cf.key}" data-label="${escapeHtml(cf.label)}" ${requiredAttr} value="${escapeHtml(val)}">`;
+        }
+
+        wrap.innerHTML = `
+            <label for="opp_cf_${cf.key}" style="font-weight:600; font-size:13px; color:var(--crm-text); margin-bottom:4px; display:block;">
+                ${escapeHtml(cf.label)}${requiredAsterisk}
+            </label>
+            ${inputHtml}
+            <small id="opp_cf_err_${cf.key}" class="opp-cf-error" style="color:#ef4444; font-size:11px; display:none; margin-top:2px;"></small>
+        `;
+        opportunityCustomFieldsContainer.appendChild(wrap);
+    });
+}
+
+function collectOppCustomFields() {
+    const customFields = {};
+    const inputs = document.querySelectorAll(".opp-cf-input");
+    let firstErrorMsg = "";
+
+    document.querySelectorAll(".opp-cf-error").forEach(el => { el.style.display = "none"; el.textContent = ""; });
+
+    for (const input of inputs) {
+        const key = input.dataset.key;
+        const label = input.dataset.label;
+        const isRequired = input.dataset.required === "true";
+        const val = input.value.trim();
+
+        if (isRequired && !val) {
+            const errEl = document.getElementById("opp_cf_err_" + key);
+            if (errEl) {
+                errEl.textContent = `Vui lòng nhập trường "${label}".`;
+                errEl.style.display = "block";
+            }
+            if (!firstErrorMsg) {
+                firstErrorMsg = `Trường tùy chỉnh "${label}" là bắt buộc.`;
+                input.focus();
+            }
+        }
+
+        if (val) {
+            customFields[key] = val;
+        }
+    }
+
+    if (firstErrorMsg) {
+        throw new Error(firstErrorMsg);
+    }
+
+    return customFields;
+}
+
+// Custom Field filter handlers
+oppCustomFieldSelect?.addEventListener("change", () => {
+    const selectedKey = oppCustomFieldSelect.value;
+    const cfDef = oppCustomFields.find(f => f.key === selectedKey);
+    if (!cfDef) {
+        if (oppCustomFieldValue) { oppCustomFieldValue.style.display = "none"; oppCustomFieldValue.value = ""; }
+        if (oppCustomFieldSelectValue) { oppCustomFieldSelectValue.style.display = "none"; oppCustomFieldSelectValue.value = ""; }
+    } else if (cfDef.fieldType === "SELECT") {
+        if (oppCustomFieldValue) { oppCustomFieldValue.style.display = "none"; oppCustomFieldValue.value = ""; }
+        if (oppCustomFieldSelectValue) {
+            oppCustomFieldSelectValue.innerHTML = '<option value="">-- Chọn --</option>';
+            (cfDef.options || []).forEach(opt => {
+                const o = document.createElement("option");
+                o.value = opt;
+                o.textContent = opt;
+                oppCustomFieldSelectValue.appendChild(o);
+            });
+            oppCustomFieldSelectValue.style.display = "inline-block";
+        }
+    } else {
+        if (oppCustomFieldSelectValue) { oppCustomFieldSelectValue.style.display = "none"; oppCustomFieldSelectValue.value = ""; }
+        if (oppCustomFieldValue) {
+            oppCustomFieldValue.placeholder = `Giá trị ${cfDef.label}...`;
+            oppCustomFieldValue.type = cfDef.fieldType === "NUMBER" ? "number" : (cfDef.fieldType === "DATE" ? "date" : "text");
+            oppCustomFieldValue.style.display = "inline-block";
+        }
+    }
+    loadOpportunities();
+});
+
+oppCustomFieldValue?.addEventListener("input", () => {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+        loadOpportunities();
+    }, 300);
+});
+
+oppCustomFieldSelectValue?.addEventListener("change", () => {
+    loadOpportunities();
+});
+
+// Excel Export Button handler for Opportunity
+btnExportOppExcel?.addEventListener("click", () => {
+    const params = new URLSearchParams();
+    const kw = searchInput?.value.trim() || "";
+    const cfKey = oppCustomFieldSelect?.value || "";
+    let cfVal = "";
+    const cfDef = oppCustomFields.find(f => f.key === cfKey);
+    if (cfDef?.fieldType === "SELECT") {
+        cfVal = oppCustomFieldSelectValue?.value || "";
+    } else {
+        cfVal = oppCustomFieldValue?.value.trim() || "";
+    }
+
+    if (kw) params.append("keyword", kw);
+    if (cfKey && cfVal) {
+        params.append("customFieldKey", cfKey);
+        params.append("customFieldValue", cfVal);
+    }
+
+    const url = `${API_BASE}/api/opportunities/export?${params.toString()}`;
+    window.open(url, "_blank");
+});
+
+let searchDebounceTimer = null;
+
 document.getElementById("resetPipelineFilter")?.addEventListener("click", () => {
     if (searchInput) searchInput.value = "";
     if (ownerFilter) ownerFilter.value = "";
-    render();
+    if (oppCustomFieldSelect) oppCustomFieldSelect.value = "";
+    if (oppCustomFieldValue) { oppCustomFieldValue.value = ""; oppCustomFieldValue.style.display = "none"; }
+    if (oppCustomFieldSelectValue) { oppCustomFieldSelectValue.value = ""; oppCustomFieldSelectValue.style.display = "none"; }
+    loadOpportunities();
 });
 
 /* Drawer form submit */
@@ -290,13 +493,22 @@ opportunityForm?.addEventListener("submit", async event => {
     const amount = Math.max(0, Number(document.getElementById("opportunityValue").value) || 0);
     const expectedCloseDate = fieldValue("opportunityCloseDate") || null;
 
+    let customFields = {};
+    try {
+        customFields = collectOppCustomFields();
+    } catch (cfErr) {
+        alert(cfErr.message);
+        return;
+    }
+
     const payload = {
         name,
         customerId,
         stageId,
         probability,
         amount,
-        expectedCloseDate
+        expectedCloseDate,
+        customFields
     };
 
     try {
@@ -675,7 +887,7 @@ function setupDropZone(zone, stageId) {
 /* =========================================================
    DRAWER OPEN / CLOSE
 ========================================================= */
-function openOpportunityDrawer(id = null) {
+async function openOpportunityDrawer(id = null) {
     editingOppId = id;
     const titleEl = document.getElementById("opportunityDrawerTitle");
     const nameErr = document.getElementById("opportunityNameError");
@@ -694,6 +906,13 @@ function openOpportunityDrawer(id = null) {
             setField("opportunityStage", opp.stageId);
             setField("opportunityProbability", opp.probability);
             setField("opportunityOwner", opp.ownerName);
+
+            try {
+                const detail = await api(`/api/opportunities/${id}`);
+                renderOppCustomFieldInputs(detail?.customFields || {});
+            } catch (e) {
+                renderOppCustomFieldInputs({});
+            }
         }
     } else {
         if (titleEl) titleEl.textContent = "Thêm cơ hội";
@@ -702,6 +921,7 @@ function openOpportunityDrawer(id = null) {
             setField("opportunityStage", stages[0].id);
             setField("opportunityProbability", stages[0].probability);
         }
+        renderOppCustomFieldInputs({});
     }
 
     opportunityDrawer?.classList.add("open");

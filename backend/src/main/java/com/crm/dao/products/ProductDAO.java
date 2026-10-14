@@ -8,9 +8,56 @@ import java.util.*;
 
 public class ProductDAO {
 
+    public long count(
+            String keyword,
+            Boolean active
+    ) throws SQLException {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM products WHERE 1 = 1");
+        List<Object> params = new ArrayList<>();
+
+        if (keyword != null && !keyword.isBlank()) {
+            sql.append("""
+                 AND (
+                     LOWER(code) LIKE ?
+                     OR LOWER(name) LIKE ?
+                 )
+                 """);
+            String value = "%" + keyword.toLowerCase() + "%";
+            params.add(value);
+            params.add(value);
+        }
+
+        if (active != null) {
+            sql.append(" AND active = ?");
+            params.add(active);
+        }
+
+        try (Connection connection = DatabaseConfig.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                statement.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getLong(1);
+                }
+            }
+        }
+        return 0;
+    }
+
     public List<Map<String,Object>> findAll(
             String keyword,
             Boolean active
+    ) throws SQLException {
+        return findAll(keyword, active, 1, 1000);
+    }
+
+    public List<Map<String,Object>> findAll(
+            String keyword,
+            Boolean active,
+            int page,
+            int size
     ) throws SQLException {
 
         StringBuilder sql =
@@ -63,8 +110,10 @@ public class ProductDAO {
         }
 
         sql.append(
-                " ORDER BY id DESC"
+                " ORDER BY id DESC LIMIT ? OFFSET ?"
         );
+        params.add(size);
+        params.add((page - 1) * size);
 
         List<Map<String,Object>> items =
                 new ArrayList<>();

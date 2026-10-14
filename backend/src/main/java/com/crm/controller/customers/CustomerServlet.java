@@ -13,7 +13,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 @WebServlet({
         "/api/customers",
@@ -46,11 +46,50 @@ public class CustomerServlet extends HttpServlet {
                 criteria.setRegion(req.getParameter("region"));
                 criteria.setOwnerUserId(longParam(req, "ownerUserId"));
                 criteria.setOwnerFilter(req.getParameter("ownerFilter"));
+                criteria.setCustomFieldKey(req.getParameter("customFieldKey"));
+                criteria.setCustomFieldValue(req.getParameter("customFieldValue"));
                 criteria.setPage(intParam(req, "page", 1));
                 criteria.setSize(intParam(req, "size", 20));
 
                 var result = customerService.search(currentUserId, criteria);
                 ResponseUtil.json(resp, 200, ApiResponse.success("Lấy danh sách khách hàng thành công", result));
+                return;
+            }
+
+            // Xuất Excel danh sách khách hàng (bao gồm các trường tùy chỉnh)
+            if (path.equals("/export")) {
+                com.crm.dto.customers.CustomerFilterCriteria criteria = new com.crm.dto.customers.CustomerFilterCriteria();
+                criteria.setKeyword(req.getParameter("keyword"));
+                criteria.setName(req.getParameter("name"));
+                criteria.setTaxCode(req.getParameter("taxCode"));
+                criteria.setContactPhone(req.getParameter("contactPhone"));
+                criteria.setStatus(req.getParameter("status"));
+                criteria.setIndustryId(longParam(req, "industryId"));
+                criteria.setCompanySizeId(longParam(req, "companySizeId"));
+                criteria.setRegionId(longParam(req, "regionId"));
+                criteria.setRegion(req.getParameter("region"));
+                criteria.setOwnerUserId(longParam(req, "ownerUserId"));
+                criteria.setOwnerFilter(req.getParameter("ownerFilter"));
+                criteria.setCustomFieldKey(req.getParameter("customFieldKey"));
+                criteria.setCustomFieldValue(req.getParameter("customFieldValue"));
+                criteria.setPage(1);
+                criteria.setSize(10000);
+
+                var searchResult = customerService.search(currentUserId, criteria);
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> customers = (List<Map<String, Object>>) searchResult.get("items");
+                if (customers == null) customers = Collections.emptyList();
+
+                com.crm.dao.customfields.CustomFieldValueDAO cfDao = new com.crm.dao.customfields.CustomFieldValueDAO();
+                List<Map<String, Object>> activeFields = cfDao.getActiveFields("CUSTOMER");
+
+                List<Long> customerIds = customers.stream()
+                        .map(c -> ((Number) c.get("id")).longValue())
+                        .toList();
+                Map<Long, Map<String, Object>> customValues = cfDao.getValuesForRecords("CUSTOMER", customerIds);
+
+                com.crm.service.export.ExcelExportService exportService = new com.crm.service.export.ExcelExportService();
+                exportService.exportCustomers(resp, customers, activeFields, customValues);
                 return;
             }
 

@@ -13,6 +13,17 @@ let currentUserRoles = [];
 let isTeamLeadOrAbove = false;
 let currentComparison = null;
 
+// Pagination state
+let currentPage = 1;
+let pageSize = 10;
+let totalItems = 0;
+let totalPages = 1;
+
+const customerPagination = document.getElementById("customerPagination");
+const custPaginationRange = document.getElementById("custPaginationRange");
+const custPageSizeSelect = document.getElementById("custPageSizeSelect");
+const custPaginationControls = document.getElementById("custPaginationControls");
+
 const tableBody = document.getElementById("customerTableBody");
 const desktopEmpty = document.getElementById("customerEmpty");
 const mobileList = document.getElementById("customerMobileList");
@@ -33,6 +44,15 @@ const btnResetFilters = document.getElementById("btnResetFilters");
 const savedFilterChips = document.getElementById("savedFilterChips");
 const filterResultCount = document.getElementById("filterResultCount");
 const activeFilterTags = document.getElementById("activeFilterTags");
+
+// Custom Fields state & elements
+let customerCustomFields = [];
+const btnExportExcel = document.getElementById("btnExportExcel");
+const customFieldSelectFilter = document.getElementById("customFieldSelectFilter");
+const customFieldValueFilter = document.getElementById("customFieldValueFilter");
+const customFieldSelectValueFilter = document.getElementById("customFieldSelectValueFilter");
+const customerCustomFieldsSection = document.getElementById("customerCustomFieldsSection");
+const customerCustomFieldsContainer = document.getElementById("customerCustomFieldsContainer");
 
 // Save Filter Modal elements
 const btnOpenSaveFilterModal = document.getElementById("btnOpenSaveFilterModal");
@@ -461,6 +481,118 @@ document.getElementById("taxCode")?.addEventListener("input", checkDrawerDuplica
 document.getElementById("website")?.addEventListener("input", checkDrawerDuplicateRealtime);
 
 /* =========================================================
+   CUSTOM FIELDS LOGIC
+========================================================= */
+async function loadCustomerCustomFields() {
+    try {
+        const res = await api("/api/custom-fields?entityType=CUSTOMER&active=true");
+        customerCustomFields = Array.isArray(res?.data) ? res.data : [];
+        populateCustomFieldFilterSelect();
+    } catch (e) {
+        console.warn("Could not load customer custom fields:", e);
+        customerCustomFields = [];
+    }
+}
+
+function populateCustomFieldFilterSelect() {
+    if (!customFieldSelectFilter) return;
+    const currentVal = customFieldSelectFilter.value;
+    customFieldSelectFilter.innerHTML = '<option value="">✨ Lọc trường tùy chỉnh</option>';
+    customerCustomFields.forEach(cf => {
+        const opt = document.createElement("option");
+        opt.value = cf.key;
+        opt.textContent = `${cf.label} (${cf.fieldType})`;
+        customFieldSelectFilter.appendChild(opt);
+    });
+    if (currentVal) customFieldSelectFilter.value = currentVal;
+}
+
+function renderCustomerCustomFieldInputs(existingValues = {}) {
+    if (!customerCustomFieldsContainer) return;
+    customerCustomFieldsContainer.innerHTML = "";
+
+    if (!customerCustomFields || customerCustomFields.length === 0) {
+        if (customerCustomFieldsSection) customerCustomFieldsSection.style.display = "none";
+        return;
+    }
+
+    if (customerCustomFieldsSection) customerCustomFieldsSection.style.display = "block";
+
+    customerCustomFields.forEach(cf => {
+        const wrap = document.createElement("div");
+        wrap.className = "field-group";
+        const val = existingValues[cf.key] !== undefined && existingValues[cf.key] !== null ? String(existingValues[cf.key]) : "";
+
+        let inputHtml = "";
+        const requiredAttr = cf.required ? 'data-required="true"' : 'data-required="false"';
+        const requiredAsterisk = cf.required ? '<em style="color:#ef4444; font-weight:700;"> *</em>' : '';
+
+        if (cf.fieldType === "TEXT") {
+            inputHtml = `<input id="cf_${cf.key}" class="crm-input customer-cf-input" type="text" data-key="${cf.key}" data-label="${escapeHtml(cf.label)}" ${requiredAttr} value="${escapeHtml(val)}" placeholder="Nhập ${escapeHtml(cf.label)}...">`;
+        } else if (cf.fieldType === "NUMBER") {
+            inputHtml = `<input id="cf_${cf.key}" class="crm-input customer-cf-input" type="number" step="any" data-key="${cf.key}" data-label="${escapeHtml(cf.label)}" ${requiredAttr} value="${escapeHtml(val)}" placeholder="0">`;
+        } else if (cf.fieldType === "DATE") {
+            inputHtml = `<input id="cf_${cf.key}" class="crm-input customer-cf-input" type="date" data-key="${cf.key}" data-label="${escapeHtml(cf.label)}" ${requiredAttr} value="${escapeHtml(val)}">`;
+        } else if (cf.fieldType === "SELECT") {
+            const options = Array.isArray(cf.options) ? cf.options : [];
+            const optsHtml = options.map(opt => `<option value="${escapeHtml(opt)}" ${opt === val ? 'selected' : ''}>${escapeHtml(opt)}</option>`).join("");
+            inputHtml = `<select id="cf_${cf.key}" class="crm-input customer-cf-input" data-key="${cf.key}" data-label="${escapeHtml(cf.label)}" ${requiredAttr}>
+                <option value="">-- Chọn ${escapeHtml(cf.label)} --</option>
+                ${optsHtml}
+            </select>`;
+        } else {
+            inputHtml = `<input id="cf_${cf.key}" class="crm-input customer-cf-input" type="text" data-key="${cf.key}" data-label="${escapeHtml(cf.label)}" ${requiredAttr} value="${escapeHtml(val)}">`;
+        }
+
+        wrap.innerHTML = `
+            <label for="cf_${cf.key}" style="font-weight:600; font-size:13px; color:var(--crm-text); margin-bottom:4px; display:block;">
+                ${escapeHtml(cf.label)}${requiredAsterisk}
+            </label>
+            ${inputHtml}
+            <small id="cf_err_${cf.key}" class="cf-field-error" style="color:#ef4444; font-size:11px; display:none; margin-top:2px;"></small>
+        `;
+        customerCustomFieldsContainer.appendChild(wrap);
+    });
+}
+
+function collectCustomerCustomFields() {
+    const customFields = {};
+    const inputs = document.querySelectorAll(".customer-cf-input");
+    let firstErrorMsg = "";
+
+    document.querySelectorAll(".cf-field-error").forEach(el => { el.style.display = "none"; el.textContent = ""; });
+
+    for (const input of inputs) {
+        const key = input.dataset.key;
+        const label = input.dataset.label;
+        const isRequired = input.dataset.required === "true";
+        const val = input.value.trim();
+
+        if (isRequired && !val) {
+            const errEl = document.getElementById("cf_err_" + key);
+            if (errEl) {
+                errEl.textContent = `Vui lòng nhập trường "${label}".`;
+                errEl.style.display = "block";
+            }
+            if (!firstErrorMsg) {
+                firstErrorMsg = `Trường tùy chỉnh "${label}" là bắt buộc.`;
+                input.focus();
+            }
+        }
+
+        if (val) {
+            customFields[key] = val;
+        }
+    }
+
+    if (firstErrorMsg) {
+        throw new Error(firstErrorMsg);
+    }
+
+    return customFields;
+}
+
+/* =========================================================
    STANDARD CUSTOMER MANAGEMENT
 ========================================================= */
 openDrawerButton?.addEventListener("click", () => openDrawer());
@@ -489,6 +621,14 @@ form?.addEventListener("submit", async event => {
 
     error.textContent = "";
 
+    let customFields = {};
+    try {
+        customFields = collectCustomerCustomFields();
+    } catch (cfErr) {
+        alert(cfErr.message);
+        return;
+    }
+
     const payload = {
         companyName,
         name: companyName,
@@ -499,7 +639,8 @@ form?.addEventListener("submit", async event => {
         industryId: value("industry") ? Number(value("industry")) : null,
         companySizeId: value("companySize") ? Number(value("companySize")) : null,
         website: value("website"),
-        address: value("address")
+        address: value("address"),
+        customFields
     };
 
     const editingIndex = document.getElementById("editingIndex").value;
@@ -511,7 +652,8 @@ form?.addEventListener("submit", async event => {
     }
 
     try {
-        if (editingIndex === "") {
+        const isCreating = editingIndex === "";
+        if (isCreating) {
             await api("/api/customers", {
                 method: "POST",
                 body: JSON.stringify(payload)
@@ -529,6 +671,18 @@ form?.addEventListener("submit", async event => {
         closeDrawer();
         await loadCustomers();
         await loadDuplicatePairs();
+
+        if (isCreating) {
+            if (typeof window.crmToast === "function") {
+                window.crmToast("Thêm khách hàng thành công!", "success");
+            }
+            alert("Thêm khách hàng thành công!");
+        } else {
+            if (typeof window.crmToast === "function") {
+                window.crmToast("Cập nhật thông tin khách hàng thành công!", "success");
+            }
+            alert("Cập nhật thông tin khách hàng thành công!");
+        }
     } catch (err) {
         alert(err.message || "Không thể lưu thông tin khách hàng.");
     } finally {
@@ -625,7 +779,8 @@ function applySavedFilter(filter) {
     }
 
     renderSavedFilterChips();
-    loadCustomers();
+    currentPage = 1;
+    loadCustomers(1);
 }
 
 async function deleteSavedFilter(filterId) {
@@ -651,8 +806,13 @@ function resetAllFilters() {
     if (regionFilter) regionFilter.value = "";
     if (ownerFilter) ownerFilter.value = "";
 
+    if (customFieldSelectFilter) customFieldSelectFilter.value = "";
+    if (customFieldValueFilter) { customFieldValueFilter.value = ""; customFieldValueFilter.style.display = "none"; }
+    if (customFieldSelectValueFilter) { customFieldSelectValueFilter.value = ""; customFieldSelectValueFilter.style.display = "none"; }
+
     renderSavedFilterChips();
-    loadCustomers();
+    currentPage = 1;
+    loadCustomers(1);
 }
 
 function openSaveFilterModal() {
@@ -743,7 +903,8 @@ btnResetFilters?.addEventListener("click", resetAllFilters);
         renderSavedFilterChips();
         clearTimeout(searchDebounceTimer);
         searchDebounceTimer = setTimeout(() => {
-            loadCustomers();
+            currentPage = 1;
+            loadCustomers(1);
         }, 300);
     });
 });
@@ -752,18 +913,109 @@ btnResetFilters?.addEventListener("click", resetAllFilters);
     select?.addEventListener("change", () => {
         activeSavedFilterId = null;
         renderSavedFilterChips();
-        loadCustomers();
+        currentPage = 1;
+        loadCustomers(1);
     });
+});
+
+custPageSizeSelect?.addEventListener("change", (e) => {
+    pageSize = Number(e.target.value) || 10;
+    currentPage = 1;
+    loadCustomers(1);
+});
+
+// Custom Field filter handlers
+customFieldSelectFilter?.addEventListener("change", () => {
+    const selectedKey = customFieldSelectFilter.value;
+    const cfDef = customerCustomFields.find(f => f.key === selectedKey);
+    if (!cfDef) {
+        if (customFieldValueFilter) { customFieldValueFilter.style.display = "none"; customFieldValueFilter.value = ""; }
+        if (customFieldSelectValueFilter) { customFieldSelectValueFilter.style.display = "none"; customFieldSelectValueFilter.value = ""; }
+    } else if (cfDef.fieldType === "SELECT") {
+        if (customFieldValueFilter) { customFieldValueFilter.style.display = "none"; customFieldValueFilter.value = ""; }
+        if (customFieldSelectValueFilter) {
+            customFieldSelectValueFilter.innerHTML = '<option value="">-- Chọn --</option>';
+            (cfDef.options || []).forEach(opt => {
+                const o = document.createElement("option");
+                o.value = opt;
+                o.textContent = opt;
+                customFieldSelectValueFilter.appendChild(o);
+            });
+            customFieldSelectValueFilter.style.display = "inline-block";
+        }
+    } else {
+        if (customFieldSelectValueFilter) { customFieldSelectValueFilter.style.display = "none"; customFieldSelectValueFilter.value = ""; }
+        if (customFieldValueFilter) {
+            customFieldValueFilter.placeholder = `Giá trị ${cfDef.label}...`;
+            customFieldValueFilter.type = cfDef.fieldType === "NUMBER" ? "number" : (cfDef.fieldType === "DATE" ? "date" : "text");
+            customFieldValueFilter.style.display = "inline-block";
+        }
+    }
+    currentPage = 1;
+    loadCustomers(1);
+});
+
+customFieldValueFilter?.addEventListener("input", () => {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+        currentPage = 1;
+        loadCustomers(1);
+    }, 300);
+});
+
+customFieldSelectValueFilter?.addEventListener("change", () => {
+    currentPage = 1;
+    loadCustomers(1);
+});
+
+// Excel Export Button handler
+btnExportExcel?.addEventListener("click", () => {
+    const params = new URLSearchParams();
+    const kw = searchInput?.value.trim() || "";
+    const cPhone = contactPhoneFilter?.value.trim() || "";
+    const st = statusFilter?.value || "";
+    const ind = industryFilter?.value || "";
+    const sizeId = companySizeFilter?.value || "";
+    const regId = regionFilter?.value || "";
+    const own = ownerFilter?.value || "";
+    const cfKey = customFieldSelectFilter?.value || "";
+    let cfVal = "";
+    const cfDef = customerCustomFields.find(f => f.key === cfKey);
+    if (cfDef?.fieldType === "SELECT") {
+        cfVal = customFieldSelectValueFilter?.value || "";
+    } else {
+        cfVal = customFieldValueFilter?.value.trim() || "";
+    }
+
+    if (kw) params.append("keyword", kw);
+    if (cPhone) params.append("contactPhone", cPhone);
+    if (st) params.append("status", st);
+    if (ind) params.append("industryId", ind);
+    if (sizeId) params.append("companySizeId", sizeId);
+    if (regId) params.append("regionId", regId);
+    if (own) {
+        if (own === "MINE") params.append("ownerFilter", "MINE");
+        else params.append("ownerUserId", own);
+    }
+    if (cfKey && cfVal) {
+        params.append("customFieldKey", cfKey);
+        params.append("customFieldValue", cfVal);
+    }
+
+    const url = `${API_BASE}/api/customers/export?${params.toString()}`;
+    window.open(url, "_blank");
 });
 
 /* =========================================================
    CUSTOMER SEARCH & TABLE RENDER
 ========================================================= */
 
-async function loadCustomers() {
+async function loadCustomers(targetPage = currentPage) {
     try {
+        currentPage = targetPage;
         const params = new URLSearchParams();
-        params.append("size", "100");
+        params.append("page", String(currentPage));
+        params.append("size", String(pageSize));
 
         const kw = searchInput?.value.trim() || "";
         const cPhone = contactPhoneFilter?.value.trim() || "";
@@ -784,14 +1036,117 @@ async function loadCustomers() {
             else params.append("ownerUserId", own);
         }
 
+        const cfKey = customFieldSelectFilter?.value || "";
+        let cfVal = "";
+        const cfDef = customerCustomFields.find(f => f.key === cfKey);
+        if (cfDef?.fieldType === "SELECT") {
+            cfVal = customFieldSelectValueFilter?.value || "";
+        } else {
+            cfVal = customFieldValueFilter?.value.trim() || "";
+        }
+        if (cfKey && cfVal) {
+            params.append("customFieldKey", cfKey);
+            params.append("customFieldValue", cfVal);
+        }
+
         const data = await api(`/api/customers?${params.toString()}`);
         records = data?.items || [];
-        updateFilterSummary(data?.totalItems !== undefined ? data.totalItems : records.length);
+        totalItems = data?.totalItems !== undefined ? Number(data.totalItems) : records.length;
+        totalPages = data?.totalPages !== undefined ? Math.max(1, Number(data.totalPages)) : 1;
+        currentPage = data?.page !== undefined ? Number(data.page) : currentPage;
+
+        updateFilterSummary(totalItems);
         render();
+        renderPagination();
     } catch (error) {
         console.error("Lỗi tải danh sách khách hàng:", error);
         tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:red; padding:20px;">${escapeHtml(error.message)}</td></tr>`;
+        if (customerPagination) customerPagination.style.display = "none";
     }
+}
+
+function renderPagination() {
+    if (!customerPagination) return;
+    if (totalItems === 0 || records.length === 0) {
+        customerPagination.style.display = "none";
+        return;
+    }
+
+    customerPagination.style.display = "flex";
+
+    const start = (currentPage - 1) * pageSize + 1;
+    const end = Math.min(currentPage * pageSize, totalItems);
+    if (custPaginationRange) {
+        custPaginationRange.textContent = `Hiển thị ${start} - ${end} / ${totalItems} khách hàng (Trang ${currentPage}/${totalPages})`;
+    }
+
+    if (custPageSizeSelect && custPageSizeSelect.value !== String(pageSize)) {
+        custPageSizeSelect.value = String(pageSize);
+    }
+
+    if (!custPaginationControls) return;
+    custPaginationControls.innerHTML = "";
+
+    // 1. Nút Đầu «
+    const btnFirst = createPageBtn("«", 1, currentPage <= 1, false, "Trang đầu");
+    custPaginationControls.appendChild(btnFirst);
+
+    // 2. Nút Trước ‹
+    const btnPrev = createPageBtn("‹", currentPage - 1, currentPage <= 1, false, "Trang trước");
+    custPaginationControls.appendChild(btnPrev);
+
+    // 3. Số trang
+    const pageNumbers = getPageRange(currentPage, totalPages);
+    pageNumbers.forEach(p => {
+        if (p === "...") {
+            const ellipsis = document.createElement("span");
+            ellipsis.className = "crm-pagination-ellipsis";
+            ellipsis.textContent = "…";
+            custPaginationControls.appendChild(ellipsis);
+        } else {
+            const btn = createPageBtn(String(p), p, false, p === currentPage);
+            custPaginationControls.appendChild(btn);
+        }
+    });
+
+    // 4. Nút Sau ›
+    const btnNext = createPageBtn("›", currentPage + 1, currentPage >= totalPages, false, "Trang sau");
+    custPaginationControls.appendChild(btnNext);
+
+    // 5. Nút Cuối »
+    const btnLast = createPageBtn("»", totalPages, currentPage >= totalPages, false, "Trang cuối");
+    custPaginationControls.appendChild(btnLast);
+}
+
+function createPageBtn(label, targetPage, disabled, isActive = false, title = "") {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `crm-pagination-btn ${isActive ? "active" : ""}`;
+    btn.textContent = label;
+    if (title) btn.title = title;
+    if (disabled) {
+        btn.disabled = true;
+    } else if (!isActive) {
+        btn.addEventListener("click", () => {
+            loadCustomers(targetPage);
+        });
+    }
+    return btn;
+}
+
+function getPageRange(current, total) {
+    if (total <= 7) {
+        return Array.from({ length: total }, (_, i) => i + 1);
+    }
+    const pages = [];
+    pages.push(1);
+    if (current > 3) pages.push("...");
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (current < total - 2) pages.push("...");
+    pages.push(total);
+    return pages;
 }
 
 function updateFilterSummary(total) {
@@ -810,6 +1165,26 @@ function updateFilterSummary(total) {
     if (companySizeFilter?.value) tags.push({ label: `Quy mô: ${companySizeFilter.options[companySizeFilter.selectedIndex]?.text.replace(/^[^\s]+\s/, "")}`, clear: () => { companySizeFilter.value = ""; loadCustomers(); } });
     if (regionFilter?.value) tags.push({ label: `Khu vực: ${regionFilter.options[regionFilter.selectedIndex]?.text.replace(/^[^\s]+\s/, "")}`, clear: () => { regionFilter.value = ""; loadCustomers(); } });
     if (ownerFilter?.value) tags.push({ label: `Sở hữu: ${ownerFilter.options[ownerFilter.selectedIndex]?.text.replace(/^[^\s]+\s/, "")}`, clear: () => { ownerFilter.value = ""; loadCustomers(); } });
+
+    const activeCfKey = customFieldSelectFilter?.value;
+    const activeCfDef = customerCustomFields.find(f => f.key === activeCfKey);
+    let activeCfVal = "";
+    if (activeCfDef?.fieldType === "SELECT") {
+        activeCfVal = customFieldSelectValueFilter?.value || "";
+    } else {
+        activeCfVal = customFieldValueFilter?.value.trim() || "";
+    }
+    if (activeCfKey && activeCfVal && activeCfDef) {
+        tags.push({
+            label: `${activeCfDef.label}: "${activeCfVal}"`,
+            clear: () => {
+                customFieldSelectFilter.value = "";
+                if (customFieldValueFilter) { customFieldValueFilter.value = ""; customFieldValueFilter.style.display = "none"; }
+                if (customFieldSelectValueFilter) { customFieldSelectValueFilter.value = ""; customFieldSelectValueFilter.style.display = "none"; }
+                loadCustomers();
+            }
+        });
+    }
 
     tags.forEach(t => {
         const span = document.createElement("span");
@@ -906,8 +1281,9 @@ function renderDesktopRow(record, index) {
         </td>
         <td>
             <span class="status-pill ${statusClass(record.status)}">
-                ${escapeHtml(record.status)}
+                ${escapeHtml(statusLabel(record.status))}
             </span>
+            ${record.leadSource ? `<div style="margin-top:3px;"><span style="font-size:10.5px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:1px 6px; border-radius:8px;" title="Nguồn khách hàng">🌐 ${escapeHtml(record.leadSource)}</span></div>` : ""}
         </td>
         <td>
             <span style="font-weight:500;">${escapeHtml(record.ownerName || record.owner || "—")}</span>
@@ -1009,6 +1385,10 @@ document.addEventListener("click", async event => {
                 await api(`/api/customers/${record.id}`, { method: "DELETE" });
                 await loadCustomers();
                 await loadDuplicatePairs();
+                if (typeof window.crmToast === "function") {
+                    window.crmToast("Xóa khách hàng thành công!", "success");
+                }
+                alert("Xóa khách hàng thành công!");
             } catch (err) {
                 alert(err.message || "Không thể xóa khách hàng.");
             }
@@ -1023,7 +1403,7 @@ document.addEventListener("click", async event => {
     }
 });
 
-function openDrawer(index = null) {
+async function openDrawer(index = null) {
     resetForm();
 
     if (index !== null && records[index]) {
@@ -1041,6 +1421,16 @@ function openDrawer(index = null) {
         setValue("website", record.website);
         setValue("address", record.address);
         setValue("owner", record.ownerName || record.owner);
+
+        // Load detail to get full custom fields
+        try {
+            const detail = await api(`/api/customers/${record.id}`);
+            renderCustomerCustomFieldInputs(detail?.customFields || {});
+        } catch (e) {
+            renderCustomerCustomFieldInputs({});
+        }
+    } else {
+        renderCustomerCustomFieldInputs({});
     }
 
     drawer?.classList.add("open");
@@ -1063,17 +1453,39 @@ function resetForm() {
 
 function statusClass(status) {
     switch (status) {
+        case "MOI":
+        case "Mới":
+            return "status-new-lead";
         case "Đang giao dịch":
         case "DANG_GIAO_DICH":
             return "status-dealing";
         case "Khách hàng":
         case "CHINH_THUC":
+        case "KHACH_HANG":
             return "status-customer";
         case "Ngừng hợp tác":
         case "NGUNG_HOP_TAC":
+        case "NGUNG_HOAT_DONG":
             return "status-inactive";
         default:
             return "status-prospect";
+    }
+}
+
+function statusLabel(status) {
+    switch (status) {
+        case "MOI":
+            return "Mới (Lead)";
+        case "TIEM_NANG":
+            return "Tiềm năng";
+        case "KHACH_HANG":
+        case "CHINH_THUC":
+            return "Khách hàng";
+        case "NGUNG_HOAT_DONG":
+        case "NGUNG_HOP_TAC":
+            return "Ngừng hoạt động";
+        default:
+            return status || "Tiềm năng";
     }
 }
 
@@ -1122,6 +1534,7 @@ async function loadOwnersIntoFilter() {
 ========================================================= */
 async function init() {
     await initUserProfile();
+    await loadCustomerCustomFields();
     await loadOwnersIntoFilter();
     await loadSavedFilters();
     await loadCustomers();

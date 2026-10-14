@@ -13,8 +13,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 @WebServlet({
         "/api/opportunities",
@@ -34,11 +33,36 @@ public class OpportunityServlet extends HttpServlet {
                 String keyword = req.getParameter("keyword");
                 String status = req.getParameter("status");
                 Long stageId = longParam(req, "stageId");
+                String customFieldKey = req.getParameter("customFieldKey");
+                String customFieldValue = req.getParameter("customFieldValue");
                 int page = intParam(req, "page", 1);
                 int size = intParam(req, "size", 100);
 
-                var items = opportunityService.search(currentUserId, stageId, status, keyword, page, size);
+                var items = opportunityService.search(currentUserId, stageId, status, keyword, customFieldKey, customFieldValue, page, size);
                 ResponseUtil.json(resp, 200, ApiResponse.success("Lấy danh sách cơ hội thành công", items));
+                return;
+            }
+
+            // Xuất Excel danh sách cơ hội (bao gồm các trường tùy chỉnh)
+            if (path.equals("/export")) {
+                String keyword = req.getParameter("keyword");
+                String status = req.getParameter("status");
+                Long stageId = longParam(req, "stageId");
+                String customFieldKey = req.getParameter("customFieldKey");
+                String customFieldValue = req.getParameter("customFieldValue");
+
+                var items = opportunityService.search(currentUserId, stageId, status, keyword, customFieldKey, customFieldValue, 1, 10000);
+
+                com.crm.dao.customfields.CustomFieldValueDAO cfDao = new com.crm.dao.customfields.CustomFieldValueDAO();
+                List<Map<String, Object>> activeFields = cfDao.getActiveFields("OPPORTUNITY");
+
+                List<Long> oppIds = items.stream()
+                        .map(o -> ((Number) o.get("id")).longValue())
+                        .toList();
+                Map<Long, Map<String, Object>> customValues = cfDao.getValuesForRecords("OPPORTUNITY", oppIds);
+
+                com.crm.service.export.ExcelExportService exportService = new com.crm.service.export.ExcelExportService();
+                exportService.exportOpportunities(resp, items, activeFields, customValues);
                 return;
             }
 

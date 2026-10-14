@@ -37,6 +37,9 @@ public class AuthenticationFilter
                 uri.endsWith(
                         "/api/auth/reset-password"
                 ) ||
+                uri.contains(
+                        "/api/public/"
+                ) ||
                 "OPTIONS".equalsIgnoreCase(
                         req.getMethod()
                 )

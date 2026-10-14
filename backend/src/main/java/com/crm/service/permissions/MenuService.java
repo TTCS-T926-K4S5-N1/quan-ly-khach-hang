@@ -43,6 +43,20 @@ public class MenuService {
         }
 
 
+        if (permissions.contains("lead.read") || permissions.contains("lead.form.manage") || permissions.contains("lead.create")) {
+
+            menu.add(
+                    item(
+                            "LEAD_FORMS",
+                            "Biểu mẫu Lead",
+                            "lead-forms",
+                            "workspace",
+                            "form"
+                    )
+            );
+        }
+
+
         if (permissions.contains("opportunity.read")) {
 
             menu.add(

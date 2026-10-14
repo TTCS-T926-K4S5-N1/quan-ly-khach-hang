@@ -1,5 +1,31 @@
 "use strict";
 
+function fixMojibake(str) {
+    if (!str || typeof str !== "string") return str;
+    if (!str.includes("Æ") && !str.includes("Ã") && !str.includes("áº") && !str.includes("á»") && !str.includes("Ä")) {
+        return str;
+    }
+    try {
+        const bytes = [];
+        for (let i = 0; i < str.length; i++) {
+            const code = str.charCodeAt(i);
+            if (code === 0xC3 && i + 1 < str.length && str.charCodeAt(i + 1) === 0x20) {
+                bytes.push(0xC3, 0xA0);
+                i++;
+                continue;
+            }
+            if (code <= 0xFF) {
+                bytes.push(code);
+            } else {
+                return str;
+            }
+        }
+        return new TextDecoder("utf-8", { fatal: true }).decode(new Uint8Array(bytes));
+    } catch (_) {
+        return str;
+    }
+}
+
 
 document
     .getElementById(
@@ -786,16 +812,18 @@ function renderRecentActivities(
             <div class="recent-copy">
 
                 <strong>
-                    ${escapeHtml(item.title || "Hoạt động")}
+                    ${escapeHtml(fixMojibake(item.title || "Hoạt động"))}
                 </strong>
 
                 <span>
                     ${
                         escapeHtml(
-                            item.relation
-                            ||
-                            typeLabel(
-                                item.type
+                            fixMojibake(
+                                item.relation
+                                ||
+                                typeLabel(
+                                    item.type
+                                )
                             )
                         )
                     }
@@ -905,7 +933,7 @@ function renderTasks(
             <div class="dashboard-task-copy">
 
                 <strong>
-                    ${escapeHtml(task.title)}
+                    ${escapeHtml(fixMojibake(task.title))}
                 </strong>
 
                 <span>
@@ -922,7 +950,7 @@ function renderTasks(
                         " · "
                         +
                         escapeHtml(
-                            task.owner
+                            fixMojibake(task.owner)
                         )
                         :
                         ""
@@ -971,14 +999,36 @@ function loadArray(
                 )
             );
 
+        if (!Array.isArray(value)) {
+            return [];
+        }
 
-        return Array.isArray(
-            value
-        )
-        ?
-        value
-        :
-        [];
+        if (key === "crm_ui_activities") {
+            let hasCorrupted = false;
+            const cleaned = value.map(item => {
+                const rawTitle = item.title || item.subject || "";
+                const rawRelation = item.relation || item.customerName || "";
+                const fixedTitle = fixMojibake(rawTitle);
+                const fixedRelation = fixMojibake(rawRelation);
+                if (fixedTitle !== rawTitle || fixedRelation !== rawRelation) {
+                    hasCorrupted = true;
+                }
+                return {
+                    ...item,
+                    title: fixedTitle || "Hoạt động",
+                    relation: fixedRelation,
+                    description: fixMojibake(item.description || "")
+                };
+            });
+            if (hasCorrupted) {
+                try {
+                    localStorage.setItem("crm_ui_activities", JSON.stringify(cleaned));
+                } catch (_) {}
+            }
+            return cleaned;
+        }
+
+        return value;
 
     } catch {
 
@@ -1344,8 +1394,9 @@ async function syncBackendData() {
                 return {
                     id: a.id,
                     type: (a.type || "task").toLowerCase(),
-                    title: a.subject || "Hoạt động",
-                    relation: a.customerName || a.opportunityName || "",
+                    title: fixMojibake(a.subject || "Hoạt động"),
+                    relation: fixMojibake(a.customerName || a.opportunityName || ""),
+                    description: fixMojibake(a.description || ""),
                     date: dateStr,
                     createdAt: a.createdAt || "",
                     status: (a.status || "OPEN").toUpperCase() === "COMPLETED" ? "done" : "open"

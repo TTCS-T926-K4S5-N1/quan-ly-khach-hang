@@ -40,6 +40,8 @@ public class CustomerDAO {
                     c.phone,
                     c.website,
                     c.address,
+                    c.lead_source,
+                    c.lead_source_id,
                     c.industry_id,
                     c.company_size_id,
                     c.region_id,
@@ -219,6 +221,24 @@ public class CustomerDAO {
             sql.append(" AND c.owner_user_id = ?");
             params.add(criteria.getOwnerUserId());
         }
+
+        // 11. Lọc theo trường tùy chỉnh (custom field key & value)
+        if (criteria.getCustomFieldKey() != null && !criteria.getCustomFieldKey().isBlank()) {
+            sql.append("""
+                 AND EXISTS (
+                    SELECT 1 FROM custom_field_values cfv
+                    JOIN custom_fields cf ON cf.id = cfv.custom_field_id
+                    WHERE cfv.record_id = c.id
+                      AND cf.entity_type = 'CUSTOMER'
+                      AND cf.field_key = ?
+                """);
+            params.add(criteria.getCustomFieldKey().trim());
+            if (criteria.getCustomFieldValue() != null && !criteria.getCustomFieldValue().isBlank()) {
+                sql.append(" AND LOWER(cfv.field_value) LIKE ?");
+                params.add("%" + criteria.getCustomFieldValue().trim().toLowerCase() + "%");
+            }
+            sql.append(")");
+        }
     }
 
     public Map<String, Object> findById(long id) throws SQLException {
@@ -232,6 +252,8 @@ public class CustomerDAO {
                     c.phone,
                     c.website,
                     c.address,
+                    c.lead_source,
+                    c.lead_source_id,
                     c.industry_id,
                     c.company_size_id,
                     c.owner_user_id,
@@ -482,6 +504,14 @@ public class CustomerDAO {
         map.put("parentName", rs.getString("parent_name"));
         map.put("subsidiaryCount", rs.getInt("subsidiary_count"));
         map.put("createdAt", rs.getTimestamp("created_at"));
+
+        try {
+            map.put("leadSource", rs.getString("lead_source"));
+            map.put("leadSourceId", rs.getObject("lead_source_id"));
+        } catch (SQLException ignored) {
+            map.put("leadSource", null);
+            map.put("leadSourceId", null);
+        }
 
         // Thông tin phân loại & khu vực mở rộng
         try {

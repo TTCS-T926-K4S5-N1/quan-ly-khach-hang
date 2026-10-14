@@ -24,8 +24,21 @@ public class OpportunityService {
             int page,
             int size
     ) throws Exception {
+        return search(currentUserId, stageId, status, keyword, null, null, page, size);
+    }
+
+    public List<Map<String, Object>> search(
+            long currentUserId,
+            Long stageId,
+            String status,
+            String keyword,
+            String customFieldKey,
+            String customFieldValue,
+            int page,
+            int size
+    ) throws Exception {
         DataScopeContext scope = dataScopeService.resolve(currentUserId, "opportunity", "read");
-        return opportunityDAO.search(scope, stageId, status, keyword, page, size);
+        return opportunityDAO.search(scope, stageId, status, keyword, customFieldKey, customFieldValue, page, size);
     }
 
     public Map<String, Object> getById(long currentUserId, long id) throws Exception {
@@ -50,6 +63,8 @@ public class OpportunityService {
             throw new IllegalArgumentException("Tên cơ hội bán hàng là bắt buộc.");
         }
 
+        customFieldValueDAO.validateRequiredFields("OPPORTUNITY", req.getCustomFields());
+
         dataScopeService.resolve(currentUserId, "opportunity", "create");
 
         // If stage is provided, get default probability
@@ -72,6 +87,10 @@ public class OpportunityService {
     public Map<String, Object> update(long currentUserId, long id, OpportunityWriteRequest req) throws Exception {
         if (req == null || req.getName() == null || req.getName().isBlank()) {
             throw new IllegalArgumentException("Tên cơ hội bán hàng là bắt buộc.");
+        }
+
+        if (req.getCustomFields() != null) {
+            customFieldValueDAO.validateRequiredFields("OPPORTUNITY", req.getCustomFields());
         }
 
         DataScopeContext scope = dataScopeService.resolve(currentUserId, "opportunity", "update");

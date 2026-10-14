@@ -98,6 +98,8 @@ public class CustomerService {
             throw new IllegalArgumentException("Tên khách hàng/công ty là bắt buộc.");
         }
 
+        customFieldValueDAO.validateRequiredFields("CUSTOMER", req.getCustomFields());
+
         dataScopeService.resolve(currentUserId, "customer", "create");
         long customerId = customerDAO.create(req, currentUserId);
 
@@ -111,6 +113,10 @@ public class CustomerService {
     public Map<String, Object> update(long currentUserId, long id, CustomerWriteRequest req) throws Exception {
         if (req == null || req.getName() == null || req.getName().isBlank()) {
             throw new IllegalArgumentException("Tên khách hàng/công ty là bắt buộc.");
+        }
+
+        if (req.getCustomFields() != null) {
+            customFieldValueDAO.validateRequiredFields("CUSTOMER", req.getCustomFields());
         }
 
         DataScopeContext scope = dataScopeService.resolve(currentUserId, "customer", "update");

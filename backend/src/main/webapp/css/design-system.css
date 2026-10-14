@@ -199,3 +199,171 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 .crm-inline-icon { display: inline-block; width: 20px; height: 20px; flex-shrink: 0; vertical-align: middle; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
 .crm-nav-icon .crm-inline-icon, .crm-bottom-item .crm-inline-icon { display: block; }
 .crm-user-arrow .crm-inline-icon { width: 16px; height: 16px; }
+
+/* =========================
+   PAGINATION COMPONENT
+========================= */
+.crm-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px 18px;
+    border-top: 1px solid var(--crm-border);
+    background: var(--crm-surface, #fff);
+    font-size: 13px;
+    color: var(--crm-muted, #64748b);
+    border-bottom-left-radius: inherit;
+    border-bottom-right-radius: inherit;
+}
+
+.crm-pagination-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.crm-pagination-size-select {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--crm-muted, #64748b);
+    font-size: 12.5px;
+}
+
+.crm-pagination-size-select select {
+    padding: 4px 8px;
+    border: 1px solid var(--crm-border, #e2e8f0);
+    border-radius: 6px;
+    font-size: 12.5px;
+    background: var(--crm-surface, #fff);
+    color: var(--crm-text, #1e293b);
+    cursor: pointer;
+    outline: none;
+}
+
+.crm-pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.crm-pagination-btn {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--crm-border, #e2e8f0);
+    background: var(--crm-surface, #fff);
+    color: var(--crm-text, #334155);
+    border-radius: 6px;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.crm-pagination-btn:hover:not(:disabled) {
+    background: var(--crm-surface-soft, #f8fafc);
+    border-color: #cbd5e1;
+    color: var(--crm-primary, #2563eb);
+}
+
+.crm-pagination-btn.active {
+    background: var(--crm-primary, #2563eb);
+    border-color: var(--crm-primary, #2563eb);
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(37,99,235,0.25);
+}
+
+.crm-pagination-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: var(--crm-surface-soft, #f8fafc);
+}
+
+.crm-pagination-ellipsis {
+    padding: 0 4px;
+    color: #94a3b8;
+    user-select: none;
+    font-size: 13px;
+}
+
+@media (max-width: 640px) {
+    .crm-pagination {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    .crm-pagination-info {
+        justify-content: space-between;
+    }
+    .crm-pagination-controls {
+        justify-content: center;
+    }
+}
+
+/* =========================================================
+   SETTINGS / MASTER DATA HORIZONTAL TAB NAV
+========================================================= */
+.settings-nav {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    overflow-x: auto;
+    border-radius: 12px;
+    background: var(--crm-surface, #fff);
+    border: 1px solid var(--crm-border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.settings-nav a,
+.settings-nav button,
+.settings-nav .category-button,
+.category-button {
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 20px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    color: var(--crm-text-2);
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 500;
+    white-space: nowrap;
+    background: transparent;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.18s ease-in-out;
+}
+
+.settings-nav a:hover,
+.settings-nav button:hover,
+.settings-nav .category-button:hover,
+.category-button:hover {
+    background: #f1f5f9;
+    color: var(--crm-text);
+}
+
+.settings-nav a.active,
+.settings-nav button.active,
+.settings-nav .category-button.active,
+.category-button.active {
+    background: var(--crm-primary-soft);
+    color: var(--crm-primary);
+    border-color: rgba(37, 99, 235, 0.25);
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.12);
+}
+
+

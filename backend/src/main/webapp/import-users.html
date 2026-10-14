@@ -19,7 +19,7 @@
 
 <link rel="stylesheet" href="css/design-system.css">
 <link rel="stylesheet" href="css/app-shell.css">
-<link rel="stylesheet" href="css/pages/import-users.css">
+<link rel="stylesheet" href="css/pages/import-users.css?v=20261012b">
 <link rel="stylesheet" href="css/animations.css">
 </head>
 
@@ -258,23 +258,42 @@
             </div>
         </div>
 
-        <!-- FILTER TABS & SEARCH -->
+        <!-- FILTER TABS, STATUS FILTER & SEARCH -->
         <div class="preview-toolbar">
-            <div class="preview-filter-tabs">
-                <button type="button" class="tab-btn active" data-filter="all">
-                    Tất cả (<span id="tabCountAll">0</span>)
-                </button>
-                <button type="button" class="tab-btn" data-filter="valid">
-                    ✓ Hợp lệ (<span id="tabCountValid">0</span>)
-                </button>
-                <button type="button" class="tab-btn" data-filter="error">
-                    ⚠️ Có lỗi (<span id="tabCountError">0</span>)
-                </button>
+            <div class="preview-toolbar-left">
+                <div class="preview-filter-tabs">
+                    <button type="button" class="tab-btn active" data-filter="all">
+                        Tất cả (<span id="tabCountAll">0</span>)
+                    </button>
+                    <button type="button" class="tab-btn" data-filter="valid">
+                        ✓ Hợp lệ (<span id="tabCountValid">0</span>)
+                    </button>
+                    <button type="button" class="tab-btn" data-filter="error">
+                        ⚠️ Có lỗi (<span id="tabCountError">0</span>)
+                    </button>
+                </div>
+
+                <div class="preview-status-box">
+                    <select id="previewStatusFilter" class="preview-status-select" title="Lọc theo trạng thái tài khoản">
+                        <option value="all">Tất cả trạng thái</option>
+                        <option value="ACTIVE">ACTIVE (Hoạt động)</option>
+                        <option value="INACTIVE">INACTIVE (Ngừng hoạt động)</option>
+                    </select>
+                </div>
             </div>
 
-            <div class="preview-search-box">
-                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-                <input id="previewSearchInput" type="search" placeholder="Lọc theo họ tên, email...">
+            <div class="preview-toolbar-right">
+                <span id="filterResultBadge" class="filter-result-badge">Hiển thị 0 dòng</span>
+
+                <div class="preview-search-box">
+                    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+                    <input id="previewSearchInput" type="text" placeholder="Lọc theo họ tên, email, trạng thái...">
+                    <button id="clearSearchBtn" type="button" class="clear-search-btn" title="Xóa từ khóa tìm kiếm" hidden>×</button>
+                </div>
+
+                <button id="resetFilterBtn" type="button" class="crm-btn crm-btn-secondary crm-btn-sm reset-filter-btn" title="Bỏ toàn bộ bộ lọc" hidden>
+                    ✕ Bỏ lọc
+                </button>
             </div>
         </div>
 
@@ -305,7 +324,7 @@
 <div id="drawerOverlay" class="crm-drawer-overlay"></div>
 <aside id="mobileDrawer" class="crm-mobile-drawer"></aside>
 
-<script src="js/pages/import-users.js"></script>
+<script src="js/pages/import-users.js?v=20261012b"></script>
 <script src="js/page-transition.js"></script>
 <script src="js/theme.js"></script>
 <script src="js/shared-shell.js"></script>

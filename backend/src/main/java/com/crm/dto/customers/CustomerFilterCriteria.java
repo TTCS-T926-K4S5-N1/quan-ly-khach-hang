@@ -118,4 +118,23 @@ public class CustomerFilterCriteria {
     public void setSize(int size) {
         this.size = size > 0 ? size : 20;
     }
+
+    private String customFieldKey;
+    private String customFieldValue;
+
+    public String getCustomFieldKey() {
+        return customFieldKey;
+    }
+
+    public void setCustomFieldKey(String customFieldKey) {
+        this.customFieldKey = customFieldKey;
+    }
+
+    public String getCustomFieldValue() {
+        return customFieldValue;
+    }
+
+    public void setCustomFieldValue(String customFieldValue) {
+        this.customFieldValue = customFieldValue;
+    }
 }

@@ -151,6 +151,13 @@
     font-weight: 650;
 }
 
+.status-new-lead {
+    color: #0284c7;
+    background: #e0f2fe;
+    border: 1px solid #bae6fd;
+    font-weight: 700;
+}
+
 .status-prospect {
     color: #1d4ed8;
 

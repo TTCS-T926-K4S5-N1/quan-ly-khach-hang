@@ -39,7 +39,7 @@ $env:CATALINA_HOME = "D:\Tomcat\apache-tomcat-10.1.60"
 # Kiểm tra xem Tomcat đã chạy chưa
 $tomcatPort = Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue
 if (-not $tomcatPort) {
-    Start-Process -FilePath "cmd.exe" -ArgumentList "/c set CATALINA_HOME=D:\Tomcat\apache-tomcat-10.1.60&& D:\Tomcat\apache-tomcat-10.1.60\bin\startup.bat" -WindowStyle Minimized
+    Start-Process -FilePath "cmd.exe" -ArgumentList "/c set CATALINA_HOME=D:\Tomcat\apache-tomcat-10.1.60&& set JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot&& D:\Tomcat\apache-tomcat-10.1.60\bin\startup.bat" -WindowStyle Minimized
     $waited = 0
     while ($waited -lt 15) {
         Start-Sleep -Seconds 2

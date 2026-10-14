@@ -17,6 +17,19 @@ public class OpportunityDAO {
             int page,
             int size
     ) throws SQLException {
+        return search(scope, stageId, status, keyword, null, null, page, size);
+    }
+
+    public List<Map<String, Object>> search(
+            DataScopeContext scope,
+            Long stageId,
+            String status,
+            String keyword,
+            String customFieldKey,
+            String customFieldValue,
+            int page,
+            int size
+    ) throws SQLException {
         StringBuilder sql = new StringBuilder("""
                 SELECT
                     o.id,
@@ -68,6 +81,23 @@ public class OpportunityDAO {
             params.add(kw);
             params.add(kw);
             params.add(kw);
+        }
+
+        if (customFieldKey != null && !customFieldKey.isBlank()) {
+            sql.append("""
+                 AND EXISTS (
+                    SELECT 1 FROM custom_field_values cfv
+                    JOIN custom_fields cf ON cf.id = cfv.custom_field_id
+                    WHERE cfv.record_id = o.id
+                      AND cf.entity_type = 'OPPORTUNITY'
+                      AND cf.field_key = ?
+                """);
+            params.add(customFieldKey.trim());
+            if (customFieldValue != null && !customFieldValue.isBlank()) {
+                sql.append(" AND LOWER(cfv.field_value) LIKE ?");
+                params.add("%" + customFieldValue.trim().toLowerCase() + "%");
+            }
+            sql.append(")");
         }
 
         sql.append(" ORDER BY o.id DESC");

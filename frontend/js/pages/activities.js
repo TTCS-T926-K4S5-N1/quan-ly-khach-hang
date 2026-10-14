@@ -1,5 +1,31 @@
 "use strict";
 
+function fixMojibake(str) {
+    if (!str || typeof str !== "string") return str;
+    if (!str.includes("Æ") && !str.includes("Ã") && !str.includes("áº") && !str.includes("á»") && !str.includes("Ä")) {
+        return str;
+    }
+    try {
+        const bytes = [];
+        for (let i = 0; i < str.length; i++) {
+            const code = str.charCodeAt(i);
+            if (code === 0xC3 && i + 1 < str.length && str.charCodeAt(i + 1) === 0x20) {
+                bytes.push(0xC3, 0xA0);
+                i++;
+                continue;
+            }
+            if (code <= 0xFF) {
+                bytes.push(code);
+            } else {
+                return str;
+            }
+        }
+        return new TextDecoder("utf-8", { fatal: true }).decode(new Uint8Array(bytes));
+    } catch (_) {
+        return str;
+    }
+}
+
 const API_BASE = "http://localhost:8080/crm";
 
 let activities = [];
@@ -64,7 +90,12 @@ async function loadActivities() {
 
     try {
         const cached = JSON.parse(localStorage.getItem("crm_ui_activities"));
-        activities = Array.isArray(cached) ? cached : [];
+        activities = Array.isArray(cached) ? cached.map(item => ({
+            ...item,
+            title: fixMojibake(item.title || item.subject || "Hoạt động"),
+            relation: fixMojibake(item.relation || item.customerName || ""),
+            description: fixMojibake(item.description || "")
+        })) : [];
     } catch {
         activities = [];
     }
@@ -88,12 +119,12 @@ function normalizeActivityFromBackend(item) {
     return {
         id: item.id,
         type: (item.type || "task").toLowerCase(),
-        title: item.subject || item.title || "Hoạt động",
-        relation: rel,
+        title: fixMojibake(item.subject || item.title || "Hoạt động"),
+        relation: fixMojibake(rel),
         date: dateStr,
         time: timeStr,
         owner: item.ownerName || "Tôi",
-        description: item.description || "",
+        description: fixMojibake(item.description || ""),
         reminder: !!item.reminder,
         status: st,
         customerId: item.customerId,

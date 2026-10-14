@@ -33,31 +33,47 @@ public class CorsFilter implements Filter {
 
         httpResponse.addHeader("Vary", "Origin");
 
-        if (
-                origin != null &&
-                (ALLOWED_ORIGINS.contains(origin) || origin.matches("^https?://(localhost|127\\.0\\.0\\.1)(:\\d+)?$"))
-        ) {
-
+        String uri = httpRequest.getRequestURI();
+        if (uri.contains("/api/public/")) {
             httpResponse.setHeader(
                     "Access-Control-Allow-Origin",
-                    origin
+                    origin != null ? origin : "*"
+            );
+            httpResponse.setHeader(
+                    "Access-Control-Allow-Headers",
+                    "Content-Type, Authorization, X-Requested-With"
+            );
+            httpResponse.setHeader(
+                    "Access-Control-Allow-Methods",
+                    "GET, POST, OPTIONS"
+            );
+        } else {
+            if (
+                    origin != null &&
+                    (ALLOWED_ORIGINS.contains(origin) || origin.matches("^https?://(localhost|127\\.0\\.0\\.1)(:\\d+)?$"))
+            ) {
+
+                httpResponse.setHeader(
+                        "Access-Control-Allow-Origin",
+                        origin
+                );
+
+                httpResponse.setHeader(
+                        "Access-Control-Allow-Credentials",
+                        "true"
+                );
+            }
+
+            httpResponse.setHeader(
+                    "Access-Control-Allow-Headers",
+                    "Content-Type, Authorization"
             );
 
             httpResponse.setHeader(
-                    "Access-Control-Allow-Credentials",
-                    "true"
+                    "Access-Control-Allow-Methods",
+                    "GET, POST, PUT, PATCH, DELETE, OPTIONS"
             );
         }
-
-        httpResponse.setHeader(
-                "Access-Control-Allow-Headers",
-                "Content-Type, Authorization"
-        );
-
-        httpResponse.setHeader(
-                "Access-Control-Allow-Methods",
-                "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-        );
 
         if (
                 "OPTIONS".equalsIgnoreCase(

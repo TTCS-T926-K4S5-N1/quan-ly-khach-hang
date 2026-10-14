@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<script>
+(function () {
+    try {
+        var theme = localStorage.getItem("crm_ui_theme");
+        document.documentElement.setAttribute("data-theme", theme === "dark" ? "dark" : "light");
+        document.documentElement.removeAttribute("data-crm-theme");
+    } catch (e) {
+        document.documentElement.setAttribute("data-theme", "light");
+    }
+})();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Biểu mẫu thu thập Lead (Web-to-Lead) | Corporate CRM</title>
+
+<link rel="stylesheet" href="css/design-system.css">
+<link rel="stylesheet" href="css/app-shell.css">
+<link rel="stylesheet" href="css/pages/lead-forms.css">
+<link rel="stylesheet" href="css/animations.css">
+</head>
+
+<body class="crm-private">
+
+<aside class="crm-sidebar"></aside>
+
+<div class="crm-shell">
+    <header class="crm-topbar"></header>
+
+    <main class="crm-content">
+        <!-- Breadcrumbs & Header -->
+        <div style="font-size: 13px; color: var(--crm-text-muted); margin-bottom: 8px;">
+            <a href="dashboard" style="color: inherit; text-decoration: none;">Tổng quan</a>
+            <span style="margin: 0 6px;">/</span>
+            <span>Tiếp thị (Marketing)</span>
+            <span style="margin: 0 6px;">/</span>
+            <span style="color: var(--crm-primary); font-weight: 600;">Biểu mẫu thu thập Lead</span>
+        </div>
+
+        <div class="lead-forms-header">
+            <div class="lead-forms-title-area">
+                <h1>
+                    <span>📋</span> Biểu mẫu thu thập Lead (Web-to-Lead)
+                </h1>
+                <p>Sinh mã nhúng dán vào website bất kỳ, tự động đổ lead vào hệ thống ở trạng thái Mới kèm chống spam & giới hạn tần suất IP.</p>
+            </div>
+            <div class="lead-forms-actions">
+                <button id="btnRefresh" class="crm-btn crm-btn-secondary" type="button" title="Tải lại dữ liệu">
+                    🔄 Làm mới
+                </button>
+                <button id="btnNewForm" class="crm-btn crm-btn-primary" type="button">
+                    ➕ Tạo biểu mẫu mới
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Ribbon -->
+        <div class="lead-stats-grid">
+            <div class="lead-stat-card" style="--stat-color: #3b82f6;">
+                <div class="lead-stat-label">
+                    <span>TỔNG BIỂU MẪU</span>
+                    <span>📑</span>
+                </div>
+                <div class="lead-stat-value" id="statTotalForms">0</div>
+                <div class="lead-stat-hint">
+                    <span>●</span> <span id="statActiveForms">0</span> đang hoạt động
+                </div>
+            </div>
+
+            <div class="lead-stat-card" style="--stat-color: #10b981;">
+                <div class="lead-stat-label">
+                    <span>LEAD ĐÃ THU THẬP</span>
+                    <span>🎯</span>
+                </div>
+                <div class="lead-stat-value" id="statTotalLeads">0</div>
+                <div class="lead-stat-hint" style="color:#059669;">
+                    <span>↑</span> Tạo tự động vào Khách hàng
+                </div>
+            </div>
+
+            <div class="lead-stat-card" style="--stat-color: #8b5cf6;">
+                <div class="lead-stat-label">
+                    <span>NGUỒN TIẾP THỊ</span>
+                    <span>🌐</span>
+                </div>
+                <div class="lead-stat-value" id="statLeadSources">Website</div>
+                <div class="lead-stat-hint" style="color:#7c3aed;">
+                    <span>✓</span> Gắn đúng nguồn theo form
+                </div>
+            </div>
+
+            <div class="lead-stat-card" style="--stat-color: #f59e0b;">
+                <div class="lead-stat-label">
+                    <span>BẢO VỆ CHỐNG SPAM & IP</span>
+                    <span>🛡️</span>
+                </div>
+                <div class="lead-stat-value" style="font-size:20px; color:#d97706; padding-top:4px;">Honeypot + 5 req/5m</div>
+                <div class="lead-stat-hint" style="color:#d97706;">
+                    <span>✓</span> Giới hạn theo địa chỉ IP
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="lead-nav-tabs">
+            <button type="button" class="lead-tab-btn active" data-tab="forms">
+                <span>Danh sách biểu mẫu</span>
+                <span class="lead-tab-badge" id="badgeFormCount">0</span>
+            </button>
+            <button type="button" class="lead-tab-btn" data-tab="submissions">
+                <span>Lịch sử gửi biểu mẫu</span>
+                <span class="lead-tab-badge" id="badgeSubCount">0</span>
+            </button>
+        </div>
+
+        <!-- Tab 1: Forms List -->
+        <div id="tabFormsView">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; gap:12px; flex-wrap:wrap;">
+                <div style="position:relative; flex:1; max-width:360px;">
+                    <input type="text" id="inputSearchForms" class="crm-input" placeholder="Tìm theo tên hoặc mã biểu mẫu..." style="width:100%; box-sizing:border-box;">
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <select id="selectStatusFilter" class="crm-select" style="min-width:160px;">
+                        <option value="ALL">Tất cả trạng thái</option>
+                        <option value="ACTIVE" selected>Đang hoạt động</option>
+                        <option value="INACTIVE">Đã tạm dừng</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="formsGrid" class="lead-forms-grid">
+                <!-- Sẽ được nạp động bởi javascript -->
+            </div>
+        </div>
+
+        <!-- Tab 2: Submissions List -->
+        <div id="tabSubmissionsView" style="display:none;">
+            <div style="background:var(--crm-surface); border:1px solid var(--crm-border); border-radius:12px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.03);">
+                <div style="padding:16px 20px; border-bottom:1px solid var(--crm-border); display:flex; justify-content:space-between; align-items:center;">
+                    <h3 style="margin:0; font-size:16px; color:var(--crm-text);">Lịch sử lượt gửi từ Biểu mẫu nhúng Website</h3>
+                    <span style="font-size:13px; color:var(--crm-text-muted);">Hiển thị các lead mới nhất gửi từ bên ngoài</span>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="lead-submissions-table">
+                        <thead>
+                            <tr>
+                                <th>Thời gian</th>
+                                <th>Họ và tên</th>
+                                <th>Email / SĐT</th>
+                                <th>Công ty / Nhu cầu</th>
+                                <th>Biểu mẫu / Nguồn</th>
+                                <th>Địa chỉ IP</th>
+                                <th>Trạng thái</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="submissionsTableBody">
+                            <tr>
+                                <td colspan="8" style="text-align:center; padding:30px; color:#94a3b8;">
+                                    Đang tải dữ liệu...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- =====================================================
+     MODAL: TẠO / SỬA BIỂU MẪU
+===================================================== -->
+<div id="modalFormBackdrop" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:1000; align-items:center; justify-content:center; padding:16px; backdrop-filter:blur(3px);">
+    <div style="background:var(--crm-surface); border:1px solid var(--crm-border); border-radius:16px; width:100%; max-width:640px; max-height:90vh; overflow-y:auto; box-shadow:0 20px 40px rgba(0,0,0,0.2); animation:slideUp 0.25s ease;">
+        <div style="padding:20px 24px; border-bottom:1px solid var(--crm-border); display:flex; justify-content:space-between; align-items:center;">
+            <h2 id="modalFormTitle" style="margin:0; font-size:18px; color:var(--crm-text);">Tạo biểu mẫu thu thập Lead mới</h2>
+            <button type="button" id="btnCloseModalForm" style="background:none; border:none; font-size:22px; cursor:pointer; color:#94a3b8;">✕</button>
+        </div>
+
+        <form id="leadFormEditor" style="padding:24px;">
+            <input type="hidden" id="editFormId">
+
+            <div style="margin-bottom:16px;">
+                <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:var(--crm-text);">
+                    Tên biểu mẫu (Nội bộ CRM) <span style="color:#ef4444;">*</span>
+                </label>
+                <input type="text" id="formNameInput" class="crm-input" placeholder="Ví dụ: Form Tư vấn Dịch vụ Landing Page Q4" style="width:100%; box-sizing:border-box;" required>
+            </div>
+
+            <div style="display:flex; gap:14px; margin-bottom:16px;">
+                <div style="flex:1;">
+                    <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:var(--crm-text);">
+                        Tiêu đề hiển thị trên Web <span style="color:#ef4444;">*</span>
+                    </label>
+                    <input type="text" id="formTitleInput" class="crm-input" placeholder="Ví dụ: Đăng ký tư vấn giải pháp Doanh nghiệp" style="width:100%; box-sizing:border-box;" required>
+                </div>
+                <div style="flex:1;">
+                    <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:var(--crm-text);">
+                        Nguồn Lead (Lead Source)
+                    </label>
+                    <input type="text" id="formLeadSourceInput" class="crm-input" placeholder="Ví dụ: Website / Biểu mẫu" value="Website / Biểu mẫu" style="width:100%; box-sizing:border-box;">
+                </div>
+            </div>
+
+            <div style="margin-bottom:16px;">
+                <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:var(--crm-text);">
+                    Mô tả / Lời kêu gọi hành động
+                </label>
+                <textarea id="formDescInput" class="crm-input" rows="2" placeholder="Để lại thông tin, chuyên viên tư vấn sẽ liên hệ lại trong vòng 15 phút." style="width:100%; box-sizing:border-box;"></textarea>
+            </div>
+
+            <div style="display:flex; gap:14px; margin-bottom:16px;">
+                <div style="flex:1;">
+                    <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:var(--crm-text);">
+                        Văn bản nút bấm
+                    </label>
+                    <input type="text" id="formBtnTextInput" class="crm-input" placeholder="Gửi yêu cầu tư vấn" value="Gửi yêu cầu tư vấn" style="width:100%; box-sizing:border-box;">
+                </div>
+                <div style="flex:1;">
+                    <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:var(--crm-text);">
+                        URL chuyển hướng sau khi gửi (Tùy chọn)
+                    </label>
+                    <input type="url" id="formRedirectUrlInput" class="crm-input" placeholder="https://example.com/thank-you" style="width:100%; box-sizing:border-box;">
+                </div>
+            </div>
+
+            <div style="margin-bottom:16px;">
+                <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:var(--crm-text);">
+                    Thông báo gửi thành công
+                </label>
+                <input type="text" id="formSuccessMsgInput" class="crm-input" placeholder="Cảm ơn quý khách! Chúng tôi đã nhận được thông tin và sẽ liên hệ sớm nhất." value="Cảm ơn quý khách! Chúng tôi đã nhận được thông tin và sẽ liên hệ sớm nhất." style="width:100%; box-sizing:border-box;">
+            </div>
+
+            <div style="margin-bottom:20px; display:flex; align-items:center; gap:10px;">
+                <input type="checkbox" id="formIsActiveInput" checked style="width:18px; height:18px; accent-color:var(--crm-primary);">
+                <label for="formIsActiveInput" style="font-size:14px; font-weight:600; color:var(--crm-text); cursor:pointer;">
+                    Đang kích hoạt nhận lead từ biểu mẫu này
+                </label>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:10px; padding-top:16px; border-top:1px solid var(--crm-border);">
+                <button type="button" id="btnCancelEdit" class="crm-btn crm-btn-secondary">Hủy</button>
+                <button type="submit" id="btnSaveForm" class="crm-btn crm-btn-primary">Lưu biểu mẫu</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- =====================================================
+     MODAL: LẤY MÃ NHÚNG WEBSITE (EMBED CODE)
+===================================================== -->
+<div id="modalEmbedBackdrop" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:1000; align-items:center; justify-content:center; padding:16px; backdrop-filter:blur(3px);">
+    <div style="background:var(--crm-surface); border:1px solid var(--crm-border); border-radius:16px; width:100%; max-width:760px; max-height:92vh; overflow-y:auto; box-shadow:0 20px 40px rgba(0,0,0,0.2); animation:slideUp 0.25s ease;">
+        <div style="padding:20px 24px; border-bottom:1px solid var(--crm-border); display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <h2 style="margin:0 0 4px 0; font-size:18px; color:var(--crm-text);">Lấy mã nhúng biểu mẫu vào Website</h2>
+                <span id="embedFormNameHeader" style="font-size:13px; color:var(--crm-text-muted);">Biểu mẫu: ...</span>
+            </div>
+            <button type="button" id="btnCloseModalEmbed" style="background:none; border:none; font-size:22px; cursor:pointer; color:#94a3b8;">✕</button>
+        </div>
+
+        <div style="padding:24px;">
+            <!-- Tabs embed options -->
+            <div style="display:flex; gap:10px; margin-bottom:16px; border-bottom:1px solid var(--crm-border); padding-bottom:8px;">
+                <button type="button" class="crm-btn crm-btn-primary embed-mode-btn" data-mode="script" style="font-size:13px;">
+                    ⚡ Widget JavaScript (Khuyên dùng)
+                </button>
+                <button type="button" class="crm-btn crm-btn-secondary embed-mode-btn" data-mode="iframe" style="font-size:13px;">
+                    🖼️ Nhúng iFrame
+                </button>
+                <button type="button" class="crm-btn crm-btn-secondary embed-mode-btn" data-mode="html" style="font-size:13px;">
+                    📝 Form HTML thuần
+                </button>
+            </div>
+
+            <p style="font-size:13.5px; color:var(--crm-text); margin-bottom:8px;" id="embedInstructions">
+                Dán đoạn mã dưới đây vào bất kỳ trang web nào (WordPress, Landing Page, Blog...) nơi bạn muốn hiển thị form:
+            </p>
+
+            <div class="embed-code-wrapper">
+                <button type="button" id="btnCopyEmbedCode" class="embed-copy-btn">
+                    📋 Sao chép mã
+                </button>
+                <code id="embedCodeDisplay"></code>
+            </div>
+
+            <!-- Action buttons: Live preview & Demo test -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding-top:16px; border-top:1px solid var(--crm-border); flex-wrap:wrap; gap:10px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:13px; color:var(--crm-text-muted);">Trang thử nghiệm trực tiếp:</span>
+                    <a id="btnOpenDemoTest" href="#" target="_blank" class="crm-btn crm-btn-secondary" style="font-size:13px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                        🔗 Mở trang Test Form riêng
+                    </a>
+                </div>
+                <button type="button" id="btnTogglePreview" class="crm-btn crm-btn-secondary" style="font-size:13px;">
+                    👁️ Thu nhỏ / Hiện Xem trước
+                </button>
+            </div>
+
+            <!-- Live Preview Frame Container -->
+            <div id="livePreviewContainer" style="margin-top:20px; border:1px solid var(--crm-border); border-radius:12px; overflow:hidden; background:#f8fafc; padding:16px;">
+                <div style="font-size:12px; font-weight:600; color:#64748b; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                    <span>XEM TRƯỚC BIỂU MẪU (LIVE PREVIEW)</span>
+                    <span style="color:#10b981;">● Đang kết nối trực tiếp API Backend</span>
+                </div>
+                <div style="display:flex; justify-content:center;">
+                    <iframe id="embedPreviewIframe" src="about:blank" style="width:100%; max-width:520px; height:560px; border:none; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,0.08); background:#fff;"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="js/pages/lead-forms.js"></script>
+<script src="js/page-transition.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/shared-shell.js"></script>
+<script src="js/ui-core.js"></script>
+<script src="js/ui-effects.js"></script>
+</body>
+</html>

@@ -98,6 +98,24 @@ async function initCustomer360() {
                 writeDisplay("company360Phone", data.customer.phone);
                 writeDisplay("company360Website", data.customer.website);
                 writeDisplay("company360Owner", data.customer.ownerName || "Chưa phân công");
+
+                // Display Custom Fields if present
+                const cfWrap = document.getElementById("company360CustomFieldsWrap");
+                const cfList = document.getElementById("company360CustomFieldsList");
+                if (cfWrap && cfList && data.customer.customFields) {
+                    const cfEntries = Object.entries(data.customer.customFields);
+                    if (cfEntries.length > 0) {
+                        cfList.innerHTML = cfEntries.map(([k, v]) => `
+                            <div style="font-size:12.5px; display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px dotted var(--crm-border);">
+                                <span style="color:var(--crm-muted);">${escapeHtml(k)}:</span>
+                                <strong style="color:var(--crm-text);">${escapeHtml(v)}</strong>
+                            </div>
+                        `).join("");
+                        cfWrap.style.display = "block";
+                    } else {
+                        cfWrap.style.display = "none";
+                    }
+                }
             }
 
             // 2. KPIS SUMMARY

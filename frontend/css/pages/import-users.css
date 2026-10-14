@@ -562,24 +562,40 @@
     color: #0f172a;
 }
 
-/* Toolbar: Tabs & Search */
+/* Toolbar: Tabs, Status & Search */
 .preview-toolbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
-    padding: 14px 24px;
+    gap: 12px;
+    padding: 12px 20px;
     background: #f8fafc;
     border-bottom: 1px solid var(--crm-border, #e2e8f0);
 }
 
-.preview-filter-tabs {
-    display: flex;
+.preview-toolbar-left {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.preview-toolbar-right {
+    display: inline-flex;
+    align-items: center;
     gap: 8px;
+    flex-shrink: 0;
+}
+
+.preview-filter-tabs {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
 }
 
 .tab-btn {
-    padding: 8px 14px;
+    padding: 7px 12px;
     font-size: 13px;
     font-weight: 600;
     border-radius: 8px;
@@ -588,6 +604,8 @@
     color: #64748b;
     cursor: pointer;
     transition: all 0.2s ease;
+    user-select: none;
+    white-space: nowrap;
 }
 
 .tab-btn:hover {
@@ -602,9 +620,44 @@
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }
 
+.preview-status-select {
+    height: 36px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 8px;
+    border: 1px solid var(--crm-border, #cbd5e1);
+    background: #ffffff;
+    color: var(--crm-text, #0f172a);
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.preview-status-select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.filter-result-badge {
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    background: #e2e8f0;
+    padding: 5px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
 .preview-search-box {
     position: relative;
-    width: 260px;
+    width: 250px;
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
 }
 
 .preview-search-box svg {
@@ -617,21 +670,78 @@
     stroke: #94a3b8;
     fill: none;
     stroke-width: 2;
+    pointer-events: none;
+    z-index: 2;
 }
 
 .preview-search-box input {
     width: 100%;
-    padding: 7px 12px 7px 32px;
+    height: 36px;
+    padding: 6px 30px 6px 32px;
     font-size: 13px;
     border-radius: 8px;
     border: 1px solid var(--crm-border, #cbd5e1);
     background: #ffffff;
+    color: var(--crm-text, #0f172a);
     outline: none;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
 }
 
 .preview-search-box input:focus {
     border-color: #2563eb;
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.clear-search-btn {
+    position: absolute !important;
+    right: 8px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    background: #e2e8f0 !important;
+    border: none !important;
+    color: #475569 !important;
+    font-size: 14px !important;
+    font-weight: bold !important;
+    cursor: pointer !important;
+    width: 18px !important;
+    height: 18px !important;
+    line-height: 18px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 3 !important;
+}
+
+.clear-search-btn:hover {
+    color: #dc2626 !important;
+    background: #fecaca !important;
+}
+
+.reset-filter-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 36px !important;
+    white-space: nowrap !important;
+    padding: 0 12px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #dc2626 !important;
+    background: #fef2f2 !important;
+    border: 1px solid #fca5a5 !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    flex-shrink: 0 !important;
+}
+
+.reset-filter-btn:hover {
+    background: #fee2e2 !important;
+    border-color: #ef4444 !important;
+    color: #b91c1c !important;
 }
 
 /* Preview Table */
