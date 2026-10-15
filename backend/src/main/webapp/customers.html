@@ -168,27 +168,11 @@
 <main class="crm-main customer-page">
 
     <section class="customer-page-head">
-
-        <div>
-            <p class="customer-kicker">
-                CRM / Khách hàng
-            </p>
-
-            <h1>
-                Tên Khách hàng / Lead
-            </h1>
-
-            <p>
-                Quản lý khách hàng doanh nghiệp và lead.
-            </p>
-        </div>
-
-        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <div class="customer-head-left">
             <a
                 href="lead-reports"
                 id="btnGoLeadReports"
                 class="crm-btn crm-btn-secondary"
-                style="display:inline-flex; align-items:center; gap:6px; font-weight:600; text-decoration:none;"
                 title="Báo cáo hiệu quả từng nguồn lead và chiến dịch Marketing (Doanh thu & ROI)"
             >
                 📈 Báo cáo Nguồn Lead
@@ -198,27 +182,15 @@
                 href="import-leads"
                 id="btnGoImportLead"
                 class="crm-btn crm-btn-secondary"
-                style="display:inline-flex; align-items:center; gap:6px; font-weight:600; text-decoration:none;"
                 title="Nhập lead hàng loạt từ tệp Excel thu thập từ sự kiện / hội thảo"
             >
                 📊 Nhập Lead từ Excel
             </a>
 
             <button
-                id="btnOpenManualLeadModal"
-                class="crm-btn"
-                type="button"
-                style="display:inline-flex; align-items:center; gap:6px; font-weight:600; background:#059669; color:#fff; border-color:#059669;"
-                title="Tạo khách hàng tiềm năng thủ công từ sự kiện hoặc danh thiếp"
-            >
-                📇 + Thêm Lead (Sự kiện / Danh thiếp)
-            </button>
-
-            <button
                 id="btnExportExcel"
                 class="crm-btn crm-btn-secondary"
                 type="button"
-                style="display:inline-flex; align-items:center; gap:6px; font-weight:600;"
                 title="Xuất danh sách khách hàng ra file Excel bao gồm trường tùy chỉnh"
             >
                 📥 Xuất Excel
@@ -226,11 +198,23 @@
 
             <button
                 id="btnDuplicateAlerts"
-                class="crm-btn crm-btn-secondary"
+                class="crm-btn crm-btn-secondary crm-btn-duplicate-alert"
                 type="button"
-                style="display:none; border-color:#f59e0b; color:#b45309; background:#fffbeb; font-weight:600;"
+                style="display:none;"
+                title="Xem danh sách khách hàng trùng lặp số điện thoại hoặc email"
             >
                 ⚠️ Khách hàng trùng (<span id="dupCountBadge">0</span>)
+            </button>
+        </div>
+
+        <div class="customer-head-right">
+            <button
+                id="btnOpenManualLeadModal"
+                class="crm-btn crm-btn-lead-quick"
+                type="button"
+                title="Tạo khách hàng tiềm năng thủ công từ sự kiện hoặc danh thiếp"
+            >
+                📇 + Thêm Lead (Sự kiện / Danh thiếp)
             </button>
 
             <button
@@ -241,7 +225,6 @@
                 + Thêm khách hàng
             </button>
         </div>
-
     </section>
 
 
