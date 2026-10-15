@@ -11,10 +11,12 @@ public class LeadRoutingStartupListener implements ServletContextListener {
     @Override
     public void contextInitialized(ServletContextEvent sce) {
         LeadRoutingDaemon.getInstance().start();
+        com.crm.service.pipeline.OpportunityStagnationDaemon.getInstance().start();
     }
 
     @Override
     public void contextDestroyed(ServletContextEvent sce) {
         LeadRoutingDaemon.getInstance().stop();
+        com.crm.service.pipeline.OpportunityStagnationDaemon.getInstance().stop();
     }
 }

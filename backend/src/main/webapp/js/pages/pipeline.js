@@ -41,6 +41,29 @@ const oppCustomFieldSelectValue = document.getElementById("oppCustomFieldSelectV
 const opportunityCustomFieldsSection = document.getElementById("opportunityCustomFieldsSection");
 const opportunityCustomFieldsContainer = document.getElementById("opportunityCustomFieldsContainer");
 
+// Story 1, 2, 3 state & elements
+let reopeningOppId = null;
+let stagnantFilterActive = false;
+let activePipelineTab = "KANBAN"; // "KANBAN" or "FORECAST"
+let currentForecastPeriod = "THIS_MONTH"; // THIS_MONTH, NEXT_MONTH, THIS_QUARTER
+let currentForecastGroupBy = "USER"; // USER or TEAM
+
+const tabKanbanView = document.getElementById("tabKanbanView");
+const tabForecastView = document.getElementById("tabForecastView");
+const pipelineFilterSection = document.getElementById("pipelineFilterSection");
+const forecastSection = document.getElementById("forecastSection");
+
+const btnStagnantFilter = document.getElementById("btnStagnantFilter");
+const stagnantBadgeCount = document.getElementById("stagnantBadgeCount");
+const btnScanStagnant = document.getElementById("btnScanStagnant");
+
+const reopenDealModal = document.getElementById("reopenDealModal");
+const reopenDealOverlay = document.getElementById("reopenDealOverlay");
+const reopenDealForm = document.getElementById("reopenDealForm");
+const reopenDealReason = document.getElementById("reopenDealReason");
+const reopenDealError = document.getElementById("reopenDealError");
+const btnDrawerReopenDeal = document.getElementById("btnDrawerReopenDeal");
+
 const dealModal = document.getElementById("closeDealModal");
 const dealOverlay = document.getElementById("closeDealOverlay");
 
@@ -98,6 +121,7 @@ async function initPipeline() {
             loadProductCatalog()
         ]);
         setupOppProductEventListeners();
+        setupStoryEventListeners();
         await loadOpportunities();
     } catch (err) {
         console.error("Initialization error:", err);
@@ -334,10 +358,24 @@ async function loadOpportunities() {
             params.append("customFieldValue", cfVal);
         }
 
+        if (stagnantFilterActive) {
+            params.append("stagnantOnly", "true");
+        }
+
         const qs = params.toString() ? "?" + params.toString() : "";
         const list = await api("/api/opportunities" + qs);
         if (Array.isArray(list)) {
             opportunities = list;
+            // Update stagnant badge count
+            const stagnantCount = opportunities.filter(o => o.isStagnant || (o.stagnantFlag && o.stagnantFlag.length > 0)).length;
+            if (stagnantBadgeCount) {
+                if (stagnantCount > 0) {
+                    stagnantBadgeCount.textContent = stagnantCount;
+                    stagnantBadgeCount.style.display = "inline-block";
+                } else {
+                    stagnantBadgeCount.style.display = "none";
+                }
+            }
             try {
                 localStorage.setItem("crm_ui_opportunities", JSON.stringify(opportunities.map(o => ({
                     id: o.id,
@@ -708,6 +746,14 @@ document.getElementById("resetPipelineFilter")?.addEventListener("click", () => 
     if (oppCustomFieldSelect) oppCustomFieldSelect.value = "";
     if (oppCustomFieldValue) { oppCustomFieldValue.value = ""; oppCustomFieldValue.style.display = "none"; }
     if (oppCustomFieldSelectValue) { oppCustomFieldSelectValue.value = ""; oppCustomFieldSelectValue.style.display = "none"; }
+    stagnantFilterActive = false;
+    if (btnStagnantFilter) {
+        btnStagnantFilter.classList.remove("crm-btn-primary");
+        btnStagnantFilter.classList.add("crm-btn-secondary");
+        btnStagnantFilter.style.background = "";
+        btnStagnantFilter.style.borderColor = "";
+        btnStagnantFilter.style.color = "";
+    }
     loadOpportunities();
 });
 
@@ -852,7 +898,9 @@ document.getElementById("wonForm")?.addEventListener("submit", async event => {
             body: JSON.stringify({
                 status: "WON",
                 winReasonId: Number(winReasonIdVal),
-                amount: value
+                actualAmount: value,
+                amount: value,
+                actualCloseDate: date
             })
         });
 
@@ -875,10 +923,6 @@ document.getElementById("lostForm")?.addEventListener("submit", async event => {
         if (error) error.textContent = "Vui lòng chọn lý do thua.";
         return;
     }
-    if (!compIdVal) {
-        if (error) error.textContent = "Vui lòng chọn đối thủ cạnh tranh thắng thầu.";
-        return;
-    }
     if (error) error.textContent = "";
 
     try {
@@ -887,7 +931,7 @@ document.getElementById("lostForm")?.addEventListener("submit", async event => {
             body: JSON.stringify({
                 status: "LOST",
                 lossReasonId: Number(reasonIdVal),
-                competitorId: Number(compIdVal)
+                competitorId: compIdVal ? Number(compIdVal) : null
             })
         });
 
@@ -960,6 +1004,12 @@ document.addEventListener("click", async event => {
         return;
     }
 
+    const reopenBtn = event.target.closest("[data-reopen-opportunity]");
+    if (reopenBtn) {
+        openReopenDealModal(Number(reopenBtn.dataset.reopenOpportunity));
+        return;
+    }
+
     if (!event.target.closest(".opportunity-card")) {
         document.querySelectorAll(".card-menu").forEach(menu => menu.classList.remove("open"));
     }
@@ -971,6 +1021,11 @@ document.addEventListener("click", async event => {
 async function moveStageRelatively(oppId, direction) {
     const opp = opportunities.find(o => o.id === oppId);
     if (!opp) return;
+
+    if (opp.status === "WON" || opp.status === "LOST") {
+        alert("Cơ hội đã đóng (Thắng/Thua) nên không thể chuyển giai đoạn. Chỉ Trưởng nhóm trở lên mới có quyền Mở lại cơ hội.");
+        return;
+    }
 
     const currentStageIndex = stages.findIndex(s => s.id === opp.stageId);
     if (currentStageIndex < 0) return;
@@ -1007,6 +1062,12 @@ async function moveStageRelatively(oppId, direction) {
 async function moveStageTo(oppId, targetStageId) {
     const opp = opportunities.find(o => o.id === oppId);
     if (!opp || opp.stageId === targetStageId) return;
+
+    if (opp.status === "WON" || opp.status === "LOST") {
+        alert("Cơ hội đã đóng (Thắng/Thua) nên không thể chuyển giai đoạn. Chỉ Trưởng nhóm trở lên mới có quyền Mở lại cơ hội.");
+        render();
+        return;
+    }
 
     const targetStage = stages.find(s => s.id === targetStageId);
     if (!targetStage) return;
@@ -1080,7 +1141,11 @@ function render() {
 function createCard(record) {
     const card = document.createElement("article");
     card.className = "opportunity-card";
-    card.draggable = window.innerWidth > 768;
+    const isWon = (record.status || "").toUpperCase() === "WON";
+    const isLost = (record.status || "").toUpperCase() === "LOST";
+    const isClosed = isWon || isLost;
+
+    card.draggable = !isClosed && (window.innerWidth > 768);
     card.dataset.id = String(record.id);
 
     const currentStageIndex = stages.findIndex(s => s.id === record.stageId);
@@ -1089,7 +1154,7 @@ function createCard(record) {
 
     // Stagnation & Overdue alert calculations
     const today = todayString();
-    const isOpen = (record.status || "OPEN").toUpperCase() !== "WON" && (record.status || "OPEN").toUpperCase() !== "LOST";
+    const isOpen = !isClosed;
     const isOverdue = isOpen && record.expectedCloseDate && record.expectedCloseDate < today;
 
     let overdueDays = 0;
@@ -1109,7 +1174,12 @@ function createCard(record) {
         const diffMs = new Date() - new Date(record.stageUpdatedAt);
         daysInStage = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
     }
-    const isStagnant = isOpen && daysInStage >= 7;
+
+    const isStagnant = Boolean(record.isStagnant || (record.stagnantFlag && record.stagnantFlag.length > 0) || (isOpen && daysInStage >= 7));
+    if (isStagnant) {
+        card.style.borderLeft = "4px solid #ef4444";
+        card.style.background = "#fffbfa";
+    }
 
     // Contact info HTML
     let contactHtml = "";
@@ -1125,23 +1195,43 @@ function createCard(record) {
 
     // Alerts HTML
     let alertsHtml = "";
-    if (isOverdue) {
-        alertsHtml += `<div class="opp-badge opp-badge-danger" title="Cơ hội đã quá ngày dự kiến chốt">⚠️ Quá hạn chốt (${overdueDays} ngày)</div>`;
-    }
-    if (isStagnant) {
-        alertsHtml += `<div class="opp-badge opp-badge-warning" title="Cơ hội ở giai đoạn này đã ${daysInStage} ngày">⏳ Đình trệ (${daysInStage} ngày ở giai đoạn này)</div>`;
+    if (isWon) {
+        alertsHtml += `<div class="opp-badge" style="background:#dcfce7; color:#15803d; font-weight:700; border:1px solid #bbf7d0;">✓ THÀNH CÔNG (WON)</div>`;
+    } else if (isLost) {
+        alertsHtml += `<div class="opp-badge" style="background:#fee2e2; color:#b91c1c; font-weight:700; border:1px solid #fecaca;">✕ ĐÃ ĐÓNG (LOST)</div>`;
+    } else {
+        if (isOverdue) {
+            alertsHtml += `<div class="opp-badge opp-badge-danger" title="Cơ hội đã quá ngày dự kiến chốt">⚠️ Quá hạn chốt (${overdueDays} ngày)</div>`;
+        }
+        if (isStagnant) {
+            const stagReason = record.stagnantReason || (record.stagnantFlag === "OVERDUE_CLOSE" ? `Quá hạn chốt (${overdueDays} ngày)` : `Đình trệ (${daysInStage} ngày ở giai đoạn này)`);
+            alertsHtml += `<div class="opp-badge opp-badge-danger" style="background:#fef2f2; border:1px solid #fecaca; color:#dc2626; font-weight:700;" title="Cảnh báo đình trệ: ${escapeHtml(stagReason)}">🚨 ĐÌNH TRỆ: ${escapeHtml(stagReason)}</div>`;
+        }
     }
 
-    card.innerHTML = `
-        <button class="card-menu-btn" type="button" data-card-menu="${record.id}">⋮</button>
-
-        <div class="card-menu" data-menu="${record.id}">
+    let cardMenuHtml = "";
+    if (isClosed) {
+        cardMenuHtml = `
+            <button type="button" data-edit-opportunity="${record.id}">👁 Xem chi tiết (Đã đóng)</button>
+            ${isTeamLeadOrAbove() ? `<button type="button" style="color:#2563eb; font-weight:600;" data-reopen-opportunity="${record.id}">🔓 Mở lại cơ hội</button>` : ""}
+            ${isTeamLeadOrAbove() ? `<button type="button" style="color:#ef4444;" data-delete-opportunity="${record.id}">🗑 Xóa</button>` : ""}
+        `;
+    } else {
+        cardMenuHtml = `
             <button type="button" data-edit-opportunity="${record.id}">Sửa</button>
             ${canPrev ? `<button type="button" data-prev-stage="${record.id}">← Giai đoạn trước</button>` : ""}
             ${canNext ? `<button type="button" data-next-stage="${record.id}">Giai đoạn tiếp →</button>` : ""}
             <button type="button" class="won" data-close-won="${record.id}">✓ Đóng Thắng</button>
             <button type="button" class="lost" data-close-lost="${record.id}">✕ Đóng Thua</button>
             <button type="button" style="color:#ef4444;" data-delete-opportunity="${record.id}">🗑 Xóa</button>
+        `;
+    }
+
+    card.innerHTML = `
+        <button class="card-menu-btn" type="button" data-card-menu="${record.id}">⋮</button>
+
+        <div class="card-menu" data-menu="${record.id}">
+            ${cardMenuHtml}
         </div>
 
         <h3>${escapeHtml(record.name)}</h3>
@@ -1153,7 +1243,7 @@ function createCard(record) {
         ${contactHtml}
 
         <strong class="opportunity-value">
-            ${formatMoney(record.amount || 0)}
+            ${formatMoney(isWon && record.actualAmount ? record.actualAmount : (record.amount || 0))}
         </strong>
 
         <div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:6px;">
@@ -1163,7 +1253,7 @@ function createCard(record) {
 
         <div class="opportunity-meta">
             <span>${record.probability ?? 0}% xác suất</span>
-            <span>📅 ${escapeHtml(record.expectedCloseDate || "—")}</span>
+            <span>📅 ${escapeHtml(isWon && record.actualCloseDate ? record.actualCloseDate : (record.expectedCloseDate || "—"))}</span>
         </div>
 
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;">
@@ -1177,6 +1267,7 @@ function createCard(record) {
     `;
 
     card.addEventListener("dragstart", event => {
+        if (isClosed) return;
         draggedOppId = record.id;
         event.dataTransfer.effectAllowed = "move";
         event.dataTransfer.setData("text/plain", String(record.id));
@@ -1216,6 +1307,17 @@ function setupDropZone(zone, stageId) {
     });
 }
 
+function setOpportunityFormDisabled(disabled) {
+    if (!opportunityForm) return;
+    const elements = opportunityForm.querySelectorAll("input, select, textarea");
+    elements.forEach(el => {
+        el.disabled = disabled;
+    });
+    const addProdBtn = document.getElementById("btnAddOppProductLine");
+    if (addProdBtn) addProdBtn.disabled = disabled;
+    document.querySelectorAll(".btn-remove-opp-item").forEach(b => b.disabled = disabled);
+}
+
 /* =========================================================
    DRAWER OPEN / CLOSE
 ========================================================= */
@@ -1230,11 +1332,46 @@ async function openOpportunityDrawer(id = null) {
     if (closeDateErr) closeDateErr.textContent = "";
 
     const closeDateInput = document.getElementById("opportunityCloseDate");
+    const opp = id !== null ? opportunities.find(o => o.id === id) : null;
+    const isClosed = opp && (opp.status === "WON" || opp.status === "LOST");
+    const bannerEl = document.getElementById("oppClosedAlertBanner");
+    const badgeEl = document.getElementById("oppClosedStatusBadge");
+    const detailsEl = document.getElementById("oppClosedDetails");
+    const saveBtn = document.getElementById("saveOpportunityBtn");
+    const reopenBtn = document.getElementById("btnDrawerReopenDeal");
 
     if (id !== null) {
-        const opp = opportunities.find(o => o.id === id);
         if (opp) {
-            if (titleEl) titleEl.textContent = "Sửa cơ hội";
+            if (isClosed) {
+                if (titleEl) titleEl.textContent = `Chi tiết cơ hội [${opp.status}]`;
+                if (bannerEl) bannerEl.style.display = "block";
+                if (badgeEl) {
+                    badgeEl.textContent = opp.status === "WON" ? "THÀNH CÔNG (WON)" : "THẤT BẠI (LOST)";
+                    badgeEl.style.background = opp.status === "WON" ? "#10b981" : "#ef4444";
+                }
+                if (detailsEl) {
+                    let details = "";
+                    if (opp.status === "WON") {
+                        details = `<strong>Lý do thắng:</strong> ${escapeHtml(opp.winReasonName || 'Chưa ghi')} &bull; <strong>Doanh số chốt:</strong> ${formatMoney(opp.actualAmount || opp.amount)} &bull; <strong>Ngày ký:</strong> ${escapeHtml(opp.actualCloseDate || '—')}`;
+                    } else {
+                        details = `<strong>Lý do thua:</strong> ${escapeHtml(opp.lossReasonName || 'Chưa ghi')}${opp.competitorName ? ` &bull; <strong>Đối thủ:</strong> ${escapeHtml(opp.competitorName)}` : ''}`;
+                    }
+                    if (opp.reopenedReason) {
+                        details += `<div style="margin-top: 4px; color: #2563eb;"><strong>Lịch sử mở lại:</strong> ${escapeHtml(opp.reopenedReason)}</div>`;
+                    }
+                    detailsEl.innerHTML = details;
+                }
+                setOpportunityFormDisabled(true);
+                if (saveBtn) saveBtn.style.display = "none";
+                if (reopenBtn) reopenBtn.style.display = isTeamLeadOrAbove() ? "inline-block" : "none";
+            } else {
+                if (titleEl) titleEl.textContent = "Sửa cơ hội";
+                if (bannerEl) bannerEl.style.display = "none";
+                setOpportunityFormDisabled(false);
+                if (saveBtn) saveBtn.style.display = "inline-block";
+                if (reopenBtn) reopenBtn.style.display = "none";
+            }
+
             setField("opportunityName", opp.name);
             setField("opportunityCustomer", opp.customerId);
             await loadContactsForCustomer(opp.customerId, opp.contactId, opp.contactName);
@@ -1256,9 +1393,17 @@ async function openOpportunityDrawer(id = null) {
                 currentOpportunityItems = [];
             }
             renderOpportunityItemsTable();
+            if (isClosed) {
+                setOpportunityFormDisabled(true);
+            }
         }
     } else {
         if (titleEl) titleEl.textContent = "Thêm cơ hội";
+        if (bannerEl) bannerEl.style.display = "none";
+        setOpportunityFormDisabled(false);
+        if (saveBtn) saveBtn.style.display = "inline-block";
+        if (reopenBtn) reopenBtn.style.display = "none";
+
         opportunityForm.reset();
         currentOpportunityItems = [];
         renderOpportunityItemsTable();
@@ -1282,6 +1427,13 @@ function closeOpportunityDrawer() {
     opportunityDrawer?.classList.remove("open");
     opportunityOverlay?.classList.remove("open");
     editingOppId = null;
+    setOpportunityFormDisabled(false);
+    const bannerEl = document.getElementById("oppClosedAlertBanner");
+    if (bannerEl) bannerEl.style.display = "none";
+    const saveBtn = document.getElementById("saveOpportunityBtn");
+    if (saveBtn) saveBtn.style.display = "inline-block";
+    const reopenBtn = document.getElementById("btnDrawerReopenDeal");
+    if (reopenBtn) reopenBtn.style.display = "none";
 }
 
 /* =========================================================
@@ -1676,5 +1828,371 @@ document.getElementById("btnConfirmStageOverride")?.addEventListener("click", as
     }
 });
 
+/* =========================================================
+   USER STORY 1, 2, 3: PERMISSIONS, REOPEN, STAGNATION & FORECAST
+========================================================= */
+function isTeamLeadOrAbove() {
+    if (!currentUser) return false;
+    const scope = (currentUser.dataScope || "").toUpperCase();
+    if (scope === "ALL" || scope === "TEAM") return true;
+    const role = (currentUser.role || "").toUpperCase();
+    if (role === "ADMIN" || role === "DIRECTOR" || role === "TEAM_LEAD" || role === "MANAGER") return true;
+    if (Array.isArray(currentUser.roles)) {
+        return currentUser.roles.some(r => {
+            const code = typeof r === "object" ? (r.name || r.code || "") : String(r);
+            const u = code.toUpperCase();
+            return u === "ADMIN" || u === "DIRECTOR" || u === "TEAM_LEAD" || u === "MANAGER"
+                || u.includes("LEAD") || u.includes("GIAM DOC") || u.includes("QUAN TRI") || u.includes("TRUONG");
+        });
+    }
+    return false;
+}
+
+function openReopenDealModal(id) {
+    reopeningOppId = id;
+    const opp = opportunities.find(o => o.id === id);
+    const titleEl = document.getElementById("reopenModalOppTitle");
+    const reasonInput = document.getElementById("reopenDealReason");
+    const errorEl = document.getElementById("reopenDealError");
+
+    if (titleEl) {
+        titleEl.textContent = `Cơ hội: ${opp?.name || '#' + id} (${opp?.customerName || ''})`;
+    }
+    if (reasonInput) reasonInput.value = "";
+    if (errorEl) errorEl.textContent = "";
+
+    if (reopenDealModal) reopenDealModal.style.display = "block";
+    if (reopenDealOverlay) reopenDealOverlay.style.display = "block";
+}
+
+function closeReopenDealModal() {
+    if (reopenDealModal) reopenDealModal.style.display = "none";
+    if (reopenDealOverlay) reopenDealOverlay.style.display = "none";
+    reopeningOppId = null;
+}
+
+function setPipelineTab(tab) {
+    activePipelineTab = tab;
+    if (tab === "KANBAN") {
+        if (tabKanbanView) {
+            tabKanbanView.className = "crm-btn crm-btn-primary";
+        }
+        if (tabForecastView) {
+            tabForecastView.className = "crm-btn crm-btn-secondary";
+        }
+        if (pipelineFilterSection) pipelineFilterSection.style.display = "flex";
+        if (pipelineBoard) pipelineBoard.style.display = "grid";
+        if (forecastSection) forecastSection.style.display = "none";
+    } else {
+        if (tabKanbanView) {
+            tabKanbanView.className = "crm-btn crm-btn-secondary";
+        }
+        if (tabForecastView) {
+            tabForecastView.className = "crm-btn crm-btn-primary";
+        }
+        if (pipelineFilterSection) pipelineFilterSection.style.display = "none";
+        if (pipelineBoard) pipelineBoard.style.display = "none";
+        if (forecastSection) forecastSection.style.display = "block";
+        loadForecastData();
+    }
+}
+
+async function loadForecastData() {
+    try {
+        const data = await api(`/api/forecasts?period=${currentForecastPeriod}&groupBy=${currentForecastGroupBy}`);
+        if (!data) return;
+
+        const range = data.periodRange || { label: data.periodLabel, from: data.startDate, to: data.endDate };
+        const summary = data.summary || {};
+        const breakdowns = Array.isArray(data.breakdown) ? data.breakdown : (Array.isArray(data.breakdowns) ? data.breakdowns : []);
+
+        // Update Period Label
+        const labelEl = document.getElementById("forecastPeriodLabel");
+        if (labelEl) {
+            labelEl.textContent = `(${range.label || currentForecastPeriod}: ${range.from || ''} ~ ${range.to || ''})`;
+        }
+
+        // Update KPI Cards
+        const targetEl = document.getElementById("kpiTargetAmount");
+        if (targetEl) targetEl.textContent = formatMoney(summary.targetAmount || 0);
+
+        const wonEl = document.getElementById("kpiWonAmount");
+        if (wonEl) wonEl.textContent = formatMoney(summary.wonAmount || 0);
+
+        const wonDealsCountEl = document.getElementById("kpiWonDealsCount");
+        if (wonDealsCountEl) wonDealsCountEl.textContent = summary.wonDealsCount || 0;
+
+        const weightedEl = document.getElementById("kpiWeightedAmount");
+        if (weightedEl) weightedEl.textContent = formatMoney(summary.weightedForecastAmount || 0);
+
+        const openDealsCountEl = document.getElementById("kpiOpenDealsCount");
+        if (openDealsCountEl) openDealsCountEl.textContent = summary.openDealsCount || 0;
+
+        const pipelineEl = document.getElementById("kpiPipelineAmount");
+        if (pipelineEl) pipelineEl.textContent = formatMoney(summary.totalPipelineAmount || 0);
+
+        const projectedEl = document.getElementById("kpiProjectedAmount");
+        if (projectedEl) projectedEl.textContent = formatMoney(summary.totalProjectedAmount || 0);
+
+        const pct = Number(summary.achievementPercent !== undefined ? summary.achievementPercent : (summary.achievementPct || 0));
+        const achPctEl = document.getElementById("kpiAchievementPct");
+        if (achPctEl) achPctEl.textContent = pct.toFixed(1) + "%";
+
+        const barEl = document.getElementById("kpiProgressBar");
+        if (barEl) {
+            const barWidth = Math.min(100, Math.max(0, pct));
+            barEl.style.width = barWidth + "%";
+            if (pct >= 100) {
+                barEl.style.background = "linear-gradient(90deg, #10b981, #059669)";
+            } else if (pct >= 80) {
+                barEl.style.background = "linear-gradient(90deg, #3b82f6, #10b981)";
+            } else if (pct >= 50) {
+                barEl.style.background = "linear-gradient(90deg, #f59e0b, #3b82f6)";
+            } else {
+                barEl.style.background = "linear-gradient(90deg, #ef4444, #f59e0b)";
+            }
+        }
+
+        const overallStatusEl = document.getElementById("kpiOverallStatus");
+        if (overallStatusEl) {
+            if (pct >= 100) {
+                overallStatusEl.textContent = "🏆 VƯỢT CHỈ TIÊU";
+                overallStatusEl.style.background = "#dcfce7";
+                overallStatusEl.style.color = "#15803d";
+            } else if (pct >= 80) {
+                overallStatusEl.textContent = "⭐ TRIỂN VỌNG CAO";
+                overallStatusEl.style.background = "#dbeafe";
+                overallStatusEl.style.color = "#1e40af";
+            } else if (pct >= 50) {
+                overallStatusEl.textContent = "⚡ CẦN TĂNG TỐC";
+                overallStatusEl.style.background = "#fef3c7";
+                overallStatusEl.style.color = "#92400e";
+            } else {
+                overallStatusEl.textContent = "⚠️ NGUY CƠ HỤT";
+                overallStatusEl.style.background = "#fee2e2";
+                overallStatusEl.style.color = "#991b1b";
+            }
+        }
+
+        // Breakdown Table
+        const tableTitle = document.getElementById("forecastTableTitle");
+        if (tableTitle) {
+            tableTitle.textContent = currentForecastGroupBy === "TEAM"
+                ? "Chi tiết Dự báo theo Nhóm kinh doanh"
+                : "Chi tiết Dự báo theo Nhân viên kinh doanh";
+        }
+
+        const tbody = document.getElementById("forecastTableBody");
+        if (!tbody) return;
+        tbody.innerHTML = "";
+
+        if (breakdowns.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; color: #94a3b8; padding: 24px;">
+                        Không có dữ liệu dự báo cho kỳ đã chọn.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        breakdowns.forEach(item => {
+            const tr = document.createElement("tr");
+            tr.style.borderBottom = "1px solid #f1f5f9";
+            const rowPct = Number(item.achievementPercent !== undefined ? item.achievementPercent : (item.achievementPct || 0));
+
+            let statusBadge = "";
+            if (rowPct >= 100) {
+                statusBadge = '<span style="background: #dcfce7; color: #166534; font-weight: 700; padding: 3px 8px; border-radius: 6px; font-size: 11.5px;">✓ Đạt chỉ tiêu</span>';
+            } else if (rowPct >= 75) {
+                statusBadge = '<span style="background: #dbeafe; color: #1e40af; font-weight: 700; padding: 3px 8px; border-radius: 6px; font-size: 11.5px;">Khả quan</span>';
+            } else if (rowPct >= 50) {
+                statusBadge = '<span style="background: #fef3c7; color: #92400e; font-weight: 700; padding: 3px 8px; border-radius: 6px; font-size: 11.5px;">Cần nỗ lực</span>';
+            } else {
+                statusBadge = '<span style="background: #fee2e2; color: #991b1b; font-weight: 700; padding: 3px 8px; border-radius: 6px; font-size: 11.5px;">Nguy cơ hụt</span>';
+            }
+
+            const miniBarWidth = Math.min(100, Math.max(0, rowPct));
+            const barColor = rowPct >= 100 ? '#10b981' : (rowPct >= 75 ? '#3b82f6' : (rowPct >= 50 ? '#f59e0b' : '#ef4444'));
+
+            tr.innerHTML = `
+                <td style="padding: 12px 14px; font-weight: 600; color: #0f172a;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span>${currentForecastGroupBy === "TEAM" ? "👥" : "👤"}</span>
+                        <div>
+                            <div>${escapeHtml(item.name || "—")}</div>
+                            <small style="color: #64748b; font-weight: normal; font-size: 11.5px;">
+                                ${currentForecastGroupBy === "TEAM" ? "Nhóm kinh doanh" : "Chuyên viên bán hàng"}
+                            </small>
+                        </div>
+                    </div>
+                </td>
+                <td style="padding: 12px 14px; font-weight: 600; color: #475569;">
+                    ${formatMoney(item.targetAmount || 0)}
+                </td>
+                <td style="padding: 12px 14px; color: #10b981; font-weight: 700;">
+                    ${formatMoney(item.wonAmount || 0)}
+                    <div style="font-size: 11px; color: #64748b; font-weight: normal;">${item.wonDealsCount || 0} HĐ chốt</div>
+                </td>
+                <td style="padding: 12px 14px; color: #2563eb; font-weight: 700;">
+                    ${formatMoney(item.weightedForecastAmount || 0)}
+                    <div style="font-size: 11px; color: #64748b; font-weight: normal;">${item.openDealsCount || 0} cơ hội mở</div>
+                </td>
+                <td style="padding: 12px 14px; font-weight: 800; color: #6d28d9;">
+                    ${formatMoney(item.totalProjectedAmount || 0)}
+                </td>
+                <td style="padding: 12px 14px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+                        <span style="font-weight: 700; color: ${barColor};">${rowPct.toFixed(1)}%</span>
+                    </div>
+                    <div style="height: 6px; width: 100%; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
+                        <div style="height: 100%; width: ${miniBarWidth}%; background: ${barColor}; border-radius: 3px;"></div>
+                    </div>
+                </td>
+                <td style="padding: 12px 14px; text-align: center;">
+                    ${statusBadge}
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch (err) {
+        console.error("Error loading forecast:", err);
+    }
+}
+
+function setupStoryEventListeners() {
+    // Tab switching
+    tabKanbanView?.addEventListener("click", () => setPipelineTab("KANBAN"));
+    tabForecastView?.addEventListener("click", () => setPipelineTab("FORECAST"));
+
+    // Stagnation filter & scan
+    btnStagnantFilter?.addEventListener("click", () => {
+        stagnantFilterActive = !stagnantFilterActive;
+        if (stagnantFilterActive) {
+            btnStagnantFilter.classList.add("crm-btn-primary");
+            btnStagnantFilter.classList.remove("crm-btn-secondary");
+            btnStagnantFilter.style.background = "#ef4444";
+            btnStagnantFilter.style.borderColor = "#ef4444";
+            btnStagnantFilter.style.color = "#ffffff";
+        } else {
+            btnStagnantFilter.classList.remove("crm-btn-primary");
+            btnStagnantFilter.classList.add("crm-btn-secondary");
+            btnStagnantFilter.style.background = "";
+            btnStagnantFilter.style.borderColor = "";
+            btnStagnantFilter.style.color = "";
+        }
+        loadOpportunities();
+    });
+
+    btnScanStagnant?.addEventListener("click", async () => {
+        btnScanStagnant.disabled = true;
+        const oldText = btnScanStagnant.innerHTML;
+        btnScanStagnant.innerHTML = "⏳ Đang quét...";
+        try {
+            const res = await api("/api/opportunities/scan-stagnation", { method: "POST" });
+            alert(`Hoàn tất đánh giá đình trệ:\n- Quét tổng cộng: ${res.scannedCount || 0} cơ hội\n- Gắn cờ cảnh báo: ${res.flaggedCount || 0} cơ hội\n- Giải tỏa cờ: ${res.clearedCount || 0} cơ hội`);
+            await loadOpportunities();
+        } catch (e) {
+            alert("Lỗi khi quét cơ hội đình trệ: " + e.message);
+        } finally {
+            btnScanStagnant.disabled = false;
+            btnScanStagnant.innerHTML = oldText;
+        }
+    });
+
+    // Reopen modal listeners
+    document.getElementById("closeReopenDealModalX")?.addEventListener("click", closeReopenDealModal);
+    document.getElementById("cancelReopenDealBtn")?.addEventListener("click", closeReopenDealModal);
+    reopenDealOverlay?.addEventListener("click", closeReopenDealModal);
+
+    btnDrawerReopenDeal?.addEventListener("click", () => {
+        if (editingOppId) {
+            openReopenDealModal(editingOppId);
+        }
+    });
+
+    reopenDealForm?.addEventListener("submit", async event => {
+        event.preventDefault();
+        if (!reopeningOppId) return;
+
+        const reason = (reopenDealReason?.value || "").trim();
+        if (!reason) {
+            if (reopenDealError) reopenDealError.textContent = "Bắt buộc phải nhập lý do mở lại cơ hội.";
+            return;
+        }
+        if (reopenDealError) reopenDealError.textContent = "";
+
+        try {
+            await api(`/api/opportunities/${reopeningOppId}/reopen`, {
+                method: "POST",
+                body: JSON.stringify({ reopenReason: reason })
+            });
+            closeReopenDealModal();
+            closeOpportunityDrawer();
+            await loadOpportunities();
+            alert("Đã mở lại cơ hội bán hàng thành công.");
+        } catch (err) {
+            if (reopenDealError) reopenDealError.textContent = err.message || "Lỗi khi mở lại cơ hội";
+            else alert("Lỗi khi mở lại cơ hội: " + err.message);
+        }
+    });
+
+    // Forecast Period Pills
+    document.querySelectorAll(".forecast-period-pills .period-pill").forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll(".forecast-period-pills .period-pill").forEach(b => {
+                b.classList.remove("active");
+                b.style.background = "transparent";
+                b.style.color = "#64748b";
+                b.style.boxShadow = "none";
+            });
+            btn.classList.add("active");
+            btn.style.background = "#fff";
+            btn.style.color = "#0f172a";
+            btn.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)";
+            currentForecastPeriod = btn.dataset.period || "THIS_MONTH";
+            loadForecastData();
+        });
+    });
+
+    // Forecast Group Pills
+    const btnGroupUser = document.getElementById("btnGroupUser");
+    const btnGroupTeam = document.getElementById("btnGroupTeam");
+
+    btnGroupUser?.addEventListener("click", () => {
+        currentForecastGroupBy = "USER";
+        btnGroupUser.classList.add("active");
+        btnGroupUser.style.background = "#fff";
+        btnGroupUser.style.color = "#0f172a";
+        btnGroupUser.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)";
+        if (btnGroupTeam) {
+            btnGroupTeam.classList.remove("active");
+            btnGroupTeam.style.background = "transparent";
+            btnGroupTeam.style.color = "#64748b";
+            btnGroupTeam.style.boxShadow = "none";
+        }
+        loadForecastData();
+    });
+
+    btnGroupTeam?.addEventListener("click", () => {
+        currentForecastGroupBy = "TEAM";
+        btnGroupTeam.classList.add("active");
+        btnGroupTeam.style.background = "#fff";
+        btnGroupTeam.style.color = "#0f172a";
+        btnGroupTeam.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)";
+        if (btnGroupUser) {
+            btnGroupUser.classList.remove("active");
+            btnGroupUser.style.background = "transparent";
+            btnGroupUser.style.color = "#64748b";
+            btnGroupUser.style.boxShadow = "none";
+        }
+        loadForecastData();
+    });
+
+    document.getElementById("btnRefreshForecast")?.addEventListener("click", loadForecastData);
+}
+
 // Start
 initPipeline();
+

@@ -368,6 +368,24 @@
             Bắt buộc thỏa điều kiện trước khi chuyển giai đoạn (Trưởng nhóm trở lên có thể ghi đè)
         </label>
 
+        <label style="margin-top: 10px;">
+            Số ngày tối đa không hoạt động trước khi cảnh báo đình trệ (N ngày)
+            <em>*</em>
+            <input
+                id="stageStagnantDays"
+                class="crm-input"
+                type="number"
+                min="1"
+                max="365"
+                value="7"
+                placeholder="7"
+                style="margin-top: 4px;"
+            >
+            <small style="color: var(--crm-muted); font-size: 11px; display: block; margin-top: 2px;">
+                Cơ hội ở giai đoạn này không có hoạt động trong N ngày sẽ bị gắn cờ cảnh báo đình trệ.
+            </small>
+        </label>
+
 
         <div
             id="stageFormError"

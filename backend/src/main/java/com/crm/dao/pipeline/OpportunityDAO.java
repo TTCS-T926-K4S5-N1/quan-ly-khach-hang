@@ -48,6 +48,25 @@ public class OpportunityDAO {
             int page,
             int size
     ) throws SQLException {
+        return search(scope, stageId, status, keyword, ownerUserId, teamId, closeDateFrom, closeDateTo, leadSource, customFieldKey, customFieldValue, null, page, size);
+    }
+
+    public List<Map<String, Object>> search(
+            DataScopeContext scope,
+            Long stageId,
+            String status,
+            String keyword,
+            Long ownerUserId,
+            Long teamId,
+            String closeDateFrom,
+            String closeDateTo,
+            String leadSource,
+            String customFieldKey,
+            String customFieldValue,
+            Boolean stagnantOnly,
+            int page,
+            int size
+    ) throws SQLException {
         StringBuilder sql = new StringBuilder("""
                 SELECT
                     o.id,
@@ -61,17 +80,29 @@ public class OpportunityDAO {
                     o.probability,
                     o.probability_note,
                     o.expected_close_date,
+                    o.actual_close_date,
                     o.lead_source,
                     o.status,
+                    o.is_stagnant,
+                    o.stagnant_flag,
+                    o.stagnant_reason,
+                    o.last_stagnant_checked_at,
                     o.win_reason_id,
                     o.loss_reason_id,
                     o.competitor_id,
                     o.lost_reason,
+                    o.last_override_reason,
+                    o.last_overridden_by,
+                    o.last_overridden_at,
+                    o.reopened_reason,
+                    o.reopened_by,
+                    o.reopened_at,
                     o.owner_user_id,
                     o.created_at,
                     c.name AS customer_name,
                     ps.name AS stage_name,
                     ps.order_no AS stage_order,
+                    ps.stagnant_days,
                     u.full_name AS owner_name,
                     u.team_id,
                     t.name AS team_name,
@@ -104,6 +135,10 @@ public class OpportunityDAO {
         if (teamId != null && teamId > 0) {
             sql.append(" AND u.team_id = ?");
             params.add(teamId);
+        }
+
+        if (Boolean.TRUE.equals(stagnantOnly)) {
+            sql.append(" AND o.is_stagnant = 1");
         }
 
         if (closeDateFrom != null && !closeDateFrom.isBlank()) {
@@ -194,17 +229,29 @@ public class OpportunityDAO {
                     o.probability,
                     o.probability_note,
                     o.expected_close_date,
+                    o.actual_close_date,
                     o.lead_source,
                     o.status,
+                    o.is_stagnant,
+                    o.stagnant_flag,
+                    o.stagnant_reason,
+                    o.last_stagnant_checked_at,
                     o.win_reason_id,
                     o.loss_reason_id,
                     o.competitor_id,
                     o.lost_reason,
+                    o.last_override_reason,
+                    o.last_overridden_by,
+                    o.last_overridden_at,
+                    o.reopened_reason,
+                    o.reopened_by,
+                    o.reopened_at,
                     o.owner_user_id,
                     o.created_at,
                     c.name AS customer_name,
                     ps.name AS stage_name,
                     ps.order_no AS stage_order,
+                    ps.stagnant_days,
                     u.full_name AS owner_name,
                     u.team_id,
                     t.name AS team_name,
@@ -234,6 +281,202 @@ public class OpportunityDAO {
             }
         }
         return null;
+    }
+
+    public void closeDeal(long id, String status, Long winReasonId, Long lossReasonId, Long competitorId, String lostReason) throws SQLException {
+        closeDeal(id, status, winReasonId, lossReasonId, competitorId, lostReason, null, null);
+    }
+
+    public void closeDeal(long id, String status, Long winReasonId, Long lossReasonId, Long competitorId, String lostReason, java.math.BigDecimal actualAmount, java.sql.Date actualCloseDate) throws SQLException {
+        String sql = """
+                UPDATE opportunities SET
+                    status = ?,
+                    win_reason_id = ?,
+                    loss_reason_id = ?,
+                    competitor_id = ?,
+                    lost_reason = ?,
+                    amount = COALESCE(?, amount),
+                    actual_close_date = COALESCE(?, actual_close_date, CURDATE()),
+                    is_stagnant = 0,
+                    stagnant_flag = 'NONE',
+                    stagnant_reason = NULL,
+                    stage_updated_at = NOW()
+                WHERE id = ? AND is_deleted = 0
+                """;
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, status);
+            stmt.setObject(2, winReasonId, Types.BIGINT);
+            stmt.setObject(3, lossReasonId, Types.BIGINT);
+            stmt.setObject(4, competitorId, Types.BIGINT);
+            stmt.setString(5, lostReason);
+            stmt.setBigDecimal(6, actualAmount);
+            stmt.setDate(7, actualCloseDate);
+            stmt.setLong(8, id);
+            stmt.executeUpdate();
+        }
+    }
+
+    public void reopenDeal(long id, String reopenReason, long reopenedBy) throws SQLException {
+        String sql = """
+                UPDATE opportunities SET
+                    status = 'OPEN',
+                    reopened_reason = ?,
+                    reopened_by = ?,
+                    reopened_at = NOW(),
+                    stage_updated_at = NOW()
+                WHERE id = ? AND is_deleted = 0
+                """;
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, reopenReason);
+            stmt.setLong(2, reopenedBy);
+            stmt.setLong(3, id);
+            stmt.executeUpdate();
+        }
+    }
+
+    public int scanAndFlagStagnantOpportunities() throws SQLException {
+        String query = """
+                SELECT 
+                    o.id,
+                    o.expected_close_date,
+                    o.stage_updated_at,
+                    o.created_at,
+                    COALESCE(ps.stagnant_days, 7) AS stagnant_days,
+                    DATEDIFF(CURDATE(), o.expected_close_date) AS overdue_days,
+                    DATEDIFF(CURDATE(), COALESCE(
+                        (SELECT MAX(COALESCE(a.due_date, a.created_at)) 
+                         FROM activities a 
+                         WHERE (a.opportunity_id = o.id OR (a.opportunity_id IS NULL AND a.customer_id = o.customer_id))
+                           AND a.is_deleted = 0),
+                        o.stage_updated_at,
+                        o.created_at
+                    )) AS inactive_days
+                FROM opportunities o
+                LEFT JOIN pipeline_stages ps ON ps.id = o.stage_id
+                WHERE o.status = 'OPEN' AND o.is_deleted = 0
+                """;
+
+        String updateSql = """
+                UPDATE opportunities SET
+                    is_stagnant = ?,
+                    stagnant_flag = ?,
+                    stagnant_reason = ?,
+                    last_stagnant_checked_at = NOW()
+                WHERE id = ?
+                """;
+
+        int flaggedCount = 0;
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement qStmt = conn.prepareStatement(query);
+             ResultSet rs = qStmt.executeQuery();
+             PreparedStatement uStmt = conn.prepareStatement(updateSql)) {
+
+            while (rs.next()) {
+                long oppId = rs.getLong("id");
+                java.sql.Date expectedClose = rs.getDate("expected_close_date");
+                int stagnantDaysThreshold = rs.getInt("stagnant_days");
+                if (stagnantDaysThreshold <= 0) stagnantDaysThreshold = 7;
+
+                int overdueDays = rs.getInt("overdue_days");
+                boolean isOverdue = expectedClose != null && overdueDays > 0;
+
+                int inactiveDays = rs.getInt("inactive_days");
+                boolean isInactive = inactiveDays > stagnantDaysThreshold;
+
+                boolean isStagnant = false;
+                String flag = "NONE";
+                String reason = null;
+
+                if (isOverdue && isInactive) {
+                    isStagnant = true;
+                    flag = "BOTH";
+                    reason = "Không có hoạt động trong " + inactiveDays + " ngày (mốc: " + stagnantDaysThreshold + " ngày) & Quá hạn chốt " + overdueDays + " ngày";
+                } else if (isInactive) {
+                    isStagnant = true;
+                    flag = "INACTIVE";
+                    reason = "Không có hoạt động nào trong " + inactiveDays + " ngày (vượt mốc cho phép " + stagnantDaysThreshold + " ngày)";
+                } else if (isOverdue) {
+                    isStagnant = true;
+                    flag = "OVERDUE";
+                    reason = "Đã quá ngày dự kiến chốt " + overdueDays + " ngày (dự kiến: " + expectedClose + ")";
+                }
+
+                uStmt.setBoolean(1, isStagnant);
+                uStmt.setString(2, flag);
+                uStmt.setString(3, reason);
+                uStmt.setLong(4, oppId);
+                uStmt.addBatch();
+
+                if (isStagnant) {
+                    flaggedCount++;
+                }
+            }
+            uStmt.executeBatch();
+        }
+        return flaggedCount;
+    }
+
+    public void softDelete(long id) throws SQLException {
+        String sql = "UPDATE opportunities SET is_deleted = 1 WHERE id = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, id);
+            stmt.executeUpdate();
+        }
+    }
+
+    private Map<String, Object> mapOpportunity(ResultSet rs) throws SQLException {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", rs.getLong("id"));
+        map.put("name", rs.getString("name"));
+        map.put("customerId", rs.getObject("customer_id"));
+        map.put("customerName", rs.getString("customer_name"));
+        map.put("contactId", rs.getObject("contact_id"));
+        String contactName = rs.getString("contact_name");
+        if ((contactName == null || contactName.isBlank()) && rs.getString("contact_person_name") != null) {
+            contactName = rs.getString("contact_person_name");
+        }
+        map.put("contactName", contactName);
+        map.put("contactPersonName", rs.getString("contact_person_name"));
+        map.put("contactPhone", rs.getString("contact_phone"));
+        map.put("contactEmail", rs.getString("contact_email"));
+        map.put("amount", rs.getBigDecimal("amount"));
+        map.put("stageId", rs.getObject("stage_id"));
+        map.put("stageName", rs.getString("stage_name"));
+        map.put("stageOrder", rs.getObject("stage_order"));
+        map.put("stageStagnantDays", rs.getObject("stagnant_days") != null ? rs.getInt("stagnant_days") : 7);
+        map.put("stageUpdatedAt", rs.getTimestamp("stage_updated_at"));
+        map.put("daysInStage", rs.getObject("days_in_stage") != null ? rs.getInt("days_in_stage") : 0);
+        map.put("daysOverdue", rs.getObject("days_overdue") != null ? rs.getInt("days_overdue") : 0);
+        map.put("probability", rs.getObject("probability"));
+        map.put("probabilityNote", rs.getString("probability_note"));
+        map.put("expectedCloseDate", rs.getDate("expected_close_date"));
+        map.put("actualCloseDate", rs.getDate("actual_close_date"));
+        map.put("leadSource", rs.getString("lead_source"));
+        map.put("status", rs.getString("status"));
+        map.put("isStagnant", rs.getBoolean("is_stagnant"));
+        map.put("stagnantFlag", rs.getString("stagnant_flag"));
+        map.put("stagnantReason", rs.getString("stagnant_reason"));
+        map.put("lastStagnantCheckedAt", rs.getTimestamp("last_stagnant_checked_at"));
+        map.put("winReasonId", rs.getObject("win_reason_id"));
+        map.put("lossReasonId", rs.getObject("loss_reason_id"));
+        map.put("competitorId", rs.getObject("competitor_id"));
+        map.put("competitorName", rs.getString("competitor_name"));
+        map.put("lostReason", rs.getString("lost_reason"));
+        map.put("lastOverrideReason", rs.getString("last_override_reason"));
+        map.put("lastOverriddenBy", rs.getObject("last_overridden_by"));
+        map.put("lastOverriddenAt", rs.getTimestamp("last_overridden_at"));
+        map.put("reopenedReason", rs.getString("reopened_reason"));
+        map.put("reopenedBy", rs.getObject("reopened_by"));
+        map.put("reopenedAt", rs.getTimestamp("reopened_at"));
+        map.put("ownerUserId", rs.getLong("owner_user_id"));
+        map.put("ownerName", rs.getString("owner_name"));
+        map.put("teamId", rs.getObject("team_id"));
+        map.put("teamName", rs.getString("team_name"));
+        map.put("createdAt", rs.getTimestamp("created_at"));
+        return map;
     }
 
     public long create(OpportunityWriteRequest req, long defaultOwnerId) throws SQLException {
@@ -334,71 +577,5 @@ public class OpportunityDAO {
             stmt.executeUpdate();
         }
     }
-
-    public void closeDeal(long id, String status, Long winReasonId, Long lossReasonId, Long competitorId, String lostReason) throws SQLException {
-        String sql = """
-                UPDATE opportunities SET
-                    status = ?, win_reason_id = ?, loss_reason_id = ?, competitor_id = ?, lost_reason = ?
-                WHERE id = ? AND is_deleted = 0
-                """;
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, status);
-            stmt.setObject(2, winReasonId, Types.BIGINT);
-            stmt.setObject(3, lossReasonId, Types.BIGINT);
-            stmt.setObject(4, competitorId, Types.BIGINT);
-            stmt.setString(5, lostReason);
-            stmt.setLong(6, id);
-            stmt.executeUpdate();
-        }
-    }
-
-    public void softDelete(long id) throws SQLException {
-        String sql = "UPDATE opportunities SET is_deleted = 1 WHERE id = ?";
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setLong(1, id);
-            stmt.executeUpdate();
-        }
-    }
-
-    private Map<String, Object> mapOpportunity(ResultSet rs) throws SQLException {
-        Map<String, Object> map = new LinkedHashMap<>();
-        map.put("id", rs.getLong("id"));
-        map.put("name", rs.getString("name"));
-        map.put("customerId", rs.getObject("customer_id"));
-        map.put("customerName", rs.getString("customer_name"));
-        map.put("contactId", rs.getObject("contact_id"));
-        String contactName = rs.getString("contact_name");
-        if ((contactName == null || contactName.isBlank()) && rs.getString("contact_person_name") != null) {
-            contactName = rs.getString("contact_person_name");
-        }
-        map.put("contactName", contactName);
-        map.put("contactPersonName", rs.getString("contact_person_name"));
-        map.put("contactPhone", rs.getString("contact_phone"));
-        map.put("contactEmail", rs.getString("contact_email"));
-        map.put("amount", rs.getBigDecimal("amount"));
-        map.put("stageId", rs.getObject("stage_id"));
-        map.put("stageName", rs.getString("stage_name"));
-        map.put("stageOrder", rs.getObject("stage_order"));
-        map.put("stageUpdatedAt", rs.getTimestamp("stage_updated_at"));
-        map.put("daysInStage", rs.getObject("days_in_stage") != null ? rs.getInt("days_in_stage") : 0);
-        map.put("daysOverdue", rs.getObject("days_overdue") != null ? rs.getInt("days_overdue") : 0);
-        map.put("probability", rs.getObject("probability"));
-        map.put("probabilityNote", rs.getString("probability_note"));
-        map.put("expectedCloseDate", rs.getDate("expected_close_date"));
-        map.put("leadSource", rs.getString("lead_source"));
-        map.put("status", rs.getString("status"));
-        map.put("winReasonId", rs.getObject("win_reason_id"));
-        map.put("lossReasonId", rs.getObject("loss_reason_id"));
-        map.put("competitorId", rs.getObject("competitor_id"));
-        map.put("competitorName", rs.getString("competitor_name"));
-        map.put("lostReason", rs.getString("lost_reason"));
-        map.put("ownerUserId", rs.getLong("owner_user_id"));
-        map.put("ownerName", rs.getString("owner_name"));
-        map.put("teamId", rs.getObject("team_id"));
-        map.put("teamName", rs.getString("team_name"));
-        map.put("createdAt", rs.getTimestamp("created_at"));
-        return map;
-    }
 }
+

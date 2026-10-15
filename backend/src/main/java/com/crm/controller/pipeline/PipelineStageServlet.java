@@ -64,6 +64,7 @@ public class PipelineStageServlet extends HttpServlet {
                                         exit_condition,
                                         condition_type,
                                         condition_required,
+                                        stagnant_days,
                                         active
                                     FROM pipeline_stages
                                     WHERE pipeline_id = ?
@@ -266,6 +267,13 @@ public class PipelineStageServlet extends HttpServlet {
                     ||
                     body.get("active").getAsBoolean();
 
+            int stagnantDays =
+                    body.has("stagnantDays")
+                    && !body.get("stagnantDays").isJsonNull()
+                    ? body.get("stagnantDays").getAsInt()
+                    : 7;
+            if (stagnantDays <= 0) stagnantDays = 7;
+
 
             if (orderNo < 1) {
 
@@ -322,9 +330,10 @@ public class PipelineStageServlet extends HttpServlet {
                                                 exit_condition,
                                                 condition_type,
                                                 condition_required,
+                                                stagnant_days,
                                                 active
                                             )
-                                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                                             """,
                                             Statement.RETURN_GENERATED_KEYS
                                     )
@@ -365,8 +374,13 @@ public class PipelineStageServlet extends HttpServlet {
                                 conditionRequired
                         );
 
-                        statement.setBoolean(
+                        statement.setInt(
                                 8,
+                                stagnantDays
+                        );
+
+                        statement.setBoolean(
+                                9,
                                 active
                         );
 
@@ -424,6 +438,7 @@ public class PipelineStageServlet extends HttpServlet {
                                                 exit_condition = ?,
                                                 condition_type = ?,
                                                 condition_required = ?,
+                                                stagnant_days = ?,
                                                 active = ?
                                             WHERE id = ?
                                             """
@@ -465,13 +480,18 @@ public class PipelineStageServlet extends HttpServlet {
                                 conditionRequired
                         );
 
-                        statement.setBoolean(
+                        statement.setInt(
                                 8,
+                                stagnantDays
+                        );
+
+                        statement.setBoolean(
+                                9,
                                 active
                         );
 
                         statement.setLong(
-                                9,
+                                10,
                                 id
                         );
 
@@ -554,6 +574,7 @@ public class PipelineStageServlet extends HttpServlet {
                                     exit_condition,
                                     condition_type,
                                     condition_required,
+                                    stagnant_days,
                                     active
                                 FROM pipeline_stages
                                 WHERE id = ?
@@ -626,6 +647,11 @@ public class PipelineStageServlet extends HttpServlet {
         item.put(
                 "conditionRequired",
                 rs.getBoolean("condition_required")
+        );
+
+        item.put(
+                "stagnantDays",
+                rs.getInt("stagnant_days")
         );
 
         item.put(

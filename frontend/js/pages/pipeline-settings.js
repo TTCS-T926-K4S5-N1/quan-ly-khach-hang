@@ -301,6 +301,15 @@ async function saveStage() {
                 ?.checked
         );
 
+    const stagnantDays =
+        Number(
+            document
+                .getElementById(
+                    "stageStagnantDays"
+                )
+                ?.value || 7
+        );
+
     const editingId =
         value(
             "editingStageIndex"
@@ -401,6 +410,9 @@ async function saveStage() {
         exitCondition,
 
         conditionRequired,
+
+        stagnantDays:
+            stagnantDays > 0 ? stagnantDays : 7,
 
         active:
             existing
@@ -726,6 +738,10 @@ function openStageDrawer(
                 ""
             );
 
+            setValue(
+                "stageStagnantDays",
+                stage.stagnantDays || 7
+            );
 
             const required =
                 document.getElementById(
@@ -877,6 +893,7 @@ function render() {
                     stage-condition
                     ${stage.conditionRequired ? "required" : ""}
                 ">
+                    <span style="display:inline-block;padding:2px 7px;border-radius:4px;background:#fef3c7;color:#92400e;font-weight:600;font-size:11px;margin-right:6px;" title="Cảnh báo cơ hội đình trệ nếu không có hoạt động trong ${stage.stagnantDays || 7} ngày">⏳ Đình trệ sau ${stage.stagnantDays || 7} ngày</span>
                     ${stage.conditionRequired ? '<span style="display:inline-block;padding:2px 6px;border-radius:4px;background:#ffe4e6;color:#be123c;font-weight:700;font-size:11px;margin-right:6px;">BẮT BUỘC</span>' : ''}
                     ${
                         stage.exitCondition

@@ -44,10 +44,11 @@ public class OpportunityServlet extends HttpServlet {
                 String leadSource = req.getParameter("leadSource");
                 String customFieldKey = req.getParameter("customFieldKey");
                 String customFieldValue = req.getParameter("customFieldValue");
+                Boolean stagnantOnly = "true".equalsIgnoreCase(req.getParameter("stagnantOnly")) ? Boolean.TRUE : null;
                 int page = intParam(req, "page", 1);
                 int size = intParam(req, "size", 100);
 
-                var items = opportunityService.search(currentUserId, stageId, status, keyword, ownerId, teamId, closeDateFrom, closeDateTo, leadSource, customFieldKey, customFieldValue, page, size);
+                var items = opportunityService.search(currentUserId, stageId, status, keyword, ownerId, teamId, closeDateFrom, closeDateTo, leadSource, customFieldKey, customFieldValue, stagnantOnly, page, size);
                 ResponseUtil.json(resp, 200, ApiResponse.success("Lấy danh sách cơ hội thành công", items));
                 return;
             }
@@ -68,8 +69,9 @@ public class OpportunityServlet extends HttpServlet {
                 String leadSource = req.getParameter("leadSource");
                 String customFieldKey = req.getParameter("customFieldKey");
                 String customFieldValue = req.getParameter("customFieldValue");
+                Boolean stagnantOnly = "true".equalsIgnoreCase(req.getParameter("stagnantOnly")) ? Boolean.TRUE : null;
 
-                var items = opportunityService.search(currentUserId, stageId, status, keyword, ownerId, teamId, closeDateFrom, closeDateTo, leadSource, customFieldKey, customFieldValue, 1, 10000);
+                var items = opportunityService.search(currentUserId, stageId, status, keyword, ownerId, teamId, closeDateFrom, closeDateTo, leadSource, customFieldKey, customFieldValue, stagnantOnly, 1, 10000);
 
                 com.crm.dao.customfields.CustomFieldValueDAO cfDao = new com.crm.dao.customfields.CustomFieldValueDAO();
                 List<Map<String, Object>> activeFields = cfDao.getActiveFields("OPPORTUNITY");
@@ -116,6 +118,14 @@ public class OpportunityServlet extends HttpServlet {
             long currentUserId = requireUser(req);
             String path = req.getPathInfo();
 
+            if ("/scan-stagnation".equals(path)) {
+                int flagged = opportunityService.scanAndFlagStagnantOpportunities();
+                Map<String, Object> resData = new HashMap<>();
+                resData.put("flaggedCount", flagged);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Đã quét và đánh giá cơ hội đình trệ: " + flagged + " cơ hội có cờ cảnh báo", resData));
+                return;
+            }
+
             if (path == null || path.equals("/")) {
                 OpportunityWriteRequest body = JsonUtil.getGson().fromJson(req.getReader(), OpportunityWriteRequest.class);
                 var created = opportunityService.create(currentUserId, body);
@@ -160,8 +170,30 @@ public class OpportunityServlet extends HttpServlet {
                     Long competitorId = body.get("competitorId") != null ? ((Number) body.get("competitorId")).longValue() : null;
                     String lostReason = body.get("lostReason") != null ? String.valueOf(body.get("lostReason")) : null;
 
-                    var closed = opportunityService.closeDeal(currentUserId, targetId, status, winReasonId, lossReasonId, competitorId, lostReason);
+                    java.math.BigDecimal actualAmount = null;
+                    if (body.get("actualAmount") != null) {
+                        actualAmount = new java.math.BigDecimal(String.valueOf(body.get("actualAmount")));
+                    } else if (body.get("amount") != null) {
+                        actualAmount = new java.math.BigDecimal(String.valueOf(body.get("amount")));
+                    }
+
+                    String actualCloseDate = null;
+                    if (body.get("actualCloseDate") != null && !String.valueOf(body.get("actualCloseDate")).isBlank()) {
+                        actualCloseDate = String.valueOf(body.get("actualCloseDate")).trim();
+                    } else if (body.get("wonDate") != null && !String.valueOf(body.get("wonDate")).isBlank()) {
+                        actualCloseDate = String.valueOf(body.get("wonDate")).trim();
+                    }
+
+                    var closed = opportunityService.closeDeal(currentUserId, targetId, status, winReasonId, lossReasonId, competitorId, lostReason, actualAmount, actualCloseDate);
                     ResponseUtil.json(resp, 200, ApiResponse.success("Đóng cơ hội thành công", closed));
+                    return;
+                }
+
+                if ("reopen".equals(action)) {
+                    Map<String, Object> body = JsonUtil.getGson().fromJson(req.getReader(), com.crm.util.JsonUtil.OBJECT_MAP_TYPE);
+                    String reopenReason = body != null && body.get("reopenReason") != null ? String.valueOf(body.get("reopenReason")).trim() : null;
+                    var reopened = opportunityService.reopen(currentUserId, targetId, reopenReason);
+                    ResponseUtil.json(resp, 200, ApiResponse.success("Mở lại cơ hội thành công", reopened));
                     return;
                 }
             }
@@ -178,7 +210,7 @@ public class OpportunityServlet extends HttpServlet {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), errData));
         } catch (SecurityException e) {
             ResponseUtil.json(resp, 403, ApiResponse.error(e.getMessage(), null));
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | IllegalStateException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
             e.printStackTrace();
@@ -203,7 +235,7 @@ public class OpportunityServlet extends HttpServlet {
             ResponseUtil.json(resp, 200, ApiResponse.success("Cập nhật cơ hội thành công", updated));
         } catch (SecurityException e) {
             ResponseUtil.json(resp, 403, ApiResponse.error(e.getMessage(), null));
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | IllegalStateException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
             ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));

@@ -63,8 +63,27 @@ public class OpportunityService {
             int page,
             int size
     ) throws Exception {
+        return search(currentUserId, stageId, status, keyword, ownerUserId, teamId, closeDateFrom, closeDateTo, leadSource, customFieldKey, customFieldValue, null, page, size);
+    }
+
+    public List<Map<String, Object>> search(
+            long currentUserId,
+            Long stageId,
+            String status,
+            String keyword,
+            Long ownerUserId,
+            Long teamId,
+            String closeDateFrom,
+            String closeDateTo,
+            String leadSource,
+            String customFieldKey,
+            String customFieldValue,
+            Boolean stagnantOnly,
+            int page,
+            int size
+    ) throws Exception {
         DataScopeContext scope = dataScopeService.resolve(currentUserId, "opportunity", "read");
-        return opportunityDAO.search(scope, stageId, status, keyword, ownerUserId, teamId, closeDateFrom, closeDateTo, leadSource, customFieldKey, customFieldValue, page, size);
+        return opportunityDAO.search(scope, stageId, status, keyword, ownerUserId, teamId, closeDateFrom, closeDateTo, leadSource, customFieldKey, customFieldValue, stagnantOnly, page, size);
     }
 
     public Map<String, Object> getById(long currentUserId, long id) throws Exception {
@@ -172,6 +191,12 @@ public class OpportunityService {
             throw new SecurityException("Bạn không có quyền truy cập dữ liệu này do giới hạn phạm vi sở hữu.");
         }
 
+        // Story 1: Cơ hội đã đóng (Thắng/Thua) thì khóa chỉnh sửa, chỉ Trưởng nhóm trở lên mới có quyền mở lại
+        String existingStatus = (String) existing.get("status");
+        if ("WON".equalsIgnoreCase(existingStatus) || "LOST".equalsIgnoreCase(existingStatus)) {
+            throw new IllegalStateException("Cơ hội đã đóng (" + existingStatus + ") không thể chỉnh sửa. Chỉ Trưởng nhóm trở lên mới có quyền Mở lại cơ hội để tiếp tục cập nhật.");
+        }
+
         // Nếu có dòng sản phẩm truyền lên, tự động cập nhật và tính lại tổng tiền
         if (req.getItems() != null) {
             itemDAO.saveItems(id, req.getItems());
@@ -197,6 +222,12 @@ public class OpportunityService {
         Map<String, Object> opp = opportunityDAO.findById(id);
         if (opp == null) {
             throw new NoSuchElementException("Cơ hội không tồn tại.");
+        }
+
+        // Story 1: Cơ hội đã đóng (Thắng/Thua) không thể chuyển giai đoạn nếu chưa mở lại
+        String existingStatus = (String) opp.get("status");
+        if ("WON".equalsIgnoreCase(existingStatus) || "LOST".equalsIgnoreCase(existingStatus)) {
+            throw new IllegalStateException("Cơ hội đã đóng (" + existingStatus + ") không thể chuyển giai đoạn. Vui lòng mở lại cơ hội trước khi thao tác.");
         }
 
         long ownerId = (Long) opp.get("ownerUserId");
@@ -359,6 +390,11 @@ public class OpportunityService {
             throw new SecurityException("Bạn không có quyền cập nhật cơ hội này.");
         }
 
+        String existingStatus = (String) opp.get("status");
+        if ("WON".equalsIgnoreCase(existingStatus) || "LOST".equalsIgnoreCase(existingStatus)) {
+            throw new IllegalStateException("Cơ hội đã đóng (" + existingStatus + ") không thể chỉnh sửa sản phẩm dịch vụ.");
+        }
+
         itemDAO.saveItems(oppId, items);
         return itemDAO.findByOpportunityId(oppId);
     }
@@ -370,6 +406,11 @@ public class OpportunityService {
         long ownerId = (Long) opp.get("ownerUserId");
         if (!scope.canAccessOwner(ownerId)) {
             throw new SecurityException("Bạn không có quyền cập nhật cơ hội này.");
+        }
+
+        String existingStatus = (String) opp.get("status");
+        if ("WON".equalsIgnoreCase(existingStatus) || "LOST".equalsIgnoreCase(existingStatus)) {
+            throw new IllegalStateException("Cơ hội đã đóng (" + existingStatus + ") không thể xóa sản phẩm dịch vụ.");
         }
 
         itemDAO.deleteItem(itemId, oppId);
@@ -384,6 +425,20 @@ public class OpportunityService {
             Long competitorId,
             String lostReason
     ) throws Exception {
+        return closeDeal(currentUserId, id, status, winReasonId, lossReasonId, competitorId, lostReason, null, null);
+    }
+
+    public Map<String, Object> closeDeal(
+            long currentUserId,
+            long id,
+            String status,
+            Long winReasonId,
+            Long lossReasonId,
+            Long competitorId,
+            String lostReason,
+            java.math.BigDecimal actualAmount,
+            String actualCloseDate
+    ) throws Exception {
         dataScopeService.resolve(currentUserId, "opportunity", "close");
         Map<String, Object> opp = opportunityDAO.findById(id);
         if (opp == null) {
@@ -396,8 +451,24 @@ public class OpportunityService {
             throw new SecurityException("Bạn không có quyền truy cập dữ liệu này do giới hạn phạm vi sở hữu.");
         }
 
-        // CRM-42 Tiêu chí 3: Ràng buộc bắt buộc khi đóng cơ hội bán hàng
+        java.sql.Date sqlCloseDate = null;
         if ("WON".equalsIgnoreCase(status)) {
+            if (actualAmount == null || actualAmount.compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                Object existingAmt = opp.get("amount");
+                if (existingAmt instanceof java.math.BigDecimal && ((java.math.BigDecimal) existingAmt).compareTo(java.math.BigDecimal.ZERO) > 0) {
+                    actualAmount = (java.math.BigDecimal) existingAmt;
+                } else {
+                    throw new IllegalArgumentException("Bắt buộc phải nhập Giá trị chốt thực tế lớn hơn 0 đ khi chốt Thắng.");
+                }
+            }
+            if (actualCloseDate == null || actualCloseDate.isBlank()) {
+                throw new IllegalArgumentException("Bắt buộc phải nhập Ngày ký hợp đồng khi chốt Thắng.");
+            }
+            try {
+                sqlCloseDate = java.sql.Date.valueOf(actualCloseDate.trim());
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Định dạng Ngày ký không hợp lệ (YYYY-MM-DD).");
+            }
             if (winReasonId == null) {
                 throw new IllegalArgumentException("Bắt buộc phải chọn Lý do Thắng khi chốt thành công cơ hội bán hàng.");
             }
@@ -405,15 +476,62 @@ public class OpportunityService {
             if (lossReasonId == null) {
                 throw new IllegalArgumentException("Bắt buộc phải chọn Lý do Thua khi đóng thất bại cơ hội bán hàng.");
             }
-            if (competitorId == null) {
-                throw new IllegalArgumentException("Bắt buộc phải chọn Đối thủ cạnh tranh khi đóng thất bại cơ hội bán hàng.");
-            }
         } else {
             throw new IllegalArgumentException("Trạng thái đóng cơ hội phải là WON hoặc LOST.");
         }
 
-        opportunityDAO.closeDeal(id, status.toUpperCase(), winReasonId, lossReasonId, competitorId, lostReason);
+        opportunityDAO.closeDeal(id, status.toUpperCase(), winReasonId, lossReasonId, competitorId, lostReason, actualAmount, sqlCloseDate);
+
+        auditLogService.log(
+                currentUserId,
+                "OPPORTUNITY",
+                String.valueOf(id),
+                "CLOSE_" + status.toUpperCase(),
+                "Đóng cơ hội với kết quả " + status.toUpperCase()
+                        + ("WON".equalsIgnoreCase(status) ? (", giá trị chốt: " + actualAmount + " đ, ngày ký: " + actualCloseDate) : "")
+        );
+
         return getById(currentUserId, id);
+    }
+
+    public Map<String, Object> reopen(long currentUserId, long id, String reopenReason) throws Exception {
+        boolean canReopen = permissionDAO.hasRole(currentUserId, "ADMIN")
+                || permissionDAO.hasRole(currentUserId, "DIRECTOR")
+                || permissionDAO.hasRole(currentUserId, "TEAM_LEAD");
+
+        if (!canReopen) {
+            throw new SecurityException("Chỉ Trưởng nhóm trở lên mới có quyền Mở lại cơ hội đã đóng.");
+        }
+
+        if (reopenReason == null || reopenReason.trim().isBlank()) {
+            throw new IllegalArgumentException("Bắt buộc phải nhập lý do khi mở lại cơ hội.");
+        }
+
+        Map<String, Object> opp = opportunityDAO.findById(id);
+        if (opp == null) {
+            throw new NoSuchElementException("Cơ hội không tồn tại.");
+        }
+
+        String currentStatus = (String) opp.get("status");
+        if ("OPEN".equalsIgnoreCase(currentStatus)) {
+            throw new IllegalArgumentException("Cơ hội đang ở trạng thái Mở (OPEN), không cần mở lại.");
+        }
+
+        opportunityDAO.reopenDeal(id, reopenReason.trim(), currentUserId);
+
+        auditLogService.log(
+                currentUserId,
+                "OPPORTUNITY",
+                String.valueOf(id),
+                "REOPEN",
+                "Mở lại cơ hội đã đóng (" + currentStatus + "). Lý do: " + reopenReason.trim()
+        );
+
+        return getById(currentUserId, id);
+    }
+
+    public int scanAndFlagStagnantOpportunities() throws Exception {
+        return opportunityDAO.scanAndFlagStagnantOpportunities();
     }
 
     public void delete(long currentUserId, long id) throws Exception {
