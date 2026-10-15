@@ -10,8 +10,9 @@
         window.location.pathname
             .split("/")
             .pop()
+            .replace(/\.html$/, "")
         ||
-        "dashboard.html";
+        "dashboard";
 
 
     let currentSession = null;
@@ -31,6 +32,15 @@
 
             customer:
                 `<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>`,
+
+            form:
+                `<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>`,
+
+            campaign:
+                `<svg viewBox="0 0 24 24"><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07M3 11v2a2 2 0 0 0 2 2h2l5 4V5L7 9H5a2 2 0 0 0-2 2Z"/></svg>`,
+
+            routing:
+                `<svg viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>`,
 
             opportunity:
                 `<svg viewBox="0 0 24 24"><path d="m12 3 7 7-7 7-7-7 7-7Z"/><path d="M12 17v4"/></svg>`,
@@ -79,6 +89,12 @@
 
             moon:
                 `<svg viewBox="0 0 24 24"><path d="M20 15a8 8 0 1 1-11-11 7 7 0 0 0 11 11Z"/></svg>`,
+
+            report:
+                `<svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/><circle cx="19" cy="9" r="1.5"/></svg>`,
+
+            "pie-chart":
+                `<svg viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>`,
 
             sun:
                 `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`
@@ -240,11 +256,11 @@
                             Nhóm: ...
                         </div>
 
-                        <a href="profile.html">
+                        <a href="profile">
                             Hồ sơ cá nhân
                         </a>
 
-                        <a href="change-password.html">
+                        <a href="change-password">
                             Đổi mật khẩu
                         </a>
 
@@ -372,7 +388,7 @@
         ) {
 
             window.location.href =
-                "login.html";
+                "login";
 
             throw new Error(
                 "Chưa đăng nhập"
@@ -469,8 +485,10 @@
 
     function navigationItemHtml(item) {
 
+        const itemClean = (item.path || "").replace(/\.html$/, "");
+        const currentClean = (currentPage || "").replace(/\.html$/, "");
         const active =
-            currentPage === item.path
+            currentClean === itemClean
             ?
             " active"
             :
@@ -479,7 +497,7 @@
 
         return `
             <a
-                href="${escapeHtml(item.path)}"
+                href="${escapeHtml(itemClean)}"
                 class="crm-nav-item${active}"
                 title="${escapeHtml(item.label)}"
             >
@@ -894,7 +912,7 @@
                     sessionStorage.clear();
 
                     window.location.href =
-                        "login.html";
+                        "login";
                 }
             }
         );
@@ -1100,7 +1118,7 @@
                     "Tổng quan",
 
                 path:
-                    "dashboard.html",
+                    "dashboard",
 
                 icon:
                     "dashboard"
@@ -1902,7 +1920,7 @@
             .split("/")
             .pop()
             ||
-            "dashboard.html";
+            "dashboard";
     }
 
 
@@ -2001,7 +2019,7 @@
         const items = [
             {
                 path:
-                    "dashboard.html",
+                    "dashboard",
                 label:
                     "Tổng quan",
                 icon:

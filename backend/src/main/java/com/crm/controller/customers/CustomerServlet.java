@@ -13,7 +13,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 @WebServlet({
         "/api/customers",
@@ -21,7 +21,11 @@ import java.util.NoSuchElementException;
 })
 public class CustomerServlet extends HttpServlet {
 
-    private final CustomerService customerService = new CustomerService();
+    private final CustomerService customerService;
+
+    public CustomerServlet() { this(new CustomerService()); }
+
+    CustomerServlet(CustomerService customerService) { this.customerService = customerService; }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -30,13 +34,159 @@ public class CustomerServlet extends HttpServlet {
             String path = req.getPathInfo();
 
             if (path == null || path.equals("/")) {
-                String keyword = req.getParameter("keyword");
-                String status = req.getParameter("status");
-                int page = intParam(req, "page", 1);
-                int size = intParam(req, "size", 20);
+                com.crm.dto.customers.CustomerFilterCriteria criteria = new com.crm.dto.customers.CustomerFilterCriteria();
+                criteria.setKeyword(req.getParameter("keyword"));
+                criteria.setName(req.getParameter("name"));
+                criteria.setTaxCode(req.getParameter("taxCode"));
+                criteria.setContactPhone(req.getParameter("contactPhone"));
+                criteria.setStatus(req.getParameter("status"));
+                criteria.setIndustryId(longParam(req, "industryId"));
+                criteria.setCompanySizeId(longParam(req, "companySizeId"));
+                criteria.setRegionId(longParam(req, "regionId"));
+                criteria.setRegion(req.getParameter("region"));
+                criteria.setOwnerUserId(longParam(req, "ownerUserId"));
+                criteria.setOwnerFilter(req.getParameter("ownerFilter"));
+                criteria.setCustomFieldKey(req.getParameter("customFieldKey"));
+                criteria.setCustomFieldValue(req.getParameter("customFieldValue"));
+                criteria.setScoreGrade(req.getParameter("scoreGrade"));
+                criteria.setAssignmentStatus(req.getParameter("assignmentStatus"));
+                criteria.setSortBy(req.getParameter("sortBy"));
+                criteria.setLeadSource(req.getParameter("leadSource"));
+                criteria.setCreatedFrom(req.getParameter("createdFrom"));
+                criteria.setCreatedTo(req.getParameter("createdTo"));
+                criteria.setDatePreset(req.getParameter("datePreset"));
+                String slaBreachedStr = req.getParameter("slaBreached");
+                if (slaBreachedStr != null && !slaBreachedStr.isBlank()) {
+                    criteria.setSlaBreached(Boolean.parseBoolean(slaBreachedStr.trim()));
+                }
+                criteria.setPage(intParam(req, "page", 1));
+                criteria.setSize(intParam(req, "size", 20));
 
-                var result = customerService.search(currentUserId, keyword, status, page, size);
+                var result = customerService.search(currentUserId, criteria);
                 ResponseUtil.json(resp, 200, ApiResponse.success("Lấy danh sách khách hàng thành công", result));
+                return;
+            }
+
+            // Xuất Excel danh sách khách hàng (bao gồm các trường tùy chỉnh)
+            if (path.equals("/export")) {
+                com.crm.dto.customers.CustomerFilterCriteria criteria = new com.crm.dto.customers.CustomerFilterCriteria();
+                criteria.setKeyword(req.getParameter("keyword"));
+                criteria.setName(req.getParameter("name"));
+                criteria.setTaxCode(req.getParameter("taxCode"));
+                criteria.setContactPhone(req.getParameter("contactPhone"));
+                criteria.setStatus(req.getParameter("status"));
+                criteria.setIndustryId(longParam(req, "industryId"));
+                criteria.setCompanySizeId(longParam(req, "companySizeId"));
+                criteria.setRegionId(longParam(req, "regionId"));
+                criteria.setRegion(req.getParameter("region"));
+                criteria.setOwnerUserId(longParam(req, "ownerUserId"));
+                criteria.setOwnerFilter(req.getParameter("ownerFilter"));
+                criteria.setCustomFieldKey(req.getParameter("customFieldKey"));
+                criteria.setCustomFieldValue(req.getParameter("customFieldValue"));
+                criteria.setLeadSource(req.getParameter("leadSource"));
+                criteria.setCreatedFrom(req.getParameter("createdFrom"));
+                criteria.setCreatedTo(req.getParameter("createdTo"));
+                criteria.setDatePreset(req.getParameter("datePreset"));
+                criteria.setPage(1);
+                criteria.setSize(10000);
+
+                var searchResult = customerService.search(currentUserId, criteria);
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> customers = (List<Map<String, Object>>) searchResult.get("items");
+                if (customers == null) customers = Collections.emptyList();
+
+                com.crm.dao.customfields.CustomFieldValueDAO cfDao = new com.crm.dao.customfields.CustomFieldValueDAO();
+                List<Map<String, Object>> activeFields = cfDao.getActiveFields("CUSTOMER");
+
+                List<Long> customerIds = customers.stream()
+                        .map(c -> ((Number) c.get("id")).longValue())
+                        .toList();
+                Map<Long, Map<String, Object>> customValues = cfDao.getValuesForRecords("CUSTOMER", customerIds);
+
+                com.crm.service.export.ExcelExportService exportService = new com.crm.service.export.ExcelExportService();
+                exportService.exportCustomers(resp, customers, activeFields, customValues);
+                return;
+            }
+
+            // 1. Kiểm tra trùng lặp thời gian thực
+            if (path.equals("/check-duplicate")) {
+                String name = req.getParameter("name");
+                String taxCode = req.getParameter("taxCode");
+                String website = req.getParameter("website");
+                String email = req.getParameter("email");
+                String phone = req.getParameter("phone");
+                String exclStr = req.getParameter("excludeId");
+                Long excludeId = (exclStr != null && !exclStr.isBlank()) ? Long.parseLong(exclStr.trim()) : null;
+
+                var dupes = customerService.checkDuplicates(currentUserId, name, taxCode, website, email, phone, excludeId);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Kiểm tra trùng lặp thành công", dupes));
+                return;
+            }
+
+            // Gợi ý khách hàng trùng lặp để gắn lead thẳng vào khách hàng đó
+            if (path.equals("/suggest-existing")) {
+                String email = req.getParameter("email");
+                String phone = req.getParameter("phone");
+                String companyName = req.getParameter("companyName");
+                if (companyName == null) companyName = req.getParameter("name");
+
+                var suggestion = customerService.suggestExistingCustomer(currentUserId, email, phone, companyName);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Gợi ý khách hàng thành công", suggestion));
+                return;
+            }
+
+            // 2. Lấy danh sách tất cả các cặp trùng lặp trong hệ thống
+            if (path.equals("/duplicates")) {
+                var pairs = customerService.findAllDuplicatePairs(currentUserId);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Lấy danh sách cặp trùng lặp thành công", pairs));
+                return;
+            }
+
+            // 3. So sánh 2 khách hàng cạnh nhau
+            if (path.equals("/compare")) {
+                String id1Str = req.getParameter("id1");
+                if (id1Str == null) id1Str = req.getParameter("masterId");
+                String id2Str = req.getParameter("id2");
+                if (id2Str == null) id2Str = req.getParameter("duplicateId");
+
+                if (id1Str == null || id2Str == null) {
+                    throw new IllegalArgumentException("Cần cung cấp id1 và id2 để so sánh.");
+                }
+
+                long id1 = Long.parseLong(id1Str.trim());
+                long id2 = Long.parseLong(id2Str.trim());
+                var comparison = customerService.getComparison(currentUserId, id1, id2);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Lấy dữ liệu so sánh thành công", comparison));
+                return;
+            }
+
+            // 4. Khách hàng 360
+            if (path.endsWith("/360")) {
+                if (!path.matches("/[1-9][0-9]*/360")) throw new IllegalArgumentException("ID không hợp lệ");
+                resp.setHeader("Cache-Control", "no-store");
+                long id = parseId(path);
+                var data = customerService.getCustomer360(currentUserId, id);
+                if (data == null) {
+                    ResponseUtil.json(resp, 404, ApiResponse.error("Không tìm thấy khách hàng", null));
+                    return;
+                }
+                ResponseUtil.json(resp, 200, ApiResponse.success("Lấy thông tin khách hàng 360 thành công", data));
+                return;
+            }
+
+            // 5. Kiểm tra trùng lặp cho 1 khách hàng cụ thể
+            if (path.endsWith("/duplicates")) {
+                long id = parseId(path);
+                var current = customerService.getById(currentUserId, id);
+                if (current == null) {
+                    ResponseUtil.json(resp, 404, ApiResponse.error("Không tìm thấy khách hàng", null));
+                    return;
+                }
+                String name = (String) current.get("name");
+                String taxCode = (String) current.get("taxCode");
+                String website = (String) current.get("website");
+                var dupes = customerService.checkDuplicates(currentUserId, name, taxCode, website, id);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Tìm thấy danh sách trùng lặp", dupes));
                 return;
             }
 
@@ -48,34 +198,51 @@ public class CustomerServlet extends HttpServlet {
             }
 
             ResponseUtil.json(resp, 200, ApiResponse.success("Lấy thông tin khách hàng thành công", customer));
+        } catch (UnauthenticatedException e) {
+            ResponseUtil.json(resp, 401, ApiResponse.error(e.getMessage(), null));
         } catch (SecurityException e) {
             ResponseUtil.json(resp, 403, ApiResponse.error(e.getMessage(), null));
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
-            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ: " + e.getMessage(), null));
+            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));
         }
     }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        req.setCharacterEncoding("UTF-8");
         try {
             long currentUserId = requireUser(req);
+            String path = req.getPathInfo();
+
+            // Gộp khách hàng (Yêu cầu Trưởng nhóm trở lên)
+            if (path != null && path.equals("/merge")) {
+                com.crm.dto.customers.CustomerMergeRequest mergeReq =
+                        JsonUtil.getGson().fromJson(req.getReader(), com.crm.dto.customers.CustomerMergeRequest.class);
+                var mergeResult = customerService.mergeCustomers(currentUserId, mergeReq);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Gộp khách hàng thành công", mergeResult));
+                return;
+            }
+
             CustomerWriteRequest body = JsonUtil.getGson().fromJson(req.getReader(), CustomerWriteRequest.class);
 
             var created = customerService.create(currentUserId, body);
             ResponseUtil.json(resp, 201, ApiResponse.success("Tạo khách hàng thành công", created));
+        } catch (UnauthenticatedException e) {
+            ResponseUtil.json(resp, 401, ApiResponse.error(e.getMessage(), null));
         } catch (SecurityException e) {
             ResponseUtil.json(resp, 403, ApiResponse.error(e.getMessage(), null));
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
-            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ: " + e.getMessage(), null));
+            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));
         }
     }
 
     @Override
     protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        req.setCharacterEncoding("UTF-8");
         try {
             long currentUserId = requireUser(req);
             long id = parseId(req.getPathInfo());
@@ -88,12 +255,14 @@ public class CustomerServlet extends HttpServlet {
             }
 
             ResponseUtil.json(resp, 200, ApiResponse.success("Cập nhật khách hàng thành công", updated));
+        } catch (UnauthenticatedException e) {
+            ResponseUtil.json(resp, 401, ApiResponse.error(e.getMessage(), null));
         } catch (SecurityException e) {
             ResponseUtil.json(resp, 403, ApiResponse.error(e.getMessage(), null));
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
-            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ: " + e.getMessage(), null));
+            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));
         }
     }
 
@@ -105,6 +274,8 @@ public class CustomerServlet extends HttpServlet {
 
             customerService.delete(currentUserId, id);
             ResponseUtil.json(resp, 200, ApiResponse.success("Xóa khách hàng thành công", null));
+        } catch (UnauthenticatedException e) {
+            ResponseUtil.json(resp, 401, ApiResponse.error(e.getMessage(), null));
         } catch (SecurityException e) {
             ResponseUtil.json(resp, 403, ApiResponse.error(e.getMessage(), null));
         } catch (NoSuchElementException e) {
@@ -112,16 +283,25 @@ public class CustomerServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
-            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ: " + e.getMessage(), null));
+            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));
         }
+    }
+
+    private static final class UnauthenticatedException extends SecurityException {
+        private static final long serialVersionUID = 1L;
+        UnauthenticatedException(String message) { super(message); }
     }
 
     private long requireUser(HttpServletRequest req) {
         HttpSession session = req.getSession(false);
         if (session == null || session.getAttribute("userId") == null) {
-            throw new SecurityException("Phiên đăng nhập không hợp lệ hoặc đã hết hạn.");
+            throw new UnauthenticatedException("Phiên đăng nhập không hợp lệ hoặc đã hết hạn.");
         }
-        return (Long) session.getAttribute("userId");
+        Object identity = session.getAttribute("userId");
+        if (!(identity instanceof Number number) || number.longValue() <= 0) {
+            throw new UnauthenticatedException("Phiên đăng nhập không hợp lệ");
+        }
+        return number.longValue();
     }
 
     private long parseId(String pathInfo) {
@@ -141,6 +321,16 @@ public class CustomerServlet extends HttpServlet {
             return Integer.parseInt(val.trim());
         } catch (NumberFormatException e) {
             return fallback;
+        }
+    }
+
+    private Long longParam(HttpServletRequest req, String name) {
+        String val = req.getParameter(name);
+        if (val == null || val.isBlank()) return null;
+        try {
+            return Long.parseLong(val.trim());
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 }

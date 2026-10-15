@@ -9,9 +9,11 @@ public class PipelineStageDAO {
 
     public Map<String, Object> findById(long id) throws SQLException {
         String sql = """
-                SELECT id, pipeline_id, code, name, stage_order, win_probability, requirements, is_won, is_lost, is_active
+                SELECT id, pipeline_id, code, name, order_no AS stage_order, probability AS win_probability,
+                       exit_condition, condition_type, condition_required, exit_condition AS requirements,
+                       is_won, is_lost, active AS is_active
                 FROM pipeline_stages
-                WHERE id = ? AND is_active = 1
+                WHERE id = ? AND active = 1
                 """;
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -26,6 +28,9 @@ public class PipelineStageDAO {
                     map.put("stageOrder", rs.getInt("stage_order"));
                     map.put("winProbability", rs.getInt("win_probability"));
                     map.put("requirements", rs.getString("requirements"));
+                    map.put("exitCondition", rs.getString("exit_condition"));
+                    map.put("conditionType", rs.getString("condition_type"));
+                    map.put("conditionRequired", rs.getBoolean("condition_required"));
                     map.put("isWon", rs.getBoolean("is_won"));
                     map.put("isLost", rs.getBoolean("is_lost"));
                     map.put("isActive", rs.getBoolean("is_active"));

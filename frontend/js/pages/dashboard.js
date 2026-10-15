@@ -1,13 +1,41 @@
 "use strict";
 
+function fixMojibake(str) {
+    if (!str || typeof str !== "string") return str;
+    if (!str.includes("Æ") && !str.includes("Ã") && !str.includes("áº") && !str.includes("á»") && !str.includes("Ä")) {
+        return str;
+    }
+    try {
+        const bytes = [];
+        for (let i = 0; i < str.length; i++) {
+            const code = str.charCodeAt(i);
+            if (code === 0xC3 && i + 1 < str.length && str.charCodeAt(i + 1) === 0x20) {
+                bytes.push(0xC3, 0xA0);
+                i++;
+                continue;
+            }
+            if (code <= 0xFF) {
+                bytes.push(code);
+            } else {
+                return str;
+            }
+        }
+        return new TextDecoder("utf-8", { fatal: true }).decode(new Uint8Array(bytes));
+    } catch (_) {
+        return str;
+    }
+}
+
 
 document
     .getElementById(
         "refreshDashboard"
     )
-    .addEventListener(
+    ?.addEventListener(
         "click",
-        renderDashboard
+        () => {
+            syncBackendData();
+        }
     );
 
 
@@ -117,8 +145,21 @@ function renderKpis(
     activities
 ) {
 
+    const openOpps =
+        opportunities.filter(
+            item =>
+                !item.status
+                ||
+                String(item.status).toUpperCase() === "OPEN"
+        );
+
+    const targetOpps =
+        openOpps.length > 0
+        ? openOpps
+        : opportunities;
+
     const opportunityValue =
-        opportunities.reduce(
+        targetOpps.reduce(
             (
                 sum,
                 item
@@ -137,7 +178,7 @@ function renderKpis(
     const approvedQuotes =
         quotes.filter(
             quote =>
-                quote.status
+                String(quote.status || "").toLowerCase()
                 ===
                 "approved"
         );
@@ -190,7 +231,7 @@ function renderKpis(
 
     text(
         "kpiOpportunities",
-        opportunities.length
+        targetOpps.length
     );
 
 
@@ -771,16 +812,18 @@ function renderRecentActivities(
             <div class="recent-copy">
 
                 <strong>
-                    ${escapeHtml(item.title || "Hoạt động")}
+                    ${escapeHtml(fixMojibake(item.title || "Hoạt động"))}
                 </strong>
 
                 <span>
                     ${
                         escapeHtml(
-                            item.relation
-                            ||
-                            typeLabel(
-                                item.type
+                            fixMojibake(
+                                item.relation
+                                ||
+                                typeLabel(
+                                    item.type
+                                )
                             )
                         )
                     }
@@ -890,7 +933,7 @@ function renderTasks(
             <div class="dashboard-task-copy">
 
                 <strong>
-                    ${escapeHtml(task.title)}
+                    ${escapeHtml(fixMojibake(task.title))}
                 </strong>
 
                 <span>
@@ -907,7 +950,7 @@ function renderTasks(
                         " · "
                         +
                         escapeHtml(
-                            task.owner
+                            fixMojibake(task.owner)
                         )
                         :
                         ""
@@ -956,14 +999,36 @@ function loadArray(
                 )
             );
 
+        if (!Array.isArray(value)) {
+            return [];
+        }
 
-        return Array.isArray(
-            value
-        )
-        ?
-        value
-        :
-        [];
+        if (key === "crm_ui_activities") {
+            let hasCorrupted = false;
+            const cleaned = value.map(item => {
+                const rawTitle = item.title || item.subject || "";
+                const rawRelation = item.relation || item.customerName || "";
+                const fixedTitle = fixMojibake(rawTitle);
+                const fixedRelation = fixMojibake(rawRelation);
+                if (fixedTitle !== rawTitle || fixedRelation !== rawRelation) {
+                    hasCorrupted = true;
+                }
+                return {
+                    ...item,
+                    title: fixedTitle || "Hoạt động",
+                    relation: fixedRelation,
+                    description: fixMojibake(item.description || "")
+                };
+            });
+            if (hasCorrupted) {
+                try {
+                    localStorage.setItem("crm_ui_activities", JSON.stringify(cleaned));
+                } catch (_) {}
+            }
+            return cleaned;
+        }
+
+        return value;
 
     } catch {
 
@@ -1047,16 +1112,16 @@ function stageLabel(key) {
     switch (key) {
 
         case "approach":
-            return "Tiếp cận";
+            return "Tiếp cận & Khảo sát";
 
         case "quote":
-            return "Báo giá";
+            return "Báo giá & Đề xuất";
 
         case "negotiation":
-            return "Đàm phán";
+            return "Thương lượng & Đàm phán";
 
         case "closing":
-            return "Chốt";
+            return "Chốt thành công (Won)";
 
         default:
             return key;
@@ -1071,42 +1136,40 @@ function normalizeStageKey(
 ) {
 
     const normalized =
-        String(name)
+        String(name || "")
             .trim()
             .toLowerCase();
 
 
     if (
-        normalized.includes(
-            "tiếp cận"
-        )
+        normalized.includes("tiếp cận") ||
+        normalized.includes("điều kiện") ||
+        normalized.includes("khảo sát")
     ) {
         return "approach";
     }
 
 
     if (
-        normalized.includes(
-            "báo giá"
-        )
+        normalized.includes("báo giá") ||
+        normalized.includes("đề xuất")
     ) {
         return "quote";
     }
 
 
     if (
-        normalized.includes(
-            "đàm phán"
-        )
+        normalized.includes("đàm phán") ||
+        normalized.includes("thương lượng")
     ) {
         return "negotiation";
     }
 
 
     if (
-        normalized.includes(
-            "chốt"
-        )
+        normalized.includes("chốt") ||
+        normalized.includes("thành công") ||
+        normalized.includes("won")
     ) {
         return "closing";
     }
@@ -1247,47 +1310,60 @@ function text(
 
 
 function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
 
-    return String(
-        value
-        ??
-        ""
-    )
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-renderDashboard();
-
-(async function syncBackendData() {
+async function syncBackendData() {
     try {
-        const [oppRes, quoteRes, actRes] = await Promise.all([
-            fetch("http://localhost:8080/crm/api/opportunities", { credentials: "include" }),
-            fetch("http://localhost:8080/crm/api/quotes", { credentials: "include" }),
-            fetch("http://localhost:8080/crm/api/activities", { credentials: "include" })
+        const API_ROOT = window.location.pathname.startsWith("/crm") ? "/crm" : "http://localhost:8080/crm";
+        const [oppRes, quoteRes, actRes, userRes, prodRes, stageRes] = await Promise.all([
+            fetch(API_ROOT + "/api/opportunities", { credentials: "include" }),
+            fetch(API_ROOT + "/api/quotes", { credentials: "include" }),
+            fetch(API_ROOT + "/api/activities", { credentials: "include" }),
+            fetch(API_ROOT + "/api/users", { credentials: "include" }),
+            fetch(API_ROOT + "/api/products", { credentials: "include" }),
+            fetch(API_ROOT + "/api/pipeline-stages", { credentials: "include" })
         ]);
 
-        const [oppJson, quoteJson, actJson] = await Promise.all([
+        const [oppJson, quoteJson, actJson, userJson, prodJson, stageJson] = await Promise.all([
             oppRes.json().catch(() => null),
             quoteRes.json().catch(() => null),
-            actRes.json().catch(() => null)
+            actRes.json().catch(() => null),
+            userRes.json().catch(() => null),
+            prodRes.json().catch(() => null),
+            stageRes.json().catch(() => null)
         ]);
 
         let changed = false;
 
         if (oppJson?.success && Array.isArray(oppJson.data)) {
-            const opps = oppJson.data.map(o => ({
-                id: o.id,
-                name: o.name,
-                customer: o.customerName || "",
-                value: Number(o.amount || 0),
-                stage: String(o.stageId),
-                stageName: o.stageName,
-                probability: o.probability || 0,
-                closeDate: o.expectedCloseDate || "",
-                owner: o.ownerName || "Tôi",
-                status: o.status
-            }));
+            const opps = oppJson.data.map(o => {
+                let stageKey = "approach";
+                const sName = (o.stageName || "").toLowerCase();
+                if (sName.includes("tiếp cận") || sName.includes("điều kiện") || sName.includes("khảo sát")) stageKey = "approach";
+                else if (sName.includes("báo giá") || sName.includes("đề xuất")) stageKey = "quote";
+                else if (sName.includes("đàm phán") || sName.includes("thương lượng")) stageKey = "negotiation";
+                else if (sName.includes("chốt") || sName.includes("thành công") || sName.includes("won")) stageKey = "closing";
+                else if (o.stageId) stageKey = String(o.stageId);
+
+                return {
+                    id: o.id,
+                    name: o.name,
+                    customer: o.customerName || "",
+                    value: Number(o.amount || 0),
+                    stage: stageKey,
+                    stageId: o.stageId,
+                    stageName: o.stageName,
+                    probability: o.probability || 0,
+                    closeDate: o.expectedCloseDate || "",
+                    owner: o.ownerName || "Tôi",
+                    status: o.status
+                };
+            });
             localStorage.setItem("crm_ui_opportunities", JSON.stringify(opps));
             changed = true;
         }
@@ -1307,18 +1383,58 @@ renderDashboard();
         }
 
         if (actJson?.success && Array.isArray(actJson.data)) {
-            const acts = actJson.data.map(a => ({
-                id: a.id,
-                type: (a.type || "task").toLowerCase(),
-                title: a.subject || "Hoạt động",
-                status: (a.status || "OPEN").toUpperCase() === "COMPLETED" ? "done" : "open"
-            }));
+            const acts = actJson.data.map(a => {
+                let dateStr = "";
+                if (a.dueDate) {
+                    const dt = new Date(a.dueDate);
+                    if (!isNaN(dt.getTime())) {
+                        dateStr = dt.toISOString().split("T")[0];
+                    }
+                }
+                return {
+                    id: a.id,
+                    type: (a.type || "task").toLowerCase(),
+                    title: fixMojibake(a.subject || "Hoạt động"),
+                    relation: fixMojibake(a.customerName || a.opportunityName || ""),
+                    description: fixMojibake(a.description || ""),
+                    date: dateStr,
+                    createdAt: a.createdAt || "",
+                    status: (a.status || "OPEN").toUpperCase() === "COMPLETED" ? "done" : "open"
+                };
+            });
             localStorage.setItem("crm_ui_activities", JSON.stringify(acts));
+            changed = true;
+        }
+
+        if (userJson?.success) {
+            const list = Array.isArray(userJson.data) ? userJson.data : (userJson.data?.items || []);
+            localStorage.setItem("crm_ui_users", JSON.stringify(list));
+            changed = true;
+        }
+
+        if (prodJson?.success) {
+            const list = Array.isArray(prodJson.data) ? prodJson.data : (prodJson.data?.items || []);
+            localStorage.setItem("crm_ui_products", JSON.stringify(list));
+            changed = true;
+        }
+
+        if (stageJson?.success && Array.isArray(stageJson.data)) {
+            const stages = stageJson.data.map(s => ({
+                id: s.id,
+                name: s.name,
+                probability: s.probability || 0
+            }));
+            localStorage.setItem("crm_ui_pipeline_stages", JSON.stringify(stages));
             changed = true;
         }
 
         if (changed) {
             renderDashboard();
         }
-    } catch (_) {}
-})();
+    } catch (e) {
+        console.warn("Could not sync backend data for dashboard:", e);
+    }
+}
+
+renderDashboard();
+syncBackendData();

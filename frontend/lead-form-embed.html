@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biểu mẫu đăng ký tư vấn</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-light: #eff6ff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --bg-card: #ffffff;
+            --border: #e2e8f0;
+            --radius: 12px;
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: transparent;
+            padding: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .lead-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 540px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .lead-header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+            color: #ffffff;
+            padding: 24px;
+            text-align: left;
+        }
+
+        .lead-header h2 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            line-height: 1.3;
+        }
+
+        .lead-header p {
+            font-size: 13.5px;
+            color: #dbeafe;
+            line-height: 1.5;
+            opacity: 0.95;
+        }
+
+        .lead-body {
+            padding: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 14px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 6px;
+        }
+
+        label span.req {
+            color: #ef4444;
+            margin-left: 2px;
+        }
+
+        .input-control {
+            width: 100%;
+            padding: 10px 14px;
+            font-size: 14px;
+            color: var(--text-main);
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .input-control:focus {
+            background: #ffffff;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+
+        textarea.input-control {
+            resize: vertical;
+            min-height: 75px;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #ffffff;
+            background: var(--primary);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        .alert-error {
+            display: none;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 16px;
+            line-height: 1.4;
+        }
+
+        .success-box {
+            display: none;
+            text-align: center;
+            padding: 40px 24px;
+        }
+
+        .success-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #ecfdf5;
+            color: #059669;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            margin: 0 auto 16px auto;
+        }
+
+        .success-box h3 {
+            font-size: 20px;
+            color: #0f172a;
+            margin-bottom: 8px;
+        }
+
+        .success-box p {
+            font-size: 14px;
+            color: #64748b;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .lead-footer-badge {
+            text-align: center;
+            padding: 12px;
+            font-size: 11.5px;
+            color: #94a3b8;
+            border-top: 1px solid #f1f5f9;
+            background: #fafafa;
+        }
+
+        .lead-footer-badge a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        /* Honeypot field (hidden completely from humans) */
+        .hp-field {
+            position: absolute !important;
+            left: -9999px !important;
+            top: -9999px !important;
+            opacity: 0 !important;
+            height: 0 !important;
+            width: 0 !important;
+            pointer-events: none !important;
+        }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 480px) {
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+            .lead-header {
+                padding: 18px;
+            }
+            .lead-body {
+                padding: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="lead-card">
+    <div class="lead-header">
+        <h2 id="formTitle">Đăng ký tư vấn giải pháp</h2>
+        <p id="formDesc">Vui lòng điền thông tin bên dưới để chuyên viên của chúng tôi liên hệ hỗ trợ bạn.</p>
+    </div>
+
+    <div class="lead-body">
+        <div id="errorAlert" class="alert-error"></div>
+
+        <form id="leadCaptureForm" novalidate>
+            <!-- Honeypot anti-spam trap (Bots auto-fill this, humans do not) -->
+            <input type="text" name="_hp_website" id="_hp_website" class="hp-field" tabindex="-1" autocomplete="off">
+            <!-- Timestamp to detect automated sub-second submissions -->
+            <input type="hidden" name="loadTimestamp" id="loadTimestamp">
+
+            <div class="form-group">
+                <label for="fullName">Họ và tên <span class="req">*</span></label>
+                <input type="text" id="fullName" class="input-control" placeholder="Ví dụ: Nguyễn Văn An" required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="email">Địa chỉ Email <span class="req">*</span></label>
+                    <input type="email" id="email" class="input-control" placeholder="name@company.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Số điện thoại <span class="req">*</span></label>
+                    <input type="tel" id="phone" class="input-control" placeholder="0912 345 678" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="company">Tên công ty / Tổ chức</label>
+                <input type="text" id="company" class="input-control" placeholder="Công ty TNHH Giải pháp..." >
+            </div>
+
+            <div class="form-group">
+                <label for="interest">Nhu cầu quan tâm</label>
+                <textarea id="interest" class="input-control" placeholder="Mô tả ngắn gọn yêu cầu hoặc giải pháp bạn quan tâm..."></textarea>
+            </div>
+
+            <button type="submit" id="btnSubmit" class="btn-submit">
+                <span id="btnText">Gửi thông tin tư vấn</span>
+            </button>
+        </form>
+
+        <div id="successBox" class="success-box">
+            <div class="success-icon">✓</div>
+            <h3 id="successTitle">Gửi thông tin thành công!</h3>
+            <p id="successMsg">Cảm ơn bạn đã quan tâm. Chúng tôi đã nhận được thông tin và sẽ liên hệ lại trong thời gian sớm nhất.</p>
+            <button type="button" id="btnReset" class="btn-submit" style="background:#475569; width:auto; margin:0 auto; padding:8px 20px;">
+                Gửi phản hồi khác
+            </button>
+        </div>
+    </div>
+
+    <div class="lead-footer-badge">
+        Hệ thống tiếp nhận tự động bảo vệ bởi <a href="#" target="_blank">Corporate CRM Lead Capture</a>
+    </div>
+</div>
+
+<script>
+(function() {
+    const params = new URLSearchParams(window.location.search);
+    const formKey = params.get('key') || 'wf_landingpage_tuvan';
+    const apiBase = window.location.origin + (window.location.pathname.startsWith('/crm') ? '/crm' : '');
+
+    const formEl = document.getElementById('leadCaptureForm');
+    const titleEl = document.getElementById('formTitle');
+    const descEl = document.getElementById('formDesc');
+    const btnSubmit = document.getElementById('btnSubmit');
+    const btnText = document.getElementById('btnText');
+    const errorAlert = document.getElementById('errorAlert');
+    const successBox = document.getElementById('successBox');
+    const successMsg = document.getElementById('successMsg');
+    const btnReset = document.getElementById('btnReset');
+    const loadTimestampEl = document.getElementById('loadTimestamp');
+
+    // Record load timestamp
+    loadTimestampEl.value = Date.now();
+
+    // 1. Fetch form config
+    async function loadConfig() {
+        try {
+            const res = await fetch(`${apiBase}/api/public/lead-forms/config?key=${encodeURIComponent(formKey)}`);
+            const json = await res.json();
+            if (res.ok && json.success && json.data) {
+                if (json.data.title) titleEl.textContent = json.data.title;
+                if (json.data.description) descEl.textContent = json.data.description;
+                if (json.data.submitButtonText) btnText.textContent = json.data.submitButtonText;
+                if (json.data.successMessage) successMsg.textContent = json.data.successMessage;
+            }
+        } catch (e) {
+            console.warn('Using default form config:', e);
+        }
+    }
+    loadConfig();
+
+    // 2. Form submission
+    formEl.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        errorAlert.style.display = 'none';
+
+        const fullName = document.getElementById('fullName').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const phone = document.getElementById('phone').value.trim();
+        const company = document.getElementById('company').value.trim();
+        const interest = document.getElementById('interest').value.trim();
+        const _hp_website = document.getElementById('_hp_website').value;
+        const loadTimestamp = parseInt(loadTimestampEl.value, 10);
+
+        if (!fullName) {
+            showError('Vui lòng nhập Họ và tên.');
+            document.getElementById('fullName').focus();
+            return;
+        }
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            showError('Vui lòng nhập địa chỉ Email hợp lệ.');
+            document.getElementById('email').focus();
+            return;
+        }
+        if (!phone || phone.length < 8) {
+            showError('Vui lòng nhập Số điện thoại hợp lệ (ít nhất 8 chữ số).');
+            document.getElementById('phone').focus();
+            return;
+        }
+
+        // Disable button & show spinner
+        btnSubmit.disabled = true;
+        const originalText = btnText.textContent;
+        btnSubmit.innerHTML = '<div class="spinner"></div> Đang gửi thông tin...';
+
+        try {
+            const response = await fetch(`${apiBase}/api/public/lead-forms/submit`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    formKey: formKey,
+                    fullName: fullName,
+                    email: email,
+                    phone: phone,
+                    company: company,
+                    interest: interest,
+                    _hp_website: _hp_website,
+                    loadTimestamp: loadTimestamp
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                formEl.style.display = 'none';
+                successBox.style.display = 'block';
+                if (result.message) {
+                    successMsg.textContent = result.message;
+                }
+                if (result.data && result.data.redirectUrl) {
+                    setTimeout(() => {
+                        window.top.location.href = result.data.redirectUrl;
+                    }, 2500);
+                }
+            } else {
+                showError(result.message || 'Không thể gửi biểu mẫu. Vui lòng kiểm tra lại.');
+            }
+        } catch (err) {
+            showError('Lỗi kết nối máy chủ: ' + err.message);
+        } finally {
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = `<span id="btnText">${originalText}</span>`;
+        }
+    });
+
+    btnReset.addEventListener('click', function() {
+        formEl.reset();
+        loadTimestampEl.value = Date.now();
+        successBox.style.display = 'none';
+        formEl.style.display = 'block';
+    });
+
+    function showError(msg) {
+        errorAlert.textContent = msg;
+        errorAlert.style.display = 'block';
+        errorAlert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+})();
+</script>
+
+</body>
+</html>

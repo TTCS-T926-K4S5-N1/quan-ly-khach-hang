@@ -68,12 +68,12 @@
             Không gian làm việc
         </div>
 
-        <a href="dashboard.html" class="crm-nav-item">
+        <a href="dashboard" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
             <span class="crm-nav-label">Tổng quan</span>
         </a>
 
-        <a href="pipeline.html" class="crm-nav-item">
+        <a href="pipeline" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 9-8 9-8-9 8-9Z"/></svg></span>
             <span class="crm-nav-label">Cơ hội</span>
         </a>
@@ -83,13 +83,13 @@
             Quản trị
         </div>
 
-        <a href="users.html" class="crm-nav-item">
+        <a href="users" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
             <span class="crm-nav-label">Người dùng</span>
         </a>
 
         <a
-            href="pipeline-settings.html"
+            href="pipeline-settings"
             class="crm-nav-item active"
         >
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m9 3 6 0 1 4 4 1 1 6-4 2-1 4-6 1-2-4-4-1-1-6 4-2 1-4Z"/></svg></span>
@@ -194,29 +194,25 @@
 
     <div class="settings-layout">
 
-        <aside class="crm-card settings-nav">
+        <nav class="crm-card settings-nav" aria-label="Cài đặt">
 
-            <a class="active" href="#">
+            <a class="active" href="pipeline-settings">
                 Pipeline & Giai đoạn
             </a>
 
-            <a href="#">
-                Lý do Thắng / Thua
+            <a href="win-loss-settings">
+                Lý do Thắng / Thua & Đối thủ
             </a>
 
-            <a href="#">
-                Đối thủ cạnh tranh
-            </a>
-
-            <a href="#">
+            <a href="master-data">
                 Danh mục dùng chung
             </a>
 
-            <a href="#">
+            <a href="custom-fields">
                 Trường tùy chỉnh
             </a>
 
-        </aside>
+        </nav>
 
 
         <section class="crm-card stages-panel">
@@ -343,24 +339,51 @@
 
 
         <label>
-            Điều kiện bắt buộc để rời giai đoạn
+            Quy tắc điều kiện rời giai đoạn (Exit Criteria)
+            <select id="stageConditionType" class="crm-input" style="margin-top: 6px;">
+                <option value="NONE">-- Không áp dụng quy tắc tự động --</option>
+                <option value="HAS_MEETING">Phải có ít nhất một cuộc gặp (Meeting) trong Hoạt động</option>
+                <option value="HAS_CALL">Phải có ít nhất một cuộc gọi (Call) trong Hoạt động</option>
+                <option value="HAS_PRODUCTS">Phải thêm sản phẩm / dịch vụ vào cơ hội để có giá trị căn cứ</option>
+                <option value="HAS_CONTACT">Phải gắn thông tin Người liên hệ (Contact)</option>
+                <option value="MIN_AMOUNT">Giá trị hợp đồng phải lớn hơn 0 đ</option>
+                <option value="CUSTOM">Quy tắc tùy chỉnh khác</option>
+            </select>
+        </label>
 
+        <label style="margin-top: 10px;">
+            Mô tả điều kiện bắt buộc để rời giai đoạn
             <textarea
                 id="stageCondition"
-                rows="4"
-                placeholder="VD: Phải có ít nhất một cuộc gặp..."
+                rows="3"
+                placeholder="VD: Phải có ít nhất một cuộc gặp được ghi nhận trong Hoạt động..."
             ></textarea>
         </label>
 
-
-        <label class="condition-toggle">
-
+        <label class="condition-toggle" style="margin-top: 10px;">
             <input
                 id="stageConditionRequired"
                 type="checkbox"
             >
+            Bắt buộc thỏa điều kiện trước khi chuyển giai đoạn (Trưởng nhóm trở lên có thể ghi đè)
+        </label>
 
-            Bắt buộc thỏa điều kiện trước khi chuyển giai đoạn
+        <label style="margin-top: 10px;">
+            Số ngày tối đa không hoạt động trước khi cảnh báo đình trệ (N ngày)
+            <em>*</em>
+            <input
+                id="stageStagnantDays"
+                class="crm-input"
+                type="number"
+                min="1"
+                max="365"
+                value="7"
+                placeholder="7"
+                style="margin-top: 4px;"
+            >
+            <small style="color: var(--crm-muted); font-size: 11px; display: block; margin-top: 2px;">
+                Cơ hội ở giai đoạn này không có hoạt động trong N ngày sẽ bị gắn cờ cảnh báo đình trệ.
+            </small>
         </label>
 
 

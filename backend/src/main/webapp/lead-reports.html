@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<script>
+(function () {
+    try {
+        var theme = localStorage.getItem("crm_ui_theme");
+        document.documentElement.setAttribute("data-theme", theme === "dark" ? "dark" : "light");
+        document.documentElement.removeAttribute("data-crm-theme");
+    } catch (e) {
+        document.documentElement.setAttribute("data-theme", "light");
+    }
+})();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Báo cáo Hiệu quả Nguồn Lead & Đo lường ROI | Corporate CRM</title>
+
+<link rel="stylesheet" href="css/design-system.css">
+<link rel="stylesheet" href="css/app-shell.css">
+<link rel="stylesheet" href="css/pages/lead-reports.css">
+<link rel="stylesheet" href="css/animations.css">
+</head>
+
+<body class="crm-private">
+
+<aside class="crm-sidebar"></aside>
+
+<div class="crm-shell">
+    <header class="crm-topbar"></header>
+
+    <main class="crm-content">
+        <!-- Breadcrumbs -->
+        <div style="font-size: 13px; color: var(--crm-muted, #64748b); margin-bottom: 8px;">
+            <a href="dashboard" style="color: inherit; text-decoration: none;">Tổng quan</a>
+            <span style="margin: 0 6px;">/</span>
+            <span>Tiếp thị & Báo cáo</span>
+            <span style="margin: 0 6px;">/</span>
+            <span style="color: var(--crm-primary); font-weight: 600;">Báo cáo Hiệu quả Nguồn Lead & ROI</span>
+        </div>
+
+        <!-- Page Header -->
+        <div class="report-header">
+            <div class="report-title-area">
+                <h1>
+                    <span>📊</span> Báo cáo Hiệu quả Nguồn Lead & ROI
+                </h1>
+                <p>
+                    Phân tích số lead, tỷ lệ tiếp nhận, tỷ lệ chuyển đổi thành cơ hội bán hàng và doanh thu thực tế của từng kênh/chiến dịch để tối ưu hóa ngân sách tiếp thị.
+                </p>
+            </div>
+            <div class="report-header-actions">
+                <a href="customers" class="crm-btn crm-btn-secondary" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                    👥 Danh sách Lead
+                </a>
+                <button id="btnRefresh" class="crm-btn crm-btn-secondary" type="button" title="Tải lại dữ liệu báo cáo" style="display:inline-flex; align-items:center; gap:6px;">
+                    🔄 Làm mới
+                </button>
+                <button id="btnExportExcel" class="crm-btn crm-btn-primary" type="button" style="display:inline-flex; align-items:center; gap:6px; background:#059669; border-color:#059669;">
+                    📥 Xuất Báo cáo Excel (.xlsx)
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="report-filter-bar">
+            <div class="date-preset-group">
+                <span style="font-size: 12.5px; font-weight: 600; color: var(--crm-muted); margin-right: 4px;">Thời gian:</span>
+                <button type="button" class="preset-chip active" data-preset="ALL">Toàn thời gian</button>
+                <button type="button" class="preset-chip" data-preset="TODAY">Hôm nay</button>
+                <button type="button" class="preset-chip" data-preset="LAST_7_DAYS">7 ngày qua</button>
+                <button type="button" class="preset-chip" data-preset="THIS_MONTH">Tháng này</button>
+                <button type="button" class="preset-chip" data-preset="THIS_QUARTER">Quý này</button>
+            </div>
+
+            <div class="custom-date-group">
+                <label for="inputFromDate" style="font-size: 12.5px; color: var(--crm-muted);">Từ ngày:</label>
+                <input type="date" id="inputFromDate" class="crm-input">
+                <label for="inputToDate" style="font-size: 12.5px; color: var(--crm-muted);">Đến ngày:</label>
+                <input type="date" id="inputToDate" class="crm-input">
+                <button id="btnApplyDateFilter" type="button" class="crm-btn crm-btn-secondary" style="font-size: 12.5px; padding: 6px 14px;">
+                    Lọc
+                </button>
+            </div>
+        </div>
+
+        <!-- KPI Ribbon -->
+        <div class="report-kpi-grid">
+            <div class="report-kpi-card">
+                <div class="kpi-meta">
+                    <span class="kpi-label">Tổng Lead Thu Được</span>
+                    <span class="kpi-icon" style="background:#eff6ff; color:#1d4ed8;">👥</span>
+                </div>
+                <div class="kpi-value" id="kpiTotalLeads">0</div>
+                <div class="kpi-sub" id="kpiTotalLeadsSub">Từ tất cả các kênh tiếp thị</div>
+            </div>
+
+            <div class="report-kpi-card">
+                <div class="kpi-meta">
+                    <span class="kpi-label">Tỷ Lệ Được Nhận</span>
+                    <span class="kpi-icon" style="background:#f0fdf4; color:#15803d;">✅</span>
+                </div>
+                <div class="kpi-value" id="kpiAcceptanceRate">0.0%</div>
+                <div class="kpi-sub" id="kpiAcceptedLeadsSub">0 lead đã được Sales tiếp nhận</div>
+            </div>
+
+            <div class="report-kpi-card">
+                <div class="kpi-meta">
+                    <span class="kpi-label">Tỷ Lệ Chuyển Đổi Cơ Hội</span>
+                    <span class="kpi-icon" style="background:#faf5ff; color:#7e22ce;">⚡</span>
+                </div>
+                <div class="kpi-value" id="kpiConversionRate" style="color:#7e22ce;">0.0%</div>
+                <div class="kpi-sub" id="kpiConvertedLeadsSub">0 lead chuyển thành Opportunity</div>
+            </div>
+
+            <div class="report-kpi-card">
+                <div class="kpi-meta">
+                    <span class="kpi-label">Cơ Hội Phát Sinh</span>
+                    <span class="kpi-icon" style="background:#fffbeb; color:#b45309;">💼</span>
+                </div>
+                <div class="kpi-value" id="kpiTotalOpportunities">0</div>
+                <div class="kpi-sub">Số cơ hội bán hàng trong pipeline</div>
+            </div>
+
+            <div class="report-kpi-card">
+                <div class="kpi-meta">
+                    <span class="kpi-label">Doanh Thu Chốt (Won)</span>
+                    <span class="kpi-icon" style="background:#ecfdf5; color:#047857;">🏆</span>
+                </div>
+                <div class="kpi-value" id="kpiTotalWonRevenue" style="color:#059669;">0 đ</div>
+                <div class="kpi-sub" id="kpiWonOppsSub">0 hợp đồng đã chốt thành công</div>
+            </div>
+        </div>
+
+        <!-- Strategic Recommendation Banner -->
+        <div class="recommendation-banner" id="recommendationBanner" style="display:none;">
+            <div class="banner-icon">💡</div>
+            <div class="banner-content">
+                <h4 id="recommendationTitle">Đề xuất tối ưu ngân sách Marketing</h4>
+                <p id="recommendationDesc">Hệ thống đang phân tích hiệu quả kênh...</p>
+            </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="report-tabs">
+            <button type="button" class="report-tab-btn active" data-tab="tabSources">
+                <span>🌐</span> Hiệu quả theo Nguồn Lead (<span id="countSources">0</span>)
+            </button>
+            <button type="button" class="report-tab-btn" data-tab="tabCampaigns">
+                <span>🎯</span> Hiệu quả Chiến dịch Marketing & ROI (<span id="countCampaigns">0</span>)
+            </button>
+        </div>
+
+        <!-- Tab 1: Lead Sources Table -->
+        <div id="tabSources" class="report-tab-pane active">
+            <div class="report-table-card">
+                <div class="report-table-wrapper">
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th style="min-width: 170px;">Nguồn Lead / Kênh</th>
+                                <th style="text-align: right; min-width: 90px;">Số Lead</th>
+                                <th style="text-align: right; min-width: 90px;">Đã Nhận</th>
+                                <th style="text-align: right; min-width: 110px;">Tỷ Lệ Nhận</th>
+                                <th style="text-align: right; min-width: 100px;">Cơ Hội Tạo Ra</th>
+                                <th style="text-align: right; min-width: 120px;">Tỷ Lệ Thành Cơ Hội</th>
+                                <th style="text-align: right; min-width: 90px;">Deal Chốt</th>
+                                <th style="text-align: right; min-width: 150px;">Doanh Thu Chốt (VND)</th>
+                                <th style="text-align: center; min-width: 120px;">Đánh Giá Kênh</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leadSourcesTbody">
+                            <tr>
+                                <td colspan="9" style="text-align: center; padding: 30px; color: var(--crm-muted);">
+                                    Đang tải báo cáo hiệu quả nguồn lead...
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot id="leadSourcesTfoot"></tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Campaigns & ROI Table -->
+        <div id="tabCampaigns" class="report-tab-pane">
+            <div class="report-table-card">
+                <div class="report-table-wrapper">
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th style="min-width: 180px;">Tên Chiến Dịch</th>
+                                <th style="min-width: 100px;">Mã</th>
+                                <th style="min-width: 130px;">Kênh Tiếp Thị</th>
+                                <th style="min-width: 100px;">Trạng Thái</th>
+                                <th style="text-align: right; min-width: 120px;">Ngân Sách (VND)</th>
+                                <th style="text-align: right; min-width: 80px;">Số Lead</th>
+                                <th style="text-align: right; min-width: 100px;">Chi Phí / Lead</th>
+                                <th style="text-align: right; min-width: 90px;">Số Cơ Hội</th>
+                                <th style="text-align: right; min-width: 80px;">Deal Chốt</th>
+                                <th style="text-align: right; min-width: 140px;">Doanh Thu (VND)</th>
+                                <th style="text-align: right; min-width: 100px;">Tỷ Suất ROI</th>
+                                <th style="text-align: center; min-width: 110px;">Hiệu Quả</th>
+                            </tr>
+                        </thead>
+                        <tbody id="campaignsTbody">
+                            <tr>
+                                <td colspan="12" style="text-align: center; padding: 30px; color: var(--crm-muted);">
+                                    Đang tải dữ liệu chiến dịch marketing...
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot id="campaignsTfoot"></tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<script src="js/shared-shell.js"></script>
+<script src="js/pages/lead-reports.js"></script>
+<script src="js/page-transition.js"></script>
+
+</body>
+</html>

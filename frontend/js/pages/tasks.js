@@ -756,12 +756,19 @@ function setValue(
 
 
 function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
 
 render();
 
 (async function syncBackendActivities() {
     try {
-        const res = await fetch("http://localhost:8080/crm/api/activities", { credentials: "include" });
+        const API_ROOT = window.location.pathname.startsWith("/crm") ? "/crm" : "http://localhost:8080/crm";
+        const res = await fetch(API_ROOT + "/api/activities", { credentials: "include" });
         const json = await res.json();
         if (json?.success && Array.isArray(json.data)) {
             activities = json.data.map(item => {

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<script>
+(function () {
+    try {
+        var theme = localStorage.getItem("crm_ui_theme");
+        document.documentElement.setAttribute("data-theme", theme === "dark" ? "dark" : "light");
+        document.documentElement.removeAttribute("data-crm-theme");
+    } catch (e) {
+        document.documentElement.setAttribute("data-theme", "light");
+    }
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nhập Lead từ Excel | Corporate CRM</title>
+
+<link rel="stylesheet" href="css/design-system.css">
+<link rel="stylesheet" href="css/app-shell.css">
+<link rel="stylesheet" href="css/pages/import-leads.css">
+<link rel="stylesheet" href="css/animations.css">
+</head>
+
+<body class="crm-private">
+
+<aside class="crm-sidebar">
+    <div class="crm-brand">
+        <div class="crm-brand-mark">C</div>
+        <span class="crm-brand-name">Corporate CRM</span>
+    </div>
+
+    <nav class="crm-nav">
+        <a href="dashboard" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+            <span class="crm-nav-label">Tổng quan</span>
+        </a>
+
+        <div class="crm-nav-section">Không gian làm việc</div>
+
+        <a href="customers" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
+            <span class="crm-nav-label">Khách hàng</span>
+        </a>
+
+        <a href="import-leads" class="crm-nav-item active">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4"/><path d="M4 7V3h16v4"/></svg></span>
+            <span class="crm-nav-label">Nhập Lead từ Excel</span>
+        </a>
+
+        <a href="lead-forms" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg></span>
+            <span class="crm-nav-label">Biểu mẫu Lead</span>
+        </a>
+    </nav>
+</aside>
+
+<header class="crm-topbar">
+    <div class="crm-search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input id="globalSearch" type="search" placeholder="Tìm kiếm...">
+        <kbd>Ctrl K</kbd>
+    </div>
+
+    <div class="crm-top-actions">
+        <div class="crm-user">
+            <button id="userButton" class="crm-user-button" type="button">
+                <div class="crm-avatar">M</div>
+                <div class="crm-user-copy">
+                    <span class="crm-user-name">Nhân viên Marketing</span>
+                    <span class="crm-user-role">Marketing Specialist</span>
+                </div>
+            </button>
+        </div>
+    </div>
+</header>
+
+<main class="crm-main import-page">
+
+    <!-- PAGE HEADER -->
+    <section class="import-head">
+        <div>
+            <p class="import-kicker">Marketing / Khách hàng tiềm năng / Nhập Excel</p>
+            <h1>Nhập Lead từ Excel (Hội thảo & Sự kiện)</h1>
+            <span>Tải file mẫu, đối soát dữ liệu tự động, kiểm tra bắt buộc nguồn Lead và đưa danh sách vào hệ thống ngay hôm sau.</span>
+        </div>
+
+        <div class="template-actions">
+            <button id="downloadValidTemplate" class="crm-btn crm-btn-success-outline" type="button" title="Tải mẫu Excel 100% dữ liệu hợp lệ thu thập từ hội thảo">
+                <svg class="crm-inline-icon" viewBox="0 0 24 24"><path d="M12 15V3m-4 4 4-4 4 4M2 17l.62 2.48A2 2 0 0 0 4.56 21h14.88a2 2 0 0 0 1.94-1.52L22 17"/></svg>
+                Tải mẫu Excel Hợp lệ
+            </button>
+            <button id="downloadInvalidTemplate" class="crm-btn crm-btn-warning-outline" type="button" title="Tải mẫu Excel kiểm thử có sẵn các dòng thiếu nguồn, sai định dạng">
+                <svg class="crm-inline-icon" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                Tải mẫu Kiểm thử (Có lỗi)
+            </button>
+        </div>
+    </section>
+
+    <!-- STEP WIZARD -->
+    <section class="import-stepper crm-card">
+        <div class="step-item active" data-step="1">
+            <div class="step-num">1</div>
+            <div class="step-info">
+                <strong>Chọn mẫu Excel</strong>
+                <span>Mẫu chuẩn hội thảo</span>
+            </div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-item" data-step="2">
+            <div class="step-num">2</div>
+            <div class="step-info">
+                <strong>Tải file lên</strong>
+                <span>Kéo thả file .xlsx</span>
+            </div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-item" data-step="3">
+            <div class="step-num">3</div>
+            <div class="step-info">
+                <strong>Đối soát & Báo lỗi</strong>
+                <span>Xem trước từng dòng</span>
+            </div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-item" data-step="4">
+            <div class="step-num">4</div>
+            <div class="step-info">
+                <strong>Xác nhận nhập</strong>
+                <span>Lưu lead vào CRM</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- GUIDELINES & DEMO SANDBOX -->
+    <section class="import-help-grid">
+        <article class="crm-card help-card">
+            <header class="help-card-head">
+                <div class="help-icon rules-icon">
+                    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+                </div>
+                <div>
+                    <strong>Quy định dữ liệu Lead nhập từ Excel</strong>
+                    <span>Tiêu chí nghiệm thu theo nghiệp vụ SCRUM-64</span>
+                </div>
+            </header>
+            <ul class="help-list">
+                <li><span class="field-tag required">Họ và tên *</span> <b>Bắt buộc:</b> Người liên hệ, đại diện gặp tại hội thảo / danh thiếp.</li>
+                <li><span class="field-tag required">Nguồn Lead *</span> <b style="color:#b91c1c;">Bắt buộc mọi lead:</b> Phải ghi rõ nguồn (VD: <em>Sự kiện / Hội nghị</em>, <em>Hội thảo / Triển lãm ngành</em>, <em>Danh thiếp</em>...).</li>
+                <li><span class="field-tag required">Số điện thoại *</span> <b>Bắt buộc:</b> Định dạng chuẩn (tối thiểu 8 chữ số, không trùng trong cùng file).</li>
+                <li><span class="field-tag required">Email *</span> <b>Bắt buộc:</b> Địa chỉ thư điện tử hợp lệ (user@domain.com, không trùng trong file).</li>
+                <li><span class="field-tag">Công ty & Chức danh</span> Tùy chọn: Tên doanh nghiệp và chức vụ của khách tham dự.</li>
+            </ul>
+        </article>
+
+        <article class="crm-card help-card sandbox-card">
+            <header class="help-card-head">
+                <div class="help-icon demo-icon">
+                    <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                </div>
+                <div>
+                    <strong>Thử nghiệm nhanh (Demo tức thì)</strong>
+                    <span>Kiểm tra giao diện đối soát lỗi mà không cần chuẩn bị file</span>
+                </div>
+            </header>
+            <p class="sandbox-desc">
+                Bạn có thể nạp ngay dữ liệu mẫu thu thập từ Hội thảo VietBuild 2026 để kiểm tra bộ lọc lỗi, báo lỗi theo dòng và tính năng xác nhận nhập:
+            </p>
+            <div class="sandbox-buttons">
+                <button id="loadValidDemo" class="crm-btn crm-btn-secondary" type="button" style="background:#fff; border-color:#10b981; color:#059669;">
+                    ✨ Nạp mẫu Hợp lệ để xem thử
+                </button>
+                <button id="loadInvalidDemo" class="crm-btn crm-btn-secondary" type="button" style="background:#fff; border-color:#f59e0b; color:#d97706;">
+                    ⚡ Nạp mẫu Có lỗi để kiểm tra báo lỗi từng dòng
+                </button>
+            </div>
+        </article>
+    </section>
+
+    <!-- UPLOAD DROPZONE -->
+    <section class="crm-card upload-card">
+        <input id="importFile" type="file" accept=".xlsx" hidden>
+
+        <div id="dropArea" class="drop-area">
+            <div class="upload-icon-wrapper">
+                <div class="upload-icon">
+                    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+            </div>
+
+            <strong class="drop-title">Kéo & thả file Excel (.xlsx) danh sách Lead vào đây</strong>
+            <span class="drop-sub">hoặc chọn file danh sách thu được từ hội thảo / sự kiện</span>
+
+            <button id="chooseImportFile" class="crm-btn crm-btn-primary drop-button" type="button">
+                <svg class="crm-inline-icon" viewBox="0 0 24 24"><path d="M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4M17 9l-5-5-5 5M12 4v12"/></svg>
+                Chọn file Excel từ máy tính
+            </button>
+
+            <div class="drop-meta">
+                <span>Định dạng: <strong>.xlsx</strong></span>
+                <span>·</span>
+                <span>Dung lượng tối đa: <strong>10 MB</strong></span>
+            </div>
+        </div>
+
+        <div id="selectedFileInfo" class="selected-file" hidden>
+            <div class="file-icon-badge">
+                <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h8M8 17h8"/></svg>
+            </div>
+            <div class="file-details">
+                <strong id="selectedFileName">danh-sach-lead-hoi-thao.xlsx</strong>
+                <span id="selectedFileSize">0 KB</span>
+            </div>
+            <div class="file-actions">
+                <button id="reselectFile" class="crm-btn crm-btn-secondary crm-btn-sm" type="button">Đổi file khác</button>
+                <button id="removeSelectedFile" class="crm-btn crm-btn-danger-outline crm-btn-sm" type="button">✕ Hủy</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- PREVIEW & VALIDATION SECTION -->
+    <section id="previewSection" class="preview-section" hidden>
+
+        <!-- Thống kê kết quả phân tích -->
+        <div class="preview-summary-grid">
+            <div class="stat-card stat-total">
+                <div class="stat-icon">📊</div>
+                <div class="stat-info">
+                    <span>Tổng số dòng đọc được</span>
+                    <strong id="totalRowsCount">0</strong>
+                </div>
+            </div>
+            <div class="stat-card stat-valid">
+                <div class="stat-icon">✅</div>
+                <div class="stat-info">
+                    <span>Hợp lệ (Sẵn sàng nhập)</span>
+                    <strong id="validRowsCount" style="color: #16a34a;">0</strong>
+                </div>
+            </div>
+            <div class="stat-card stat-error">
+                <div class="stat-icon">⚠️</div>
+                <div class="stat-info">
+                    <span>Dòng có lỗi (Cần kiểm tra)</span>
+                    <strong id="errorRowsCount" style="color: #dc2626;">0</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bảng đối soát từng dòng -->
+        <div class="preview-table-card">
+            <div class="preview-table-head">
+                <div class="preview-filter-tabs">
+                    <button class="tab-btn active" data-filter="all">Tất cả (<span id="tabCountAll">0</span>)</button>
+                    <button class="tab-btn" data-filter="error" style="color:#b91c1c;">Chỉ dòng có lỗi (<span id="tabCountError">0</span>)</button>
+                    <button class="tab-btn" data-filter="valid" style="color:#15803d;">Chỉ dòng hợp lệ (<span id="tabCountValid">0</span>)</button>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <input id="searchPreviewInput" class="crm-input" type="text" placeholder="🔍 Lọc nhanh theo tên, email, SĐT..." style="font-size:12.5px; padding:6px 12px; width:240px;">
+                    <button id="exportErrorsButton" class="crm-btn crm-btn-secondary" type="button" style="font-size:12.5px; padding:6px 12px; display:none;">
+                        📥 Xuất danh sách lỗi
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="preview-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 60px; text-align: center;">Dòng</th>
+                            <th style="width: 100px;">Trạng thái</th>
+                            <th style="min-width: 220px;">Lỗi chi tiết (nếu có)</th>
+                            <th style="min-width: 160px;">Họ và tên *</th>
+                            <th style="min-width: 180px;">Nguồn Lead *</th>
+                            <th style="min-width: 140px;">Số điện thoại *</th>
+                            <th style="min-width: 180px;">Email *</th>
+                            <th style="min-width: 160px;">Công ty</th>
+                            <th style="min-width: 130px;">Chức danh</th>
+                            <th style="min-width: 200px;">Nhu cầu quan tâm / Ghi chú</th>
+                        </tr>
+                    </thead>
+                    <tbody id="previewBody">
+                        <!-- Dynamic preview rows rendered here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Footer Action Bar -->
+            <div class="preview-action-bar">
+                <div style="font-size: 13px; color: #64748b;">
+                    💡 <em>Hệ thống chỉ nhập các dòng hợp lệ. Các dòng có lỗi sẽ bị bỏ qua để bảo đảm toàn vẹn dữ liệu.</em>
+                </div>
+
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <button id="btnCancelImport" class="crm-btn crm-btn-secondary" type="button">
+                        Hủy bỏ
+                    </button>
+                    <button id="confirmImport" class="crm-btn crm-btn-primary" type="button" style="font-weight: 700; padding: 10px 24px; font-size: 14px; background: #059669; border-color: #059669;">
+                        🚀 Xác nhận nhập <span id="confirmValidCount">0</span> Lead vào hệ thống
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- SUCCESS MESSAGE CARD -->
+    <div id="importSuccessCard" class="import-success-alert" hidden>
+        <div style="font-size: 48px; margin-bottom: 12px;">🎉</div>
+        <h3 id="importSuccessTitle">Nhập khách hàng tiềm năng thành công!</h3>
+        <p id="importSuccessDesc">Đã đưa toàn bộ danh sách lead từ hội thảo vào hệ thống CRM với trạng thái "Mới".</p>
+        <div style="display: flex; justify-content: center; gap: 14px;">
+            <a href="customers" class="crm-btn crm-btn-primary" style="font-weight: 600; padding: 10px 20px;">
+                👥 Xem danh sách Khách hàng & Lead
+            </a>
+            <button id="btnImportAnother" class="crm-btn crm-btn-secondary" type="button" style="font-weight: 600; padding: 10px 20px;">
+                🔄 Nhập thêm file khác
+            </button>
+        </div>
+    </div>
+
+</main>
+
+<script src="js/shared-shell.js"></script>
+<script src="js/pages/import-leads.js"></script>
+</body>
+</html>

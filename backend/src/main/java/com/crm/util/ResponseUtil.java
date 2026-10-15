@@ -23,9 +23,7 @@ public final class ResponseUtil {
                 "UTF-8"
         );
 
-        response.setContentType(
-                "application/json"
-        );
+        response.setContentType("application/json; charset=UTF-8");
 
         response.getWriter().write(
                 JsonUtil.getGson().toJson(
