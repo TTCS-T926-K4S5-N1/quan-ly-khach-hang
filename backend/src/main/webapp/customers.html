@@ -269,9 +269,9 @@
     </section>
 
     <!-- ================= THANH TÌM KIẾM & BỘ LỌC ĐA ĐIỀU KIỆN ================= -->
-    <section class="customer-toolbar crm-card" style="display: flex; flex-direction: column; gap: 12px; padding: 16px; margin-bottom: 16px;">
-        <!-- Hàng 1: Tìm kiếm từ khóa tổng quát + Tìm SĐT liên hệ + Nguồn Lead + Trạng thái -->
-        <div style="display: flex; flex-wrap: wrap; gap: 12px; width: 100%;">
+    <section class="customer-toolbar crm-card" style="display: flex; flex-direction: column; gap: 14px; padding: 18px 20px; margin-bottom: 20px; background: #ffffff; border-radius: 14px; border: 1px solid var(--crm-border); box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
+        <!-- Hàng 1: Tìm kiếm chính + Nguồn Lead + Trạng thái + Nút truy vấn nhanh -->
+        <div style="display: flex; flex-wrap: wrap; gap: 12px; width: 100%; align-items: center;">
             <div class="toolbar-search" style="flex: 2; min-width: 240px;">
                 <input
                     id="customerSearch"
@@ -281,7 +281,7 @@
                 >
             </div>
 
-            <div style="flex: 1.1; min-width: 170px;">
+            <div style="flex: 1.1; min-width: 160px;">
                 <input
                     id="contactPhoneFilter"
                     class="crm-input"
@@ -305,24 +305,54 @@
                 <option value="KHAC">✨ Nguồn khác</option>
             </select>
 
-            <select id="statusFilter" class="crm-input" style="flex: 1; min-width: 140px;">
-                <option value="">Tất cả trạng thái</option>
+            <select id="statusFilter" class="crm-input" style="flex: 1; min-width: 150px;">
+                <option value="">🏷️ Tất cả trạng thái</option>
                 <option value="MOI">Mới (Lead)</option>
                 <option value="TIEM_NANG">Tiềm năng</option>
                 <option value="DANG_CHAM_SOC">📞 Đang chăm sóc</option>
-                <option value="KHACH_HANG">Khách hàng</option>
+                <option value="KHACH_HANG">🏢 Khách hàng</option>
                 <option value="CONVERTED">👑 Đã chuyển đổi</option>
                 <option value="NGUNG_HOAT_DONG">Ngừng hoạt động</option>
             </select>
+
+            <button
+                id="btnSortByScore"
+                type="button"
+                class="crm-btn"
+                style="padding: 8px 14px; background: #fef2f2; color: #dc2626; font-size: 12.5px; font-weight: 700; border: 1px solid #fca5a5; border-radius: 8px; white-space: nowrap; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;"
+                title="Sắp xếp lead theo thứ tự điểm tiềm năng cao nhất lên đầu danh sách"
+            >
+                🔥 Lead Hot nhất
+            </button>
+
+            <button
+                id="btnSlaBreachedFilter"
+                type="button"
+                class="crm-btn"
+                style="padding: 8px 14px; background: #fff1f2; color: #be123c; font-size: 12.5px; font-weight: 700; border: 1px solid #fecdd3; border-radius: 8px; white-space: nowrap; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;"
+                title="Lọc các lead bị quá hạn SLA phản hồi chưa được tiếp nhận"
+            >
+                🚨 Quá SLA phản hồi
+            </button>
+
+            <button
+                id="btnResetFilters"
+                type="button"
+                class="crm-btn"
+                style="padding: 8px 14px; background: #f8fafc; color: #475569; font-size: 12.5px; font-weight: 600; border: 1px solid #cbd5e1; border-radius: 8px; white-space: nowrap; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;"
+                title="Xóa tất cả điều kiện lọc và quay về mặc định"
+            >
+                🔄 Đặt lại
+            </button>
         </div>
 
-        <!-- Hàng 2: Lọc theo Ngành nghề, Quy mô, Khu vực, Người sở hữu, Điểm số, Thời gian tạo -->
-        <div style="display: flex; flex-wrap: wrap; gap: 12px; width: 100%; align-items: center;">
-            <select id="industryFilter" class="crm-input" style="flex: 1; min-width: 150px;">
+        <!-- Hàng 2: Bộ lọc phân loại chi tiết (Ngành, Quy mô, Khu vực, Người sở hữu, Điểm số, Phân bổ, Thời gian) -->
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; width: 100%; align-items: center; padding-top: 10px; border-top: 1px solid #f1f5f9;">
+            <select id="industryFilter" class="crm-input" style="flex: 1; min-width: 160px;">
                 <option value="">🏢 Tất cả ngành nghề</option>
                 <option value="1">CNTT & Viễn thông</option>
                 <option value="2">Bất động sản & Xây dựng</option>
-                <option value="3">Bán lẻ & Thương mại điện tử</option>
+                <option value="3">Bán lẻ & TMĐT</option>
                 <option value="4">Tài chính - Ngân hàng</option>
                 <option value="5">Y tế & Dược phẩm</option>
                 <option value="6">Sản xuất & Chế tạo</option>
@@ -331,7 +361,7 @@
                 <option value="9">Vận tải & Logistics</option>
             </select>
 
-            <select id="companySizeFilter" class="crm-input" style="flex: 1; min-width: 140px;">
+            <select id="companySizeFilter" class="crm-input" style="flex: 1; min-width: 150px;">
                 <option value="">👥 Tất cả quy mô</option>
                 <option value="10">Dưới 20 nhân sự</option>
                 <option value="11">20 - 50 nhân sự</option>
@@ -340,7 +370,7 @@
                 <option value="14">Trên 500 nhân sự</option>
             </select>
 
-            <select id="regionFilter" class="crm-input" style="flex: 1; min-width: 140px;">
+            <select id="regionFilter" class="crm-input" style="flex: 1; min-width: 150px;">
                 <option value="">📍 Tất cả khu vực</option>
                 <option value="22">Khu vực Hà Nội</option>
                 <option value="26">Khu vực TP. Hồ Chí Minh</option>
@@ -351,27 +381,27 @@
                 <option value="20">Toàn quốc</option>
             </select>
 
-            <select id="ownerFilter" class="crm-input" style="flex: 1; min-width: 150px;">
-                <option value="">👤 Tất cả người sở hữu</option>
-                <option value="MINE">⭐️ Khách do tôi phụ trách</option>
+            <select id="ownerFilter" class="crm-input" style="flex: 1; min-width: 165px;">
+                <option value="">👤 Người sở hữu</option>
+                <option value="MINE">⭐️ Do tôi phụ trách</option>
             </select>
 
-            <select id="scoreGradeFilter" class="crm-input" style="flex: 1; min-width: 130px;">
-                <option value="">🔥 Phân loại Lead</option>
+            <select id="scoreGradeFilter" class="crm-input" style="flex: 1; min-width: 140px;">
+                <option value="">🎯 Phân loại Lead</option>
                 <option value="HOT">🔥 Lead NÓNG</option>
                 <option value="WARM">☀️ Lead ẤM</option>
                 <option value="COLD">❄️ Lead LẠNH</option>
             </select>
 
-            <select id="assignmentStatusFilter" class="crm-input" style="flex: 1; min-width: 130px;">
-                <option value="">🎯 Phân bổ</option>
-                <option value="UNASSIGNED">⏳ Hàng chờ (Chưa phân)</option>
+            <select id="assignmentStatusFilter" class="crm-input" style="flex: 1; min-width: 140px;">
+                <option value="">📌 Phân bổ</option>
+                <option value="UNASSIGNED">⏳ Chờ phân bổ</option>
                 <option value="ASSIGNED">✅ Đã phân bổ</option>
             </select>
 
             <!-- Bộ lọc thời gian tạo: preset hoặc khoảng ngày -->
-            <div style="display: flex; gap: 6px; align-items: center; flex: 1.4; min-width: 220px;">
-                <select id="leadDatePresetFilter" class="crm-input" style="flex: 1; min-width: 130px;">
+            <div style="display: flex; gap: 6px; align-items: center; flex: 1.3; min-width: 190px;">
+                <select id="leadDatePresetFilter" class="crm-input" style="flex: 1; min-width: 140px;">
                     <option value="">📅 Thời gian tạo</option>
                     <option value="TODAY">🌅 Tạo hôm nay</option>
                     <option value="LAST_7_DAYS">🗓️ 7 ngày qua</option>
@@ -382,46 +412,16 @@
                 <input id="leadCreatedTo" class="crm-input" type="date" title="Đến ngày tạo" style="display:none; width: 120px; padding: 6px 8px; font-size: 12px;">
             </div>
 
-            <button
-                id="btnSortByScore"
-                type="button"
-                class="crm-btn"
-                style="padding: 9px 12px; background: #fee2e2; color: #b91c1c; font-size: 13px; font-weight: 700; border: 1px solid #fca5a5; white-space: nowrap;"
-                title="Sắp xếp lead theo thứ tự điểm tiềm năng cao nhất lên đầu danh sách"
-            >
-                🔥 Lead Hot nhất
-            </button>
-
-            <button
-                id="btnSlaBreachedFilter"
-                type="button"
-                class="crm-btn"
-                style="padding: 9px 12px; background: #fef2f2; color: #dc2626; font-size: 13px; font-weight: 700; border: 1px solid #f87171; white-space: nowrap;"
-                title="Lọc các lead bị quá hạn SLA phản hồi chưa được tiếp nhận"
-            >
-                🚨 Quá SLA phản hồi
-            </button>
-
             <!-- Lọc trường tùy chỉnh -->
-            <div id="customFieldFilterWrap" style="display: flex; gap: 6px; align-items: center; flex: 1.5; min-width: 230px;">
+            <div id="customFieldFilterWrap" style="display: flex; gap: 6px; align-items: center; flex: 1.5; min-width: 210px;">
                 <select id="customFieldSelectFilter" class="crm-input" style="flex: 1; min-width: 130px;">
-                    <option value="">✨ Lọc trường tùy chỉnh</option>
+                    <option value="">✨ Trường tùy chỉnh</option>
                 </select>
-                <input id="customFieldValueFilter" class="crm-input" type="text" placeholder="Nhập giá trị lọc..." style="flex: 1; min-width: 100px; display: none;">
-                <select id="customFieldSelectValueFilter" class="crm-input" style="flex: 1; min-width: 100px; display: none;">
+                <input id="customFieldValueFilter" class="crm-input" type="text" placeholder="Nhập giá trị..." style="flex: 1; min-width: 90px; display: none;">
+                <select id="customFieldSelectValueFilter" class="crm-input" style="flex: 1; min-width: 90px; display: none;">
                     <option value="">-- Chọn --</option>
                 </select>
             </div>
-
-            <button
-                id="btnResetFilters"
-                type="button"
-                class="crm-btn"
-                style="padding: 9px 14px; background: #f1f5f9; color: #475569; font-size: 13px; font-weight: 600; white-space: nowrap;"
-                title="Xóa tất cả điều kiện lọc và quay về mặc định"
-            >
-                🔄 Đặt lại
-            </button>
         </div>
 
         <!-- Hàng 3: Badge thông tin số kết quả & tiêu chí đang lọc -->
@@ -479,7 +479,7 @@
                         Người sở hữu
                     </th>
 
-                    <th class="action-col">
+                    <th class="action-col" style="min-width: 285px; text-align: right; padding-right: 18px;">
                         Hành động
                     </th>
                 </tr>
@@ -1449,9 +1449,8 @@
                         <select id="cvBuyingRole" class="crm-input" style="margin-top:3px;">
                             <option value="DECISION_MAKER">👑 Quyết định (Decision Maker)</option>
                             <option value="INFLUENCER" selected>💡 Ảnh hưởng (Influencer)</option>
-                            <option value="BUYER">💰 Mua hàng (Buyer/Purchasing)</option>
-                            <option value="USER">👤 Người dùng cuối (User)</option>
-                            <option value="CHAMPION">🚀 Hậu thuẫn (Champion)</option>
+                            <option value="END_USER">👤 Người dùng cuối (End User)</option>
+                            <option value="BLOCKER">🛑 Người cản trở (Blocker)</option>
                         </select>
                     </div>
                 </div>

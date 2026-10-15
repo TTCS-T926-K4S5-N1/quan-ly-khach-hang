@@ -1,18 +1,31 @@
 package com.crm.dto.leads;
 
+import com.google.gson.annotations.SerializedName;
 import java.math.BigDecimal;
 
 public class LeadConvertRequest {
     private Long leadId;
 
-    // 1. Khách hàng doanh nghiệp
     private boolean createNewCustomer = true;
+    private String customerMode;
+
     private Long existingCustomerId;
+
+    @SerializedName(value = "customerName", alternate = {"companyName", "name"})
     private String customerName;
+
+    @SerializedName(value = "customerTaxCode", alternate = {"taxCode"})
     private String customerTaxCode;
+
+    @SerializedName(value = "customerPhone", alternate = {"companyPhone", "phone"})
     private String customerPhone;
+
+    @SerializedName(value = "customerEmail", alternate = {"companyEmail", "email"})
     private String customerEmail;
+
+    @SerializedName(value = "customerWebsite", alternate = {"companyWebsite", "website"})
     private String customerWebsite;
+
     private String customerAddress;
     private Long industryId;
     private Long companySizeId;
@@ -23,6 +36,8 @@ public class LeadConvertRequest {
     private String contactTitle;
     private String contactPhone;
     private String contactEmail;
+
+    @SerializedName(value = "contactBuyingRole", alternate = {"buyingRole"})
     private String contactBuyingRole = "INFLUENCER";
 
     // 3. Cơ hội bán hàng
@@ -42,7 +57,26 @@ public class LeadConvertRequest {
     }
 
     public boolean isCreateNewCustomer() {
+        if ("EXISTING".equalsIgnoreCase(customerMode)) {
+            return false;
+        }
+        if ("NEW".equalsIgnoreCase(customerMode)) {
+            return true;
+        }
         return createNewCustomer;
+    }
+
+    public void setCustomerMode(String customerMode) {
+        this.customerMode = customerMode;
+        if ("EXISTING".equalsIgnoreCase(customerMode)) {
+            this.createNewCustomer = false;
+        } else if ("NEW".equalsIgnoreCase(customerMode)) {
+            this.createNewCustomer = true;
+        }
+    }
+
+    public String getCustomerMode() {
+        return customerMode;
     }
 
     public void setCreateNewCustomer(boolean createNewCustomer) {
@@ -67,10 +101,6 @@ public class LeadConvertRequest {
 
     public void setCompanyName(String companyName) {
         this.customerName = companyName;
-    }
-
-    public void setCustomerMode(String mode) {
-        this.createNewCustomer = !"EXISTING".equalsIgnoreCase(mode);
     }
 
     public void setTaxCode(String taxCode) {
@@ -190,7 +220,16 @@ public class LeadConvertRequest {
     }
 
     public String getContactBuyingRole() {
-        return contactBuyingRole;
+        if (contactBuyingRole == null || contactBuyingRole.trim().isBlank()) {
+            return "INFLUENCER";
+        }
+        String r = contactBuyingRole.trim().toUpperCase();
+        return switch (r) {
+            case "DECISION_MAKER" -> "DECISION_MAKER";
+            case "BLOCKER" -> "BLOCKER";
+            case "END_USER", "USER" -> "END_USER";
+            default -> "INFLUENCER"; // Map BUYER, CHAMPION, INFLUENCER to INFLUENCER
+        };
     }
 
     public void setContactBuyingRole(String contactBuyingRole) {

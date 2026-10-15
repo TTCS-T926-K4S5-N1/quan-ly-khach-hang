@@ -988,4 +988,226 @@
     color: #047857 !important;
 }
 
+/* =========================================================
+   ENHANCED ACTION BUTTONS & ROW ACTIONS (NHẬN, TỪ CHỐI, CHUYỂN ĐỔI)
+========================================================= */
+.customer-table th.action-col,
+.customer-table td.action-col {
+    min-width: 285px;
+    width: 285px;
+    text-align: right;
+    padding-right: 14px;
+    white-space: nowrap;
+}
+
+.row-actions-group {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    flex-wrap: nowrap;
+}
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 11px;
+    font-size: 11.5px;
+    font-weight: 650;
+    line-height: 1.25;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+    white-space: nowrap;
+    text-decoration: none;
+    user-select: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.action-btn .btn-icon {
+    font-size: 11px;
+    line-height: 1;
+}
+
+/* Nút Nhận: Emerald Green */
+.action-btn-accept {
+    background: #ecfdf5;
+    color: #047857;
+    border-color: #a7f3d0;
+}
+.action-btn-accept:hover {
+    background: #059669;
+    color: #ffffff;
+    border-color: #059669;
+    box-shadow: 0 3px 10px rgba(5, 150, 105, 0.3);
+    transform: translateY(-1px);
+}
+.action-btn-accept:active {
+    transform: translateY(0);
+}
+
+/* Nút Từ chối: Coral/Rose Soft */
+.action-btn-reject {
+    background: #fff1f2;
+    color: #be123c;
+    border-color: #fecdd3;
+}
+.action-btn-reject:hover {
+    background: #e11d48;
+    color: #ffffff;
+    border-color: #e11d48;
+    box-shadow: 0 3px 10px rgba(225, 29, 72, 0.3);
+    transform: translateY(-1px);
+}
+.action-btn-reject:active {
+    transform: translateY(0);
+}
+
+/* Nút Chuyển đổi: Modern Indigo/Purple Gradient */
+.action-btn-convert {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: #ffffff;
+    border: none;
+    box-shadow: 0 2px 6px rgba(99, 102, 241, 0.3);
+}
+.action-btn-convert:hover {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.45);
+    transform: translateY(-1px);
+}
+.action-btn-convert:active {
+    transform: translateY(0);
+}
+
+/* Action Status Badges */
+.action-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 650;
+    padding: 5px 9px;
+    border-radius: 7px;
+    white-space: nowrap;
+}
+
+.action-status-badge.caring {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+}
+
+.action-status-badge.converted {
+    background: #faf5ff;
+    color: #6b21a8;
+    border: 1px solid #e9d5ff;
+}
+
+.action-status-badge.customer {
+    background: #f0fdf4;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+}
+
+/* Source badge */
+.lead-source-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    font-weight: 550;
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+    padding: 2px 7px;
+    border-radius: 6px;
+    white-space: nowrap;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Score Pills */
+.score-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 12px;
+    font-size: 11.5px;
+    font-weight: 700;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+.score-pill.hot {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fca5a5;
+}
+.score-pill.warm {
+    background: #fffbeb;
+    color: #d97706;
+    border: 1px solid #fde68a;
+}
+.score-pill.cold {
+    background: #f0f9ff;
+    color: #0284c7;
+    border: 1px solid #bae6fd;
+}
+
+/* SLA Badges */
+.sla-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 650;
+}
+.sla-badge.breached {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #f87171;
+}
+.sla-badge.waiting {
+    background: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fde68a;
+}
+.sla-badge.ticking {
+    background: #f0f9ff;
+    color: #0369a1;
+    border: 1px solid #bae6fd;
+}
+.sla-badge.accepted {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+}
+
+/* Filter Bar Improvements */
+.customer-toolbar {
+    background: #ffffff;
+    border: 1px solid var(--crm-border);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.customer-toolbar .crm-input {
+    font-size: 12.5px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    background-color: #ffffff;
+    transition: all 0.15s ease;
+}
+
+.customer-toolbar .crm-input:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    outline: none;
+}
+
+
 

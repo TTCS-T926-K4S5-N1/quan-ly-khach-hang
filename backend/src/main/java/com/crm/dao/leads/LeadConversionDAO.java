@@ -476,7 +476,7 @@ public class LeadConversionDAO {
                 """;
                 try (PreparedStatement ps = conn.prepareStatement(insertAssignLog)) {
                     ps.setLong(1, leadId);
-                    ps.setObject(2, leadData.get("ownerUserId"));
+                    ps.setObject(2, leadData.get("ownerUserId") != null ? leadData.get("ownerUserId") : userId);
                     ps.setLong(3, userId);
                     ps.setString(4, logDesc);
                     ps.executeUpdate();

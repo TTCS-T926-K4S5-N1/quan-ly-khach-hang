@@ -1460,27 +1460,38 @@ function renderDesktopRow(record, index) {
             </span>
         </td>
         <td>
-            <span style="font-size:12.5px; font-weight:550; color:#334155;">📍 ${escapeHtml(record.regionName || "—")}</span>
-            <span class="customer-sub" title="${escapeHtml(record.address || "")}" style="max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; margin-top:2px;">
-                ${escapeHtml(record.address || "—")}
-            </span>
+            <span style="font-size:12.5px; font-weight:600; color:#334155;">📍 ${escapeHtml(record.regionName || "—")}</span>
+            ${(function() {
+                const addr = (record.address || "").trim();
+                const comp = (record.companyName || record.name || "").trim();
+                if (addr && addr !== comp && addr !== "—" && addr !== record.regionName) {
+                    return `<span class="customer-sub" title="${escapeHtml(addr)}" style="max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; margin-top:2px;">${escapeHtml(addr)}</span>`;
+                }
+                return "";
+            })()}
         </td>
         <td>
-            <span class="status-pill ${statusClass(record.status)}">
-                ${escapeHtml(statusLabel(record.status))}
-            </span>
-            ${record.leadSource ? `<div style="margin-top:3px;"><span style="font-size:10.5px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:1px 6px; border-radius:8px;" title="Nguồn khách hàng">🌐 ${escapeHtml(record.leadSource)}</span></div>` : ""}
+            <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-start;">
+                <span class="status-pill ${statusClass(record.status)}">
+                    ${escapeHtml(statusLabel(record.status))}
+                </span>
+                ${record.leadSource ? `
+                    <span class="lead-source-badge" title="Nguồn Lead: ${escapeHtml(record.leadSource)}">
+                        🌐 ${escapeHtml(record.leadSource)}
+                    </span>
+                ` : ""}
+            </div>
         </td>
         <td>
             ${(function() {
                 const grade = record.scoreGrade || "COLD";
-                let icon = "❄️", color = "#0284c7", bg = "#e0f2fe", border = "#bae6fd", label = "Lạnh";
+                let icon = "❄️", cls = "cold", label = "Lạnh";
                 if (grade === "HOT") {
-                    icon = "🔥"; color = "#dc2626"; bg = "#fee2e2"; border = "#fca5a5"; label = "NÓNG";
+                    icon = "🔥"; cls = "hot"; label = "NÓNG";
                 } else if (grade === "WARM") {
-                    icon = "☀️"; color = "#d97706"; bg = "#fef3c7"; border = "#fde68a"; label = "ẤM";
+                    icon = "☀️"; cls = "warm"; label = "ẤM";
                 }
-                return `<div style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:12px; font-size:11.5px; font-weight:700; background:${bg}; color:${color}; border:1px solid ${border};" title="Điểm tiềm năng: ${record.leadScore || 0} điểm">
+                return `<div class="score-pill ${cls}" title="Điểm tiềm năng: ${record.leadScore || 0} điểm">
                     <span>${icon}</span>
                     <span>${record.leadScore || 0}đ (${label})</span>
                 </div>`;
@@ -1489,70 +1500,95 @@ function renderDesktopRow(record, index) {
         <td>
             ${(function() {
                 if (record.slaBreached) {
-                    return `<div style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; background:#fef2f2; color:#dc2626; border:1px solid #f87171;" title="Quá hạn phản hồi SLA!">
-                        <span>⚠️ Quá SLA</span>
+                    return `<div class="sla-badge breached" title="Quá hạn phản hồi SLA!">
+                        <span>🚨 Quá SLA</span>
                     </div>
-                    ${record.slaBreachedAt ? `<div class="customer-sub" style="color:#ef4444; font-size:10.5px; margin-top:2px;">${escapeHtml(record.slaBreachedAt.substring(0, 16).replace('T', ' '))}</div>` : ''}`;
+                    ${record.slaBreachedAt ? `<div class="customer-sub" style="color:#ef4444; font-size:10px; margin-top:2px;">${escapeHtml(record.slaBreachedAt.substring(0, 16).replace('T', ' '))}</div>` : ''}`;
                 } else if (record.status === "CONVERTED") {
-                    return `<span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; background:#f3e8ff; color:#7e22ce; border:1px solid #d8b4fe; padding:2px 8px; border-radius:10px; font-weight:600;">
-                        👑 Đã chuyển đổi
-                    </span>`;
-                } else if (record.status === "DANG_CHAM_SOC") {
-                    return `<span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; padding:2px 8px; border-radius:10px; font-weight:600;">
-                        📞 Đang chăm sóc
-                    </span>`;
+                    return `<span class="action-status-badge converted">👑 Đã chuyển đổi</span>`;
+                } else if (record.status === "DANG_CHAM_SOC" || record.assignmentStatus === "ACCEPTED") {
+                    return `<span class="sla-badge accepted">✓ Đã tiếp nhận</span>`;
                 } else if (record.slaDeadline) {
                     const deadline = new Date(record.slaDeadline);
                     const now = new Date();
                     const diffHours = (deadline - now) / (1000 * 60 * 60);
                     if (diffHours < 0) {
-                        return `<span style="font-size:11px; font-weight:700; color:#dc2626;">⚠️ Quá hạn</span>`;
+                        return `<span class="sla-badge breached">🚨 Quá hạn</span>`;
                     } else {
                         const h = Math.floor(diffHours);
                         const m = Math.floor((diffHours - h) * 60);
                         return `<div style="display:flex; flex-direction:column; gap:1px;">
-                            <span style="font-size:11px; font-weight:600; color:#0284c7;">⏱️ Còn ${h}h ${m}m</span>
+                            <span class="sla-badge ticking">⏱️ Còn ${h}h ${m}m</span>
                             <span class="customer-sub" style="font-size:10px;">Hạn: ${escapeHtml(record.slaDeadline.substring(11, 16))}</span>
                         </div>`;
                     }
                 } else if (record.assignmentStatus === "UNASSIGNED") {
-                    return `<span style="font-size:11px; color:#94a3b8; font-style:italic;">Chờ phân bổ</span>`;
+                    return `<span class="sla-badge waiting">⏳ Chờ phân bổ</span>`;
                 } else {
                     return `<span style="font-size:11px; color:#94a3b8;">—</span>`;
                 }
             })()}
         </td>
         <td>
-            <span style="font-weight:500;">${escapeHtml(record.ownerName || record.owner || "—")}</span>
-            ${record.assignmentStatus === "UNASSIGNED" ? `<span style="display:block; font-size:10.5px; color:#d97706; font-weight:600;">(Chờ phân bổ)</span>` : ""}
+            <div style="display:flex; flex-direction:column; gap:1px;">
+                <span style="font-weight:600; color:#1e293b; font-size:12.5px;">👤 ${escapeHtml(record.ownerName || record.owner || "—")}</span>
+                ${record.assignmentStatus === "UNASSIGNED" ? `<span style="font-size:10.5px; color:#d97706; font-weight:600;">(Chờ phân bổ)</span>` : ""}
+            </div>
         </td>
         <td class="action-col">
-            <div style="display:flex; align-items:center; gap:6px; justify-content:flex-end;">
+            <div class="row-actions-group">
                 ${(function() {
+                    // 1. Nếu đã chuyển đổi thành công
                     if (record.status === "CONVERTED") {
-                        return `<span style="font-size:11px; color:#6b21a8; font-weight:600; padding:2px 6px; background:#faf5ff; border:1px solid #e9d5ff; border-radius:4px;">🔒 Khóa</span>`;
+                        return `<span class="action-status-badge converted" title="Lead đã chuyển đổi thành Khách hàng & Cơ hội">🔒 Đã chuyển đổi</span>`;
                     }
+                    // 2. Nếu đã là Khách hàng chính thức
+                    if (record.status === "KHACH_HANG" || record.status === "CHINH_THUC") {
+                        return `<span class="action-status-badge customer" title="Khách hàng doanh nghiệp">🏢 Khách hàng</span>`;
+                    }
+
+                    // 3. Nếu là Lead (Mới, Tiềm năng, Đang chăm sóc)
                     let btns = "";
-                    if ((record.status === "TIEM_NANG" || !record.status) && record.assignmentStatus === "ASSIGNED") {
+
+                    // Nút Nhận: Hiển thị khi lead chưa được nhận vào chăm sóc
+                    if (record.assignmentStatus !== "ACCEPTED" && record.status !== "DANG_CHAM_SOC") {
                         btns += `
-                            <button type="button" class="crm-btn" style="padding:4px 8px; font-size:11px; font-weight:700; background:#059669; color:#fff; border:none; border-radius:4px; cursor:pointer;" data-accept-id="${record.id}" title="Tiếp nhận lead này để chăm sóc">✅ Nhận</button>
-                            <button type="button" class="crm-btn" style="padding:4px 8px; font-size:11px; font-weight:700; background:#dc2626; color:#fff; border:none; border-radius:4px; cursor:pointer;" data-reject-id="${record.id}" data-reject-name="${escapeHtml(record.companyName || record.name)}" title="Từ chối tiếp nhận lead (yêu cầu lý do)">❌ Từ chối</button>
+                            <button type="button" class="action-btn action-btn-accept" data-accept-id="${record.id}" title="Tiếp nhận Lead này vào danh sách chăm sóc của bạn">
+                                <span class="btn-icon">✓</span> Nhận
+                            </button>
+                        `;
+                    } else {
+                        btns += `
+                            <span class="action-status-badge caring" title="Lead đang trong quá trình chăm sóc liên tục">
+                                📞 Đang chăm sóc
+                            </span>
                         `;
                     }
-                    if (record.status !== "KHACH_HANG" && record.status !== "CHINH_THUC") {
-                        btns += `
-                            <button type="button" class="crm-btn" style="padding:4px 8px; font-size:11px; font-weight:700; background:#7c3aed; color:#fff; border:none; border-radius:4px; cursor:pointer;" data-convert-id="${record.id}" title="Chuyển đổi lead thành Khách hàng & Cơ hội bán hàng">⚡ Chuyển đổi</button>
-                        `;
-                    }
+
+                    // Nút Từ chối: Cho phép từ chối với lý do ghi vào nhật ký SLA
+                    btns += `
+                        <button type="button" class="action-btn action-btn-reject" data-reject-id="${record.id}" data-reject-name="${escapeHtml(record.companyName || record.name)}" title="Từ chối tiếp nhận Lead (yêu cầu chọn/nhập lý do)">
+                            <span class="btn-icon">✕</span> Từ chối
+                        </button>
+                    `;
+
+                    // Nút Chuyển đổi: Cho phép chuyển đổi lead thành Khách hàng & Cơ hội bán hàng
+                    btns += `
+                        <button type="button" class="action-btn action-btn-convert" data-convert-id="${record.id}" title="Chuyển đổi Lead thành Khách hàng doanh nghiệp, Người liên hệ và Cơ hội bán hàng">
+                            <span class="btn-icon">⚡</span> Chuyển đổi
+                        </button>
+                    `;
+
                     return btns;
                 })()}
+
                 <div class="row-action-wrap">
-                    <button class="row-action-button" type="button" data-action-menu="${index}">
+                    <button class="row-action-button" type="button" data-action-menu="${index}" title="Thao tác khác">
                         ⋮
                     </button>
                     <div class="row-action-menu" data-menu="${index}">
                         <a href="customer-360?id=${record.id}">
-                            🔍 Xem chi tiết (360)
+                            🔍 Xem hồ sơ 360
                         </a>
                         ${record.status === "CONVERTED" ? `
                             <button type="button" style="color:#94a3b8; cursor:not-allowed;" title="Lead đã chuyển đổi, không thể chỉnh sửa" onclick="alert('Lead này đã chuyển đổi thành khách hàng chính thức và đã bị khóa bảo vệ. Không thể chỉnh sửa trực tiếp thông tin lead gốc!')">
@@ -1563,7 +1599,7 @@ function renderDesktopRow(record, index) {
                             </button>
                         ` : `
                             <button type="button" data-edit="${index}">
-                                ✏️ Sửa
+                                ✏️ Sửa thông tin
                             </button>
                             <button type="button" class="danger" data-delete="${index}">
                                 🗑️ Xóa
@@ -1617,20 +1653,25 @@ function renderMobileCard(record, index) {
         <div style="display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;">
             ${(function() {
                 if (record.status === "CONVERTED") {
-                    return `<span style="font-size:11.5px; color:#6b21a8; font-weight:600; padding:4px 8px; background:#faf5ff; border:1px solid #e9d5ff; border-radius:6px;">🔒 Lead đã chuyển đổi (Đã khóa)</span>`;
+                    return `<span class="action-status-badge converted">🔒 Lead đã chuyển đổi (Đã khóa)</span>`;
                 }
+                if (record.status === "KHACH_HANG" || record.status === "CHINH_THUC") {
+                    return `<span class="action-status-badge customer">🏢 Khách hàng</span>`;
+                }
+
                 let btns = "";
-                if ((record.status === "TIEM_NANG" || !record.status) && record.assignmentStatus === "ASSIGNED") {
+                if (record.assignmentStatus !== "ACCEPTED" && record.status !== "DANG_CHAM_SOC") {
                     btns += `
-                        <button type="button" class="crm-btn" style="flex:1; padding:5px 8px; font-size:11.5px; font-weight:700; background:#059669; color:#fff; border:none; border-radius:6px;" data-accept-id="${record.id}">✅ Nhận lead</button>
-                        <button type="button" class="crm-btn" style="flex:1; padding:5px 8px; font-size:11.5px; font-weight:700; background:#dc2626; color:#fff; border:none; border-radius:6px;" data-reject-id="${record.id}" data-reject-name="${escapeHtml(record.companyName || record.name)}">❌ Từ chối</button>
+                        <button type="button" class="action-btn action-btn-accept" style="flex:1;" data-accept-id="${record.id}"><span class="btn-icon">✓</span> Nhận lead</button>
                     `;
+                } else {
+                    btns += `<span class="action-status-badge caring" style="flex:1;">📞 Đang chăm sóc</span>`;
                 }
-                if (record.status !== "KHACH_HANG" && record.status !== "CHINH_THUC") {
-                    btns += `
-                        <button type="button" class="crm-btn" style="flex:1; padding:5px 8px; font-size:11.5px; font-weight:700; background:#7c3aed; color:#fff; border:none; border-radius:6px;" data-convert-id="${record.id}">⚡ Chuyển đổi</button>
-                    `;
-                }
+
+                btns += `
+                    <button type="button" class="action-btn action-btn-reject" style="flex:1;" data-reject-id="${record.id}" data-reject-name="${escapeHtml(record.companyName || record.name)}"><span class="btn-icon">✕</span> Từ chối</button>
+                    <button type="button" class="action-btn action-btn-convert" style="flex:1;" data-convert-id="${record.id}"><span class="btn-icon">⚡</span> Chuyển đổi</button>
+                `;
                 return btns;
             })()}
         </div>
@@ -1650,6 +1691,7 @@ function renderMobileCard(record, index) {
 }
 
 document.addEventListener("click", async event => {
+    // 1. Action Menu Dropdown (⋮)
     const actionButton = event.target.closest("[data-action-menu]");
     if (actionButton) {
         const index = actionButton.dataset.actionMenu;
@@ -1662,6 +1704,43 @@ document.addEventListener("click", async event => {
         return;
     }
 
+    // 2. Accept Lead (✅ Nhận)
+    const acceptBtn = event.target.closest("[data-accept-id]");
+    if (acceptBtn) {
+        const id = Number(acceptBtn.dataset.acceptId);
+        if (!confirm("Bạn có chắc chắn muốn tiếp nhận lead này để chăm sóc?")) return;
+        try {
+            await api(`/api/leads/${id}/accept`, { method: "POST" });
+            if (typeof window.crmToast === "function") {
+                window.crmToast("✓ Đã tiếp nhận lead thành công! Trạng thái chuyển sang Đang chăm sóc.", "success");
+            } else {
+                alert("✓ Đã tiếp nhận lead thành công! Trạng thái chuyển sang Đang chăm sóc.");
+            }
+            await loadCustomers();
+        } catch (err) {
+            alert("Lỗi khi tiếp nhận lead: " + err.message);
+        }
+        return;
+    }
+
+    // 3. Reject Lead (❌ Từ chối)
+    const rejectBtn = event.target.closest("[data-reject-id]");
+    if (rejectBtn) {
+        const id = Number(rejectBtn.dataset.rejectId);
+        const name = rejectBtn.dataset.rejectName || "";
+        openRejectModal(id, name);
+        return;
+    }
+
+    // 4. Convert Lead (⚡ Chuyển đổi)
+    const convertBtn = event.target.closest("[data-convert-id]");
+    if (convertBtn) {
+        const id = Number(convertBtn.dataset.convertId);
+        await openConvertModal(id);
+        return;
+    }
+
+    // 5. Edit Button
     const editButton = event.target.closest("[data-edit]");
     if (editButton) {
         const idx = Number(editButton.dataset.edit);
@@ -1674,6 +1753,7 @@ document.addEventListener("click", async event => {
         return;
     }
 
+    // 6. Delete Button
     const deleteButton = event.target.closest("[data-delete]");
     if (deleteButton) {
         const index = Number(deleteButton.dataset.delete);
@@ -2287,18 +2367,25 @@ function initSlaAndConversion() {
         const isNew = custModeNew?.checked;
 
         const payload = {
+            createNewCustomer: isNew,
             customerMode: isNew ? "NEW" : "EXISTING",
+            customerName: isNew ? value("cvCustName") : null,
             companyName: isNew ? value("cvCustName") : null,
             existingCustomerId: !isNew && value("cvExistingCustomerId") ? Number(value("cvExistingCustomerId")) : null,
+            customerTaxCode: value("cvCustTaxCode"),
             taxCode: value("cvCustTaxCode"),
+            customerPhone: value("cvCustPhone"),
             companyPhone: value("cvCustPhone"),
+            customerEmail: value("cvCustEmail"),
             companyEmail: value("cvCustEmail"),
+            customerWebsite: value("cvCustWebsite"),
             companyWebsite: value("cvCustWebsite"),
 
             contactName: value("cvContactName"),
             contactTitle: value("cvContactTitle"),
             contactPhone: value("cvContactPhone"),
             contactEmail: value("cvContactEmail"),
+            contactBuyingRole: value("cvBuyingRole") || "INFLUENCER",
             buyingRole: value("cvBuyingRole") || "INFLUENCER",
 
             createOpportunity: cvCreateOpportunity?.checked ?? true,
@@ -2308,7 +2395,7 @@ function initSlaAndConversion() {
             expectedCloseDate: value("cvExpectedCloseDate") || null
         };
 
-        if (isNew && !payload.companyName) {
+        if (isNew && !payload.customerName) {
             alert("Vui lòng nhập tên công ty / doanh nghiệp.");
             document.getElementById("cvCustName")?.focus();
             return;
@@ -2341,10 +2428,10 @@ function initSlaAndConversion() {
 
             closeConvertModal();
             const msg = `🎉 Chuyển đổi Lead thành công!\n` +
-                        `• Khách hàng doanh nghiệp: #${res.customerId} - ${res.companyName || ''}\n` +
+                        `• Khách hàng doanh nghiệp: #${res.customerId} - ${res.companyName || res.customerName || ''}\n` +
                         `• Người liên hệ: #${res.contactId} - ${res.contactName || ''}\n` +
                         (res.opportunityId ? `• Cơ hội bán hàng: #${res.opportunityId} - ${res.opportunityName || ''}\n` : '') +
-                        `• Đã chuyển ${res.activitiesMoved || 0} hoạt động tương tác vào khách hàng mới.\n` +
+                        `• Đã chuyển ${res.activitiesMoved || res.activitiesPreservedCount || 0} hoạt động tương tác vào khách hàng mới.\n` +
                         `Lead gốc đã được khóa bảo vệ.`;
             alert(msg);
             await loadCustomers();
@@ -2352,42 +2439,6 @@ function initSlaAndConversion() {
             alert("Lỗi khi chuyển đổi lead: " + error.message);
         } finally {
             if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = origText; }
-        }
-    });
-
-    // 3. Delegate Accept / Reject / Convert click
-    document.addEventListener("click", async e => {
-        const acceptBtn = e.target.closest("[data-accept-id]");
-        if (acceptBtn) {
-            const id = Number(acceptBtn.dataset.acceptId);
-            if (!confirm("Bạn có chắc chắn muốn tiếp nhận lead này để chăm sóc?")) return;
-            try {
-                await api(`/api/leads/${id}/accept`, { method: "POST" });
-                if (typeof window.crmToast === "function") {
-                    window.crmToast("✓ Đã tiếp nhận lead thành công! Trạng thái chuyển sang Đang chăm sóc.", "success");
-                } else {
-                    alert("✓ Đã tiếp nhận lead thành công! Trạng thái chuyển sang Đang chăm sóc.");
-                }
-                await loadCustomers();
-            } catch (err) {
-                alert("Lỗi khi tiếp nhận lead: " + err.message);
-            }
-            return;
-        }
-
-        const rejectBtn = e.target.closest("[data-reject-id]");
-        if (rejectBtn) {
-            const id = Number(rejectBtn.dataset.rejectId);
-            const name = rejectBtn.dataset.rejectName || "";
-            openRejectModal(id, name);
-            return;
-        }
-
-        const convertBtn = e.target.closest("[data-convert-id]");
-        if (convertBtn) {
-            const id = Number(convertBtn.dataset.convertId);
-            await openConvertModal(id);
-            return;
         }
     });
 }
