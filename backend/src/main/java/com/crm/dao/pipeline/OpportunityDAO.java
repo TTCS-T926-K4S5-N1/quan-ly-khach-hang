@@ -298,7 +298,7 @@ public class OpportunityDAO {
                     amount = COALESCE(?, amount),
                     actual_close_date = COALESCE(?, actual_close_date, CURDATE()),
                     is_stagnant = 0,
-                    stagnant_flag = 'NONE',
+                    stagnant_flag = NULL,
                     stagnant_reason = NULL,
                     stage_updated_at = NOW()
                 WHERE id = ? AND is_deleted = 0
@@ -386,7 +386,7 @@ public class OpportunityDAO {
                 boolean isInactive = inactiveDays > stagnantDaysThreshold;
 
                 boolean isStagnant = false;
-                String flag = "NONE";
+                String flag = null;
                 String reason = null;
 
                 if (isOverdue && isInactive) {

@@ -52,6 +52,7 @@
     const embedFormNameHeader = document.getElementById("embedFormNameHeader");
     const embedCodeDisplay = document.getElementById("embedCodeDisplay");
     const btnCopyEmbedCode = document.getElementById("btnCopyEmbedCode");
+    const btnOpenDemoWebsite = document.getElementById("btnOpenDemoWebsite");
     const btnOpenDemoTest = document.getElementById("btnOpenDemoTest");
     const embedPreviewIframe = document.getElementById("embedPreviewIframe");
     const btnTogglePreview = document.getElementById("btnTogglePreview");
@@ -392,6 +393,9 @@
         currentSelectedForm = form;
         if (embedFormNameHeader) {
             embedFormNameHeader.textContent = `Biểu mẫu: ${form.name} (Key: ${form.formKey})`;
+        }
+        if (btnOpenDemoWebsite) {
+            btnOpenDemoWebsite.href = `${API_BASE}/demo-website.html?key=${encodeURIComponent(form.formKey)}`;
         }
         if (btnOpenDemoTest) {
             btnOpenDemoTest.href = `${API_BASE}/lead-form-embed.html?key=${encodeURIComponent(form.formKey)}`;

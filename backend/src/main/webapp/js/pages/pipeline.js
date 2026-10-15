@@ -367,7 +367,7 @@ async function loadOpportunities() {
         if (Array.isArray(list)) {
             opportunities = list;
             // Update stagnant badge count
-            const stagnantCount = opportunities.filter(o => o.isStagnant || (o.stagnantFlag && o.stagnantFlag.length > 0)).length;
+            const stagnantCount = opportunities.filter(o => (o.isStagnant === true || o.isStagnant === 1) && o.stagnantFlag && o.stagnantFlag !== "NONE").length;
             if (stagnantBadgeCount) {
                 if (stagnantCount > 0) {
                     stagnantBadgeCount.textContent = stagnantCount;
@@ -1175,7 +1175,7 @@ function createCard(record) {
         daysInStage = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
     }
 
-    const isStagnant = Boolean(record.isStagnant || (record.stagnantFlag && record.stagnantFlag.length > 0) || (isOpen && daysInStage >= 7));
+    const isStagnant = Boolean((record.isStagnant === true || record.isStagnant === 1) && record.stagnantFlag && record.stagnantFlag !== "NONE");
     if (isStagnant) {
         card.style.borderLeft = "4px solid #ef4444";
         card.style.background = "#fffbfa";
