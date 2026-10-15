@@ -51,6 +51,9 @@ let isSortByScoreActive = false;
 const btnSlaBreachedFilter = document.getElementById("btnSlaBreachedFilter");
 let isSlaBreachedActive = false;
 const btnResetFilters = document.getElementById("btnResetFilters");
+const btnToggleAdvancedFilters = document.getElementById("btnToggleAdvancedFilters");
+const advancedFiltersPanel = document.getElementById("advancedFiltersPanel");
+const advancedFilterBadge = document.getElementById("advancedFilterBadge");
 const savedFilterChips = document.getElementById("savedFilterChips");
 const filterResultCount = document.getElementById("filterResultCount");
 const activeFilterTags = document.getElementById("activeFilterTags");
@@ -725,7 +728,7 @@ function renderSavedFilterChips() {
     const allChip = document.createElement("button");
     allChip.type = "button";
     allChip.className = `saved-filter-chip ${activeSavedFilterId === null ? "active" : ""}`;
-    allChip.innerHTML = `⭐ Tất cả khách hàng`;
+    allChip.innerHTML = `⭐ Tất cả`;
     allChip.addEventListener("click", () => {
         resetAllFilters();
     });
@@ -738,18 +741,24 @@ function renderSavedFilterChips() {
         const isActive = activeSavedFilterId === f.id;
         chip.className = `saved-filter-chip ${isActive ? "active" : ""}`;
 
-        let icon = "🔖";
-        if (f.name.includes("gọi") || f.name.includes("tuần")) icon = "📞";
-        else if (f.name.includes("lớn") || f.name.includes("quy mô")) icon = "🏢";
-        else if (f.name.includes("Hà Nội") || f.name.includes("Miền Bắc") || f.name.includes("khu vực")) icon = "📍";
-        else if (f.name.includes("tôi") || f.name.includes("phụ trách")) icon = "👤";
+        let cleanName = (f.name || "").trim();
+        const hasEmoji = /^\p{Extended_Pictographic}/u.test(cleanName);
+        let iconPrefix = "";
+        if (!hasEmoji) {
+            let icon = "🔖";
+            if (cleanName.includes("gọi") || cleanName.includes("tuần")) icon = "📞";
+            else if (cleanName.includes("lớn") || cleanName.includes("quy mô")) icon = "🏢";
+            else if (cleanName.includes("Hà Nội") || cleanName.includes("Miền Bắc") || cleanName.includes("khu vực")) icon = "📍";
+            else if (cleanName.includes("tôi") || cleanName.includes("phụ trách")) icon = "👤";
+            iconPrefix = `${icon} `;
+        }
 
         let deleteBtnHtml = "";
         if (f.canDelete && !f.isPreset) {
             deleteBtnHtml = `<span class="chip-delete" title="Xóa bộ lọc này" data-del-filter="${f.id}">✕</span>`;
         }
 
-        chip.innerHTML = `${icon} ${escapeHtml(f.name)} ${deleteBtnHtml}`;
+        chip.innerHTML = `${iconPrefix}${escapeHtml(cleanName)} ${deleteBtnHtml}`;
 
         chip.addEventListener("click", (e) => {
             if (e.target.closest("[data-del-filter]")) {
@@ -820,6 +829,7 @@ function applySavedFilter(filter) {
     }
 
     renderSavedFilterChips();
+    syncAdvancedFilterBadge(true);
     currentPage = 1;
     loadCustomers(1);
 }
@@ -871,6 +881,12 @@ function resetAllFilters() {
     if (customFieldSelectFilter) customFieldSelectFilter.value = "";
     if (customFieldValueFilter) { customFieldValueFilter.value = ""; customFieldValueFilter.style.display = "none"; }
     if (customFieldSelectValueFilter) { customFieldSelectValueFilter.value = ""; customFieldSelectValueFilter.style.display = "none"; }
+
+    syncAdvancedFilterBadge(false);
+    if (advancedFiltersPanel) {
+        advancedFiltersPanel.style.display = "none";
+        btnToggleAdvancedFilters?.classList.remove("open");
+    }
 
     renderSavedFilterChips();
     currentPage = 1;
@@ -982,6 +998,51 @@ saveFilterModalOverlay?.addEventListener("click", closeSaveFilterModalFunc);
 btnSubmitSaveFilter?.addEventListener("click", submitSaveFilterFunc);
 btnResetFilters?.addEventListener("click", resetAllFilters);
 
+function countActiveAdvancedFilters() {
+    let count = 0;
+    if (industryFilter?.value) count++;
+    if (companySizeFilter?.value) count++;
+    if (regionFilter?.value) count++;
+    if (ownerFilter?.value) count++;
+    if (scoreGradeFilter?.value) count++;
+    if (assignmentStatusFilter?.value) count++;
+    if (leadDatePresetFilter?.value) count++;
+    if (customFieldSelectFilter?.value && (customFieldValueFilter?.value.trim() || customFieldSelectValueFilter?.value)) count++;
+    return count;
+}
+
+function syncAdvancedFilterBadge(autoOpenIfActive = false) {
+    const count = countActiveAdvancedFilters();
+    if (advancedFilterBadge) {
+        advancedFilterBadge.textContent = count;
+        advancedFilterBadge.style.display = count > 0 ? "inline-flex" : "none";
+    }
+    if (btnToggleAdvancedFilters) {
+        if (count > 0) {
+            btnToggleAdvancedFilters.classList.add("has-active");
+        } else {
+            btnToggleAdvancedFilters.classList.remove("has-active");
+        }
+    }
+    if (autoOpenIfActive && count > 0 && advancedFiltersPanel) {
+        advancedFiltersPanel.style.display = "block";
+        btnToggleAdvancedFilters?.classList.add("open");
+    }
+    return count;
+}
+
+btnToggleAdvancedFilters?.addEventListener("click", () => {
+    if (!advancedFiltersPanel) return;
+    const isHidden = advancedFiltersPanel.style.display === "none" || !advancedFiltersPanel.style.display;
+    if (isHidden) {
+        advancedFiltersPanel.style.display = "block";
+        btnToggleAdvancedFilters.classList.add("open");
+    } else {
+        advancedFiltersPanel.style.display = "none";
+        btnToggleAdvancedFilters.classList.remove("open");
+    }
+});
+
 // Debounced inputs & change events
 [searchInput, contactPhoneFilter].forEach(input => {
     input?.addEventListener("input", () => {
@@ -999,6 +1060,7 @@ btnResetFilters?.addEventListener("click", resetAllFilters);
     select?.addEventListener("change", () => {
         activeSavedFilterId = null;
         renderSavedFilterChips();
+        syncAdvancedFilterBadge(false);
         currentPage = 1;
         loadCustomers(1);
     });
@@ -1007,6 +1069,7 @@ btnResetFilters?.addEventListener("click", resetAllFilters);
 leadDatePresetFilter?.addEventListener("change", () => {
     activeSavedFilterId = null;
     renderSavedFilterChips();
+    syncAdvancedFilterBadge(false);
     if (leadDatePresetFilter.value === "CUSTOM") {
         if (leadCreatedFrom) leadCreatedFrom.style.display = "inline-block";
         if (leadCreatedTo) leadCreatedTo.style.display = "inline-block";
@@ -1022,6 +1085,7 @@ leadDatePresetFilter?.addEventListener("change", () => {
     input?.addEventListener("change", () => {
         activeSavedFilterId = null;
         renderSavedFilterChips();
+        syncAdvancedFilterBadge(false);
         currentPage = 1;
         loadCustomers(1);
     });

@@ -228,34 +228,26 @@
     </section>
 
 
-    <!-- ================= DẢI BỘ LỌC HAY DÙNG (SAVED FILTERS CHIPS) ================= -->
-    <section class="saved-filters-bar crm-card" style="margin-bottom: 12px; padding: 12px 16px; background: #f8fafc; border: 1px solid var(--crm-border);">
-        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-            <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
-                <span style="font-size: 12px; font-weight: 700; color: var(--crm-muted); text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 4px;">
-                    ⭐ Bộ lọc hay dùng:
-                </span>
-                <div id="savedFilterChips" style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
-                    <!-- Dynamic saved filter chips will be rendered here -->
-                </div>
+    <!-- ================= KHU VỰC TÌM KIẾM & BỘ LỌC TẬP TRUNG (UNIFIED COMPACT FILTER PANEL) ================= -->
+    <section class="customer-filter-panel crm-card">
+        <!-- Hàng 1: Dải Tab Bộ lọc hay dùng (Saved Views) -->
+        <div class="filter-tabs-bar">
+            <div class="filter-tabs-scroll" id="savedFilterChips">
+                <!-- Dynamic saved filter chips rendered here -->
             </div>
-
             <button
                 id="btnOpenSaveFilterModal"
                 type="button"
-                class="crm-btn"
-                style="font-size: 12px; padding: 6px 12px; background: #fff; border: 1px dashed var(--crm-primary); color: var(--crm-primary); font-weight: 600;"
+                class="crm-btn btn-save-view"
+                title="Lưu các tiêu chí lọc hiện tại thành bộ lọc nhanh"
             >
-                💾 Lưu bộ lọc hiện tại
+                💾 Lưu bộ lọc
             </button>
         </div>
-    </section>
 
-    <!-- ================= THANH TÌM KIẾM & BỘ LỌC ĐA ĐIỀU KIỆN ================= -->
-    <section class="customer-toolbar crm-card" style="display: flex; flex-direction: column; gap: 14px; padding: 18px 20px; margin-bottom: 20px; background: #ffffff; border-radius: 14px; border: 1px solid var(--crm-border); box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
-        <!-- Hàng 1: Tìm kiếm chính + Nguồn Lead + Trạng thái + Nút truy vấn nhanh -->
-        <div style="display: flex; flex-wrap: wrap; gap: 12px; width: 100%; align-items: center;">
-            <div class="toolbar-search" style="flex: 2; min-width: 240px;">
+        <!-- Hàng 2: Thanh tìm kiếm & Bộ lọc chính (Primary Filters) -->
+        <div class="filter-primary-row">
+            <div class="search-input-wrap">
                 <input
                     id="customerSearch"
                     class="crm-input"
@@ -264,156 +256,191 @@
                 >
             </div>
 
-            <div style="flex: 1.1; min-width: 160px;">
+            <div class="phone-input-wrap">
                 <input
                     id="contactPhoneFilter"
                     class="crm-input"
                     type="search"
-                    placeholder="📞 SĐT người liên hệ..."
-                    title="Tìm nhanh khách hàng theo số điện thoại của người liên hệ"
+                    placeholder="📞 SĐT liên hệ..."
+                    title="Tìm nhanh theo số điện thoại người liên hệ"
                 >
             </div>
 
-            <select id="leadSourceFilter" class="crm-input" style="flex: 1.2; min-width: 170px;">
-                <option value="">🌐 Tất cả nguồn Lead</option>
-                <option value="HOI_THAO">🎪 Hội thảo & Sự kiện</option>
-                <option value="WEBSITE">🌐 Website Form</option>
-                <option value="FACEBOOK">📱 Facebook Lead Ads</option>
-                <option value="GOOGLE_ADS">🔍 Google Search Ads</option>
-                <option value="TIKTOK">🎵 TikTok Ads</option>
-                <option value="LINKEDIN">💼 LinkedIn B2B</option>
-                <option value="EMAIL_MARKETING">📧 Email Marketing</option>
-                <option value="GIOI_THIEU">🤝 Khách hàng giới thiệu</option>
-                <option value="DANH_THIEP">📇 Danh thiếp / Trực tiếp</option>
-                <option value="KHAC">✨ Nguồn khác</option>
-            </select>
-
-            <select id="statusFilter" class="crm-input" style="flex: 1; min-width: 150px;">
-                <option value="">🏷️ Tất cả trạng thái</option>
-                <option value="MOI">Mới (Lead)</option>
-                <option value="TIEM_NANG">Tiềm năng</option>
-                <option value="DANG_CHAM_SOC">📞 Đang chăm sóc</option>
-                <option value="KHACH_HANG">🏢 Khách hàng</option>
-                <option value="CONVERTED">👑 Đã chuyển đổi</option>
-                <option value="NGUNG_HOAT_DONG">Ngừng hoạt động</option>
-            </select>
-
-            <button
-                id="btnSortByScore"
-                type="button"
-                class="crm-btn"
-                style="padding: 8px 14px; background: #fef2f2; color: #dc2626; font-size: 12.5px; font-weight: 700; border: 1px solid #fca5a5; border-radius: 8px; white-space: nowrap; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;"
-                title="Sắp xếp lead theo thứ tự điểm tiềm năng cao nhất lên đầu danh sách"
-            >
-                🔥 Lead Hot nhất
-            </button>
-
-            <button
-                id="btnSlaBreachedFilter"
-                type="button"
-                class="crm-btn"
-                style="padding: 8px 14px; background: #fff1f2; color: #be123c; font-size: 12.5px; font-weight: 700; border: 1px solid #fecdd3; border-radius: 8px; white-space: nowrap; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;"
-                title="Lọc các lead bị quá hạn SLA phản hồi chưa được tiếp nhận"
-            >
-                🚨 Quá SLA phản hồi
-            </button>
-
-            <button
-                id="btnResetFilters"
-                type="button"
-                class="crm-btn"
-                style="padding: 8px 14px; background: #f8fafc; color: #475569; font-size: 12.5px; font-weight: 600; border: 1px solid #cbd5e1; border-radius: 8px; white-space: nowrap; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;"
-                title="Xóa tất cả điều kiện lọc và quay về mặc định"
-            >
-                🔄 Đặt lại
-            </button>
-        </div>
-
-        <!-- Hàng 2: Bộ lọc phân loại chi tiết (Ngành, Quy mô, Khu vực, Người sở hữu, Điểm số, Phân bổ, Thời gian) -->
-        <div style="display: flex; flex-wrap: wrap; gap: 10px; width: 100%; align-items: center; padding-top: 10px; border-top: 1px solid #f1f5f9;">
-            <select id="industryFilter" class="crm-input" style="flex: 1; min-width: 160px;">
-                <option value="">🏢 Tất cả ngành nghề</option>
-                <option value="1">CNTT & Viễn thông</option>
-                <option value="2">Bất động sản & Xây dựng</option>
-                <option value="3">Bán lẻ & TMĐT</option>
-                <option value="4">Tài chính - Ngân hàng</option>
-                <option value="5">Y tế & Dược phẩm</option>
-                <option value="6">Sản xuất & Chế tạo</option>
-                <option value="7">Giáo dục & Đào tạo</option>
-                <option value="8">Du lịch & Khách sạn</option>
-                <option value="9">Vận tải & Logistics</option>
-            </select>
-
-            <select id="companySizeFilter" class="crm-input" style="flex: 1; min-width: 150px;">
-                <option value="">👥 Tất cả quy mô</option>
-                <option value="10">Dưới 20 nhân sự</option>
-                <option value="11">20 - 50 nhân sự</option>
-                <option value="12">50 - 200 nhân sự</option>
-                <option value="13">200 - 500 nhân sự</option>
-                <option value="14">Trên 500 nhân sự</option>
-            </select>
-
-            <select id="regionFilter" class="crm-input" style="flex: 1; min-width: 150px;">
-                <option value="">📍 Tất cả khu vực</option>
-                <option value="22">Khu vực Hà Nội</option>
-                <option value="26">Khu vực TP. Hồ Chí Minh</option>
-                <option value="24">Khu vực Đà Nẵng</option>
-                <option value="21">Khu vực Miền Bắc</option>
-                <option value="23">Khu vực Miền Trung</option>
-                <option value="25">Khu vực Miền Nam</option>
-                <option value="20">Toàn quốc</option>
-            </select>
-
-            <select id="ownerFilter" class="crm-input" style="flex: 1; min-width: 165px;">
-                <option value="">👤 Người sở hữu</option>
-                <option value="MINE">⭐️ Do tôi phụ trách</option>
-            </select>
-
-            <select id="scoreGradeFilter" class="crm-input" style="flex: 1; min-width: 140px;">
-                <option value="">🎯 Phân loại Lead</option>
-                <option value="HOT">🔥 Lead NÓNG</option>
-                <option value="WARM">☀️ Lead ẤM</option>
-                <option value="COLD">❄️ Lead LẠNH</option>
-            </select>
-
-            <select id="assignmentStatusFilter" class="crm-input" style="flex: 1; min-width: 140px;">
-                <option value="">📌 Phân bổ</option>
-                <option value="UNASSIGNED">⏳ Chờ phân bổ</option>
-                <option value="ASSIGNED">✅ Đã phân bổ</option>
-            </select>
-
-            <!-- Bộ lọc thời gian tạo: preset hoặc khoảng ngày -->
-            <div style="display: flex; gap: 6px; align-items: center; flex: 1.3; min-width: 190px;">
-                <select id="leadDatePresetFilter" class="crm-input" style="flex: 1; min-width: 140px;">
-                    <option value="">📅 Thời gian tạo</option>
-                    <option value="TODAY">🌅 Tạo hôm nay</option>
-                    <option value="LAST_7_DAYS">🗓️ 7 ngày qua</option>
-                    <option value="THIS_MONTH">📆 Tháng này</option>
-                    <option value="CUSTOM">⏱️ Tùy chọn ngày...</option>
+            <div class="filter-select-wrap">
+                <select id="statusFilter" class="crm-input" title="Lọc theo trạng thái">
+                    <option value="">🏷️ Tất cả trạng thái</option>
+                    <option value="MOI">Mới (Lead)</option>
+                    <option value="TIEM_NANG">Tiềm năng</option>
+                    <option value="DANG_CHAM_SOC">📞 Đang chăm sóc</option>
+                    <option value="KHACH_HANG">🏢 Khách hàng</option>
+                    <option value="CONVERTED">👑 Đã chuyển đổi</option>
+                    <option value="NGUNG_HOAT_DONG">Ngừng hoạt động</option>
                 </select>
-                <input id="leadCreatedFrom" class="crm-input" type="date" title="Từ ngày tạo" style="display:none; width: 120px; padding: 6px 8px; font-size: 12px;">
-                <input id="leadCreatedTo" class="crm-input" type="date" title="Đến ngày tạo" style="display:none; width: 120px; padding: 6px 8px; font-size: 12px;">
             </div>
 
-            <!-- Lọc trường tùy chỉnh -->
-            <div id="customFieldFilterWrap" style="display: flex; gap: 6px; align-items: center; flex: 1.5; min-width: 210px;">
-                <select id="customFieldSelectFilter" class="crm-input" style="flex: 1; min-width: 130px;">
-                    <option value="">✨ Trường tùy chỉnh</option>
+            <div class="filter-select-wrap">
+                <select id="leadSourceFilter" class="crm-input" title="Lọc theo nguồn Lead">
+                    <option value="">🌐 Tất cả nguồn Lead</option>
+                    <option value="HOI_THAO">🎪 Hội thảo & Sự kiện</option>
+                    <option value="WEBSITE">🌐 Website Form</option>
+                    <option value="FACEBOOK">📱 Facebook Lead Ads</option>
+                    <option value="GOOGLE_ADS">🔍 Google Search Ads</option>
+                    <option value="TIKTOK">🎵 TikTok Ads</option>
+                    <option value="LINKEDIN">💼 LinkedIn B2B</option>
+                    <option value="EMAIL_MARKETING">📧 Email Marketing</option>
+                    <option value="GIOI_THIEU">🤝 Khách hàng giới thiệu</option>
+                    <option value="DANH_THIEP">📇 Danh thiếp / Trực tiếp</option>
+                    <option value="KHAC">✨ Nguồn khác</option>
                 </select>
-                <input id="customFieldValueFilter" class="crm-input" type="text" placeholder="Nhập giá trị..." style="flex: 1; min-width: 90px; display: none;">
-                <select id="customFieldSelectValueFilter" class="crm-input" style="flex: 1; min-width: 90px; display: none;">
-                    <option value="">-- Chọn --</option>
-                </select>
+            </div>
+
+            <div class="filter-quick-actions">
+                <button
+                    id="btnSortByScore"
+                    type="button"
+                    class="quick-pill-btn btn-pill-hot"
+                    title="Sắp xếp lead theo thứ tự điểm tiềm năng cao nhất lên đầu danh sách"
+                >
+                    🔥 Hot nhất
+                </button>
+
+                <button
+                    id="btnSlaBreachedFilter"
+                    type="button"
+                    class="quick-pill-btn btn-pill-sla"
+                    title="Lọc các lead bị quá hạn SLA phản hồi chưa được tiếp nhận"
+                >
+                    🚨 Quá SLA
+                </button>
+
+                <button
+                    id="btnToggleAdvancedFilters"
+                    type="button"
+                    class="quick-pill-btn btn-pill-advanced"
+                    title="Mở thêm các bộ lọc chuyên sâu (Ngành nghề, Quy mô, Khu vực, Thời gian...)"
+                >
+                    <span id="advancedFilterIcon">⚡</span>
+                    <span>Bộ lọc khác</span>
+                    <span id="advancedFilterBadge" class="filter-count-badge" style="display:none;">0</span>
+                </button>
+
+                <button
+                    id="btnResetFilters"
+                    type="button"
+                    class="quick-pill-btn btn-pill-reset"
+                    title="Xóa tất cả điều kiện lọc và quay về mặc định"
+                >
+                    🔄 Đặt lại
+                </button>
             </div>
         </div>
 
-        <!-- Hàng 3: Badge thông tin số kết quả & tiêu chí đang lọc -->
-        <div id="filterSummaryBar" style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--crm-muted); border-top: 1px dashed var(--crm-border); padding-top: 10px; margin-top: 4px;">
-            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                <span id="filterResultCount">Hiển thị 0 khách hàng</span>
-                <div id="activeFilterTags" style="display: inline-flex; gap: 6px; flex-wrap: wrap;"></div>
+        <!-- Hàng 3: Bảng Bộ lọc nâng cao (Collapsible Advanced Filters Panel) -->
+        <div id="advancedFiltersPanel" class="filter-advanced-panel" style="display: none;">
+            <div class="advanced-filters-grid">
+                <div class="filter-group">
+                    <label class="filter-label">Ngành nghề</label>
+                    <select id="industryFilter" class="crm-input">
+                        <option value="">🏢 Tất cả ngành nghề</option>
+                        <option value="1">CNTT & Viễn thông</option>
+                        <option value="2">Bất động sản & Xây dựng</option>
+                        <option value="3">Bán lẻ & TMĐT</option>
+                        <option value="4">Tài chính - Ngân hàng</option>
+                        <option value="5">Y tế & Dược phẩm</option>
+                        <option value="6">Sản xuất & Chế tạo</option>
+                        <option value="7">Giáo dục & Đào tạo</option>
+                        <option value="8">Du lịch & Khách sạn</option>
+                        <option value="9">Vận tải & Logistics</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">Quy mô doanh nghiệp</label>
+                    <select id="companySizeFilter" class="crm-input">
+                        <option value="">👥 Tất cả quy mô</option>
+                        <option value="10">Dưới 20 nhân sự</option>
+                        <option value="11">20 - 50 nhân sự</option>
+                        <option value="12">50 - 200 nhân sự</option>
+                        <option value="13">200 - 500 nhân sự</option>
+                        <option value="14">Trên 500 nhân sự</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">Khu vực địa lý</label>
+                    <select id="regionFilter" class="crm-input">
+                        <option value="">📍 Tất cả khu vực</option>
+                        <option value="22">Khu vực Hà Nội</option>
+                        <option value="26">Khu vực TP. Hồ Chí Minh</option>
+                        <option value="24">Khu vực Đà Nẵng</option>
+                        <option value="21">Khu vực Miền Bắc</option>
+                        <option value="23">Khu vực Miền Trung</option>
+                        <option value="25">Khu vực Miền Nam</option>
+                        <option value="20">Toàn quốc</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">Người sở hữu / Phụ trách</label>
+                    <select id="ownerFilter" class="crm-input">
+                        <option value="">👤 Người sở hữu</option>
+                        <option value="MINE">⭐️ Do tôi phụ trách</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">Phân loại nhiệt độ</label>
+                    <select id="scoreGradeFilter" class="crm-input">
+                        <option value="">🎯 Phân loại Lead</option>
+                        <option value="HOT">🔥 Lead NÓNG</option>
+                        <option value="WARM">☀️ Lead ẤM</option>
+                        <option value="COLD">❄️ Lead LẠNH</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">Trạng thái phân bổ</label>
+                    <select id="assignmentStatusFilter" class="crm-input">
+                        <option value="">📌 Phân bổ</option>
+                        <option value="UNASSIGNED">⏳ Chờ phân bổ</option>
+                        <option value="ASSIGNED">✅ Đã phân bổ</option>
+                    </select>
+                </div>
+
+                <div class="filter-group filter-group-date">
+                    <label class="filter-label">Thời gian tạo lead</label>
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <select id="leadDatePresetFilter" class="crm-input" style="flex: 1;">
+                            <option value="">📅 Thời gian tạo</option>
+                            <option value="TODAY">🌅 Tạo hôm nay</option>
+                            <option value="LAST_7_DAYS">🗓️ 7 ngày qua</option>
+                            <option value="THIS_MONTH">📆 Tháng này</option>
+                            <option value="CUSTOM">⏱️ Tùy chọn ngày...</option>
+                        </select>
+                        <input id="leadCreatedFrom" class="crm-input" type="date" title="Từ ngày tạo" style="display:none; width: 120px; padding: 6px 8px; font-size: 12px;">
+                        <input id="leadCreatedTo" class="crm-input" type="date" title="Đến ngày tạo" style="display:none; width: 120px; padding: 6px 8px; font-size: 12px;">
+                    </div>
+                </div>
+
+                <div class="filter-group filter-group-custom">
+                    <label class="filter-label">Trường tùy chỉnh</label>
+                    <div id="customFieldFilterWrap" style="display: flex; gap: 6px; align-items: center;">
+                        <select id="customFieldSelectFilter" class="crm-input" style="flex: 1;">
+                            <option value="">✨ Chọn trường...</option>
+                        </select>
+                        <input id="customFieldValueFilter" class="crm-input" type="text" placeholder="Nhập giá trị..." style="flex: 1; display: none;">
+                        <select id="customFieldSelectValueFilter" class="crm-input" style="flex: 1; display: none;">
+                            <option value="">-- Chọn --</option>
+                        </select>
+                    </div>
+                </div>
             </div>
-            <span style="font-style: italic; color: #94a3b8;">Dựng nhanh danh sách gọi trong tuần</span>
+        </div>
+
+        <!-- Hàng 4: Tóm tắt kết quả & Thẻ lọc đang kích hoạt -->
+        <div id="filterSummaryBar" class="filter-summary-row">
+            <span id="filterResultCount">Hiển thị 0 khách hàng</span>
+            <div id="activeFilterTags" class="active-filter-tags-wrap"></div>
         </div>
     </section>
 
