@@ -1,6 +1,6 @@
 "use strict";
 
-const API_BASE = "http://localhost:8080/crm";
+const API_BASE = window.location.origin + (window.location.pathname.startsWith("/crm") ? "/crm" : "");
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 let selectedFile = null;

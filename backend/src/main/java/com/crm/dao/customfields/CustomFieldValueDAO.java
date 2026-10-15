@@ -10,7 +10,7 @@ import java.util.*;
 
 public class CustomFieldValueDAO {
 
-    private static final Gson GSON = new Gson();
+    private static final Gson GSON = com.crm.util.JsonUtil.getGson();
     private static final Type STRING_LIST_TYPE = new TypeToken<List<String>>() {}.getType();
 
     /**
