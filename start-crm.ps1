@@ -1,4 +1,4 @@
-# Script khởi động toàn bộ dự án Quản Lý Khách Hàng - CRM (Frontend + Backend gộp chung trên Tomcat)
+﻿# Script khởi động toàn bộ dự án Quản Lý Khách Hàng - CRM (Frontend + Backend gộp chung trên Tomcat)
 $ErrorActionPreference = "Stop"
 
 # Thiết lập bảng mã UTF-8 cho console để hiển thị tiếng Việt chính xác

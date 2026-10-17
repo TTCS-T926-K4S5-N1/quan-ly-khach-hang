@@ -50,8 +50,12 @@ let currentForecastGroupBy = "USER"; // USER or TEAM
 
 const tabKanbanView = document.getElementById("tabKanbanView");
 const tabForecastView = document.getElementById("tabForecastView");
+const tabStagnantView = document.getElementById("tabStagnantView");
+const tabStagnantBadge = document.getElementById("tabStagnantBadge");
 const pipelineFilterSection = document.getElementById("pipelineFilterSection");
 const forecastSection = document.getElementById("forecastSection");
+const stagnantSection = document.getElementById("stagnantSection");
+const btnScanStagnantView = document.getElementById("btnScanStagnantView");
 
 const btnStagnantFilter = document.getElementById("btnStagnantFilter");
 const stagnantBadgeCount = document.getElementById("stagnantBadgeCount");
@@ -137,6 +141,12 @@ async function loadSession() {
             // Criteria: Sales rep by default only sees their own opportunities
             if (scope === "SELF" || (!scope.includes("ALL") && !scope.includes("TEAM"))) {
                 if (ownerFilter) ownerFilter.value = "MINE";
+            }
+            // Hiển thị tab Đình trệ riêng cho Trưởng nhóm trở lên (TEAM_LEAD, DIRECTOR, ADMIN)
+            if (isTeamLeadOrAbove()) {
+                if (tabStagnantView) tabStagnantView.style.display = "inline-flex";
+            } else {
+                if (tabStagnantView) tabStagnantView.style.display = "none";
             }
         }
     } catch (e) {
@@ -367,7 +377,7 @@ async function loadOpportunities() {
         if (Array.isArray(list)) {
             opportunities = list;
             // Update stagnant badge count
-            const stagnantCount = opportunities.filter(o => (o.isStagnant === true || o.isStagnant === 1) && o.stagnantFlag && o.stagnantFlag !== "NONE").length;
+            const stagnantCount = opportunities.filter(o => o.status === "OPEN" && (o.isStagnant === true || o.isStagnant === 1) && o.stagnantFlag && o.stagnantFlag !== "NONE").length;
             if (stagnantBadgeCount) {
                 if (stagnantCount > 0) {
                     stagnantBadgeCount.textContent = stagnantCount;
@@ -375,6 +385,17 @@ async function loadOpportunities() {
                 } else {
                     stagnantBadgeCount.style.display = "none";
                 }
+            }
+            if (tabStagnantBadge) {
+                tabStagnantBadge.textContent = stagnantCount;
+                if (stagnantCount > 0) {
+                    tabStagnantBadge.style.display = "inline-block";
+                } else {
+                    tabStagnantBadge.style.display = "none";
+                }
+            }
+            if (activePipelineTab === "STAGNANT") {
+                renderStagnantSection();
             }
             try {
                 localStorage.setItem("crm_ui_opportunities", JSON.stringify(opportunities.map(o => ({
@@ -1874,26 +1895,31 @@ function closeReopenDealModal() {
 function setPipelineTab(tab) {
     activePipelineTab = tab;
     if (tab === "KANBAN") {
-        if (tabKanbanView) {
-            tabKanbanView.className = "crm-btn crm-btn-primary";
-        }
-        if (tabForecastView) {
-            tabForecastView.className = "crm-btn crm-btn-secondary";
-        }
+        if (tabKanbanView) tabKanbanView.className = "crm-btn crm-btn-primary";
+        if (tabForecastView) tabForecastView.className = "crm-btn crm-btn-secondary";
+        if (tabStagnantView) tabStagnantView.className = "crm-btn crm-btn-secondary";
         if (pipelineFilterSection) pipelineFilterSection.style.display = "flex";
         if (pipelineBoard) pipelineBoard.style.display = "grid";
         if (forecastSection) forecastSection.style.display = "none";
-    } else {
-        if (tabKanbanView) {
-            tabKanbanView.className = "crm-btn crm-btn-secondary";
-        }
-        if (tabForecastView) {
-            tabForecastView.className = "crm-btn crm-btn-primary";
-        }
+        if (stagnantSection) stagnantSection.style.display = "none";
+    } else if (tab === "FORECAST") {
+        if (tabKanbanView) tabKanbanView.className = "crm-btn crm-btn-secondary";
+        if (tabForecastView) tabForecastView.className = "crm-btn crm-btn-primary";
+        if (tabStagnantView) tabStagnantView.className = "crm-btn crm-btn-secondary";
         if (pipelineFilterSection) pipelineFilterSection.style.display = "none";
         if (pipelineBoard) pipelineBoard.style.display = "none";
         if (forecastSection) forecastSection.style.display = "block";
+        if (stagnantSection) stagnantSection.style.display = "none";
         loadForecastData();
+    } else if (tab === "STAGNANT") {
+        if (tabKanbanView) tabKanbanView.className = "crm-btn crm-btn-secondary";
+        if (tabForecastView) tabForecastView.className = "crm-btn crm-btn-secondary";
+        if (tabStagnantView) tabStagnantView.className = "crm-btn crm-btn-primary";
+        if (pipelineFilterSection) pipelineFilterSection.style.display = "none";
+        if (pipelineBoard) pipelineBoard.style.display = "none";
+        if (forecastSection) forecastSection.style.display = "none";
+        if (stagnantSection) stagnantSection.style.display = "block";
+        renderStagnantSection();
     }
 }
 
@@ -2061,10 +2087,204 @@ async function loadForecastData() {
     }
 }
 
+/* =========================================================
+   USER STORY 2: DANH SÁCH CƠ HỘI ĐÌNH TRỆ DÀNH RIÊNG CHO TRƯỞNG NHÓM
+========================================================= */
+function renderStagnantSection() {
+    const totalEl = document.getElementById("stagKpiTotal");
+    const inactiveEl = document.getElementById("stagKpiInactive");
+    const overdueEl = document.getElementById("stagKpiOverdue");
+    const amountEl = document.getElementById("stagKpiAmount");
+    const tbody = document.getElementById("stagnantTableBody");
+    const emptyState = document.getElementById("stagnantEmptyState");
+    const stageSelect = document.getElementById("stagStageFilter");
+    const ownerSelect = document.getElementById("stagOwnerFilter");
+    const searchInput = document.getElementById("stagSearch");
+    const flagSelect = document.getElementById("stagFlagTypeFilter");
+
+    if (!tbody) return;
+
+    // Lọc các cơ hội đang MỞ (OPEN) bị gắn cờ đình trệ hoặc quá hạn
+    const allStag = opportunities.filter(o => o.status === "OPEN" && (o.isStagnant === true || o.isStagnant === 1) && o.stagnantFlag && o.stagnantFlag !== "NONE");
+
+    // Điền danh sách giai đoạn vào bộ lọc nếu chưa có
+    if (stageSelect && stageSelect.options.length <= 1) {
+        stages.forEach(st => {
+            const opt = document.createElement("option");
+            opt.value = st.id;
+            opt.textContent = `${st.name} (mốc: ${st.stagnantDays || 7} ngày)`;
+            stageSelect.appendChild(opt);
+        });
+    }
+
+    // Điền danh sách nhân viên phụ trách vào bộ lọc nếu chưa có
+    if (ownerSelect && ownerSelect.options.length <= 1) {
+        const ownerMap = new Map();
+        opportunities.forEach(o => {
+            if (o.ownerUserId && o.ownerName && !ownerMap.has(o.ownerUserId)) {
+                ownerMap.set(o.ownerUserId, o.ownerName);
+            }
+        });
+        ownerMap.forEach((name, id) => {
+            const opt = document.createElement("option");
+            opt.value = id;
+            opt.textContent = name;
+            ownerSelect.appendChild(opt);
+        });
+    }
+
+    // Cập nhật 4 thẻ KPI tổng quan
+    const totalCount = allStag.length;
+    const inactiveCount = allStag.filter(o => o.stagnantFlag === "INACTIVE" || o.stagnantFlag === "BOTH").length;
+    const overdueCount = allStag.filter(o => o.stagnantFlag === "OVERDUE" || o.stagnantFlag === "BOTH").length;
+    const totalRiskAmount = allStag.reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
+
+    if (totalEl) totalEl.textContent = totalCount;
+    if (inactiveEl) inactiveEl.textContent = inactiveCount;
+    if (overdueEl) overdueEl.textContent = overdueCount;
+    if (amountEl) amountEl.textContent = formatMoney(totalRiskAmount);
+
+    // Áp dụng bộ lọc tìm kiếm & loại cờ
+    const searchKw = (searchInput?.value || "").trim().toLowerCase();
+    const flagFilter = flagSelect?.value || "";
+    const stageFilter = stageSelect?.value || "";
+    const ownerFilterVal = ownerSelect?.value || "";
+
+    const filtered = allStag.filter(o => {
+        if (searchKw) {
+            const nameMatch = (o.name || "").toLowerCase().includes(searchKw);
+            const custMatch = (o.customerName || "").toLowerCase().includes(searchKw);
+            const ownerMatch = (o.ownerName || "").toLowerCase().includes(searchKw);
+            if (!nameMatch && !custMatch && !ownerMatch) return false;
+        }
+        if (flagFilter && o.stagnantFlag !== flagFilter) return false;
+        if (stageFilter && String(o.stageId) !== String(stageFilter)) return false;
+        if (ownerFilterVal && String(o.ownerUserId) !== String(ownerFilterVal)) return false;
+        return true;
+    });
+
+    tbody.innerHTML = "";
+    if (filtered.length === 0) {
+        if (emptyState) emptyState.style.display = "block";
+        return;
+    }
+
+    if (emptyState) emptyState.style.display = "none";
+
+    filtered.forEach(o => {
+        const tr = document.createElement("tr");
+        tr.style.borderBottom = "1px solid var(--crm-border, #e2e8f0)";
+        tr.style.transition = "background 0.15s ease";
+        tr.onmouseenter = () => tr.style.background = "#fef2f2";
+        tr.onmouseleave = () => tr.style.background = "";
+
+        // Badge loại cờ cảnh báo
+        let badgeHtml = "";
+        if (o.stagnantFlag === "BOTH") {
+            badgeHtml = `<span class="opp-badge" style="background:#fee2e2; border:1px solid #fecaca; color:#991b1b; font-weight:700; padding:3px 8px; border-radius:6px; display:inline-flex; align-items:center; gap:4px;">🚨 Cả hai (Đình trệ & Quá hạn)</span>`;
+        } else if (o.stagnantFlag === "OVERDUE") {
+            badgeHtml = `<span class="opp-badge" style="background:#fee2e2; border:1px solid #fecaca; color:#dc2626; font-weight:700; padding:3px 8px; border-radius:6px; display:inline-flex; align-items:center; gap:4px;">⚠️ Quá hạn chốt</span>`;
+        } else {
+            badgeHtml = `<span class="opp-badge" style="background:#fef3c7; border:1px solid #fde68a; color:#b45309; font-weight:700; padding:3px 8px; border-radius:6px; display:inline-flex; align-items:center; gap:4px;">⏳ Không tương tác (> N ngày)</span>`;
+        }
+
+        const stage = stages.find(s => s.id === o.stageId);
+        const stageName = stage?.name || o.stageName || "Không xác định";
+        const stagnantThreshold = o.stageStagnantDays || 7;
+
+        tr.innerHTML = `
+            <td style="padding: 12px 16px;">
+                <div style="font-weight: 700; color: #0f172a; cursor: pointer; text-decoration: underline;" onclick="openEditOpportunity(${o.id})">
+                    ${escapeHtml(o.name || 'Cơ hội #' + o.id)}
+                </div>
+                <div style="font-size: 12px; color: #64748b; margin-top: 2px;">
+                    🏢 ${escapeHtml(o.customerName || 'Chưa gắn khách hàng')}
+                </div>
+            </td>
+            <td style="padding: 12px 14px;">
+                <div style="font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 6px;">
+                    <span style="display:inline-block; width:22px; height:22px; line-height:22px; text-align:center; border-radius:50%; background:#e0e7ff; color:#3730a3; font-size:11px; font-weight:700;">
+                        ${(o.ownerName || 'U').charAt(0).toUpperCase()}
+                    </span>
+                    ${escapeHtml(o.ownerName || 'Chưa phân bổ')}
+                </div>
+                ${o.teamName ? `<div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">${escapeHtml(o.teamName)}</div>` : ''}
+            </td>
+            <td style="padding: 12px 14px;">
+                <span class="opp-stage-pill" style="font-size: 12px; font-weight: 600; background: #eff6ff; color: #1e40af; padding: 2px 8px; border-radius: 4px; display: inline-block;">
+                    ${escapeHtml(stageName)}
+                </span>
+                <div style="font-size: 11px; color: #92400e; background: #fef3c7; padding: 1px 6px; border-radius: 3px; display: inline-block; margin-top: 4px; font-weight: 600;">
+                    Mốc N ngày: ${stagnantThreshold} ngày
+                </div>
+            </td>
+            <td style="padding: 12px 14px;">
+                <div>${badgeHtml}</div>
+                <div style="font-size: 12px; color: #7f1d1d; margin-top: 4px; line-height: 1.4; max-width: 320px;">
+                    ${escapeHtml(o.stagnantReason || 'Không có tương tác gần đây')}
+                </div>
+            </td>
+            <td style="padding: 12px 14px; text-align: right; font-weight: 700; color: #0f172a;">
+                ${formatMoney(o.amount || 0)}
+                <div style="font-size: 11px; color: #64748b; font-weight: 500;">XS: ${o.probability || 0}%</div>
+            </td>
+            <td style="padding: 12px 14px; font-size: 12.5px;">
+                <span style="color: #dc2626; font-weight: 600;">
+                    ${o.expectedCloseDate || 'Chưa đặt'}
+                </span>
+            </td>
+            <td style="padding: 12px 16px; text-align: center;">
+                <div style="display: flex; gap: 6px; justify-content: center;">
+                    <button type="button" class="crm-btn crm-btn-secondary" style="padding: 5px 10px; font-size: 12px; font-weight: 600;" onclick="openEditOpportunity(${o.id})" title="Xem chi tiết hồ sơ cơ hội">
+                        👁️ Xem
+                    </button>
+                    <button type="button" class="crm-btn crm-btn-primary" style="padding: 5px 10px; font-size: 12px; font-weight: 600; background:#2563eb;" onclick="openInterventionAction(${o.id}, '${escapeHtml(o.name || '')}')" title="Can thiệp và tạo hoạt động đốc thúc">
+                        📞 Can thiệp
+                    </button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function openInterventionAction(oppId, oppName) {
+    if (confirm(`Can thiệp thương vụ: "${oppName}"\n\nBạn có muốn mở Drawer chi tiết cơ hội để xem lịch sử tương tác, phân bổ lại người phụ trách hoặc tạo hoạt động đôn đốc nhân viên không?`)) {
+        openEditOpportunity(oppId);
+    }
+}
+
+window.openInterventionAction = openInterventionAction;
+window.renderStagnantSection = renderStagnantSection;
+
 function setupStoryEventListeners() {
     // Tab switching
     tabKanbanView?.addEventListener("click", () => setPipelineTab("KANBAN"));
     tabForecastView?.addEventListener("click", () => setPipelineTab("FORECAST"));
+    tabStagnantView?.addEventListener("click", () => setPipelineTab("STAGNANT"));
+
+    // Event listeners cho các bộ lọc của màn hình Cơ hội đình trệ
+    document.getElementById("stagSearch")?.addEventListener("input", renderStagnantSection);
+    document.getElementById("stagFlagTypeFilter")?.addEventListener("change", renderStagnantSection);
+    document.getElementById("stagStageFilter")?.addEventListener("change", renderStagnantSection);
+    document.getElementById("stagOwnerFilter")?.addEventListener("change", renderStagnantSection);
+
+    // Nút quét đình trệ trên thanh banner
+    btnScanStagnantView?.addEventListener("click", async () => {
+        btnScanStagnantView.disabled = true;
+        const oldText = btnScanStagnantView.innerHTML;
+        btnScanStagnantView.innerHTML = "⏳ Đang quét...";
+        try {
+            const res = await api("/api/opportunities/scan-stagnation", { method: "POST" });
+            alert(`Hoàn tất đánh giá đình trệ:\n- Số cơ hội bị gắn cờ cảnh báo: ${res.flaggedCount || 0} cơ hội`);
+            await loadOpportunities();
+        } catch (e) {
+            alert("Lỗi khi quét cơ hội đình trệ: " + e.message);
+        } finally {
+            btnScanStagnantView.disabled = false;
+            btnScanStagnantView.innerHTML = oldText;
+        }
+    });
 
     // Stagnation filter & scan
     btnStagnantFilter?.addEventListener("click", () => {

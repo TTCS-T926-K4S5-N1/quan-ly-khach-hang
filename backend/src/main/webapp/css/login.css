@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Inter:wght@400;500;600;700&subset=vietnamese&display=swap');
 
 :root {
     --blue: #2559cf;
@@ -31,14 +31,18 @@ body {
     min-height: 100vh;
 
     font-family:
-        'Inter',
+        "Be Vietnam Pro",
+        "Inter",
         -apple-system,
         BlinkMacSystemFont,
         "Segoe UI",
         Roboto,
-        Helvetica,
+        "Helvetica Neue",
         Arial,
-        sans-serif;
+        sans-serif,
+        "Apple Color Emoji",
+        "Segoe UI Emoji",
+        "Segoe UI Symbol";
 
     color: var(--text);
 
