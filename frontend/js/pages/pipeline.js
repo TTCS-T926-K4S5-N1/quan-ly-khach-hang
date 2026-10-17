@@ -557,9 +557,13 @@ leadSourceFilter?.addEventListener("change", loadOpportunities);
 
 closeDatePreset?.addEventListener("change", () => {
     if (customDateRangeWrap) {
-        customDateRangeWrap.style.display = closeDatePreset.value === "CUSTOM" ? "inline-flex" : "none";
+        customDateRangeWrap.style.display = closeDatePreset.value === "CUSTOM" ? "flex" : "none";
     }
-    if (closeDatePreset.value !== "CUSTOM") {
+    if (closeDatePreset.value === "CUSTOM") {
+        const advPanel = document.getElementById("pipelineAdvancedPanel");
+        if (advPanel) advPanel.style.display = "block";
+        document.getElementById("btnTogglePipelineAdvanced")?.classList.add("open");
+    } else {
         loadOpportunities();
     }
 });
@@ -769,12 +773,18 @@ document.getElementById("resetPipelineFilter")?.addEventListener("click", () => 
     if (oppCustomFieldSelectValue) { oppCustomFieldSelectValue.value = ""; oppCustomFieldSelectValue.style.display = "none"; }
     stagnantFilterActive = false;
     if (btnStagnantFilter) {
+        btnStagnantFilter.classList.remove("active");
         btnStagnantFilter.classList.remove("crm-btn-primary");
         btnStagnantFilter.classList.add("crm-btn-secondary");
         btnStagnantFilter.style.background = "";
         btnStagnantFilter.style.borderColor = "";
         btnStagnantFilter.style.color = "";
     }
+    const pipelineAdvancedPanel = document.getElementById("pipelineAdvancedPanel");
+    if (pipelineAdvancedPanel) pipelineAdvancedPanel.style.display = "none";
+    document.getElementById("btnTogglePipelineAdvanced")?.classList.remove("open");
+    const advBadge = document.getElementById("pipelineAdvancedBadge");
+    if (advBadge) advBadge.style.display = "none";
     loadOpportunities();
 });
 
@@ -1299,6 +1309,11 @@ function createCard(record) {
         draggedOppId = null;
         card.classList.remove("dragging");
         document.querySelectorAll(".column-body").forEach(zone => zone.classList.remove("drag-over"));
+    });
+
+    card.addEventListener("click", event => {
+        if (event.target.closest(".card-menu-btn") || event.target.closest(".card-menu") || event.target.closest("button")) return;
+        openEditOpportunity(record.id);
     });
 
     return card;
@@ -1894,27 +1909,22 @@ function closeReopenDealModal() {
 
 function setPipelineTab(tab) {
     activePipelineTab = tab;
+    if (tabKanbanView) tabKanbanView.className = tab === "KANBAN" ? "pipeline-view-tab active" : "pipeline-view-tab";
+    if (tabForecastView) tabForecastView.className = tab === "FORECAST" ? "pipeline-view-tab active" : "pipeline-view-tab";
+    if (tabStagnantView) tabStagnantView.className = tab === "STAGNANT" ? "pipeline-view-tab active" : "pipeline-view-tab";
+
     if (tab === "KANBAN") {
-        if (tabKanbanView) tabKanbanView.className = "crm-btn crm-btn-primary";
-        if (tabForecastView) tabForecastView.className = "crm-btn crm-btn-secondary";
-        if (tabStagnantView) tabStagnantView.className = "crm-btn crm-btn-secondary";
-        if (pipelineFilterSection) pipelineFilterSection.style.display = "flex";
+        if (pipelineFilterSection) pipelineFilterSection.style.display = "block";
         if (pipelineBoard) pipelineBoard.style.display = "grid";
         if (forecastSection) forecastSection.style.display = "none";
         if (stagnantSection) stagnantSection.style.display = "none";
     } else if (tab === "FORECAST") {
-        if (tabKanbanView) tabKanbanView.className = "crm-btn crm-btn-secondary";
-        if (tabForecastView) tabForecastView.className = "crm-btn crm-btn-primary";
-        if (tabStagnantView) tabStagnantView.className = "crm-btn crm-btn-secondary";
         if (pipelineFilterSection) pipelineFilterSection.style.display = "none";
         if (pipelineBoard) pipelineBoard.style.display = "none";
         if (forecastSection) forecastSection.style.display = "block";
         if (stagnantSection) stagnantSection.style.display = "none";
         loadForecastData();
     } else if (tab === "STAGNANT") {
-        if (tabKanbanView) tabKanbanView.className = "crm-btn crm-btn-secondary";
-        if (tabForecastView) tabForecastView.className = "crm-btn crm-btn-secondary";
-        if (tabStagnantView) tabStagnantView.className = "crm-btn crm-btn-primary";
         if (pipelineFilterSection) pipelineFilterSection.style.display = "none";
         if (pipelineBoard) pipelineBoard.style.display = "none";
         if (forecastSection) forecastSection.style.display = "none";
@@ -2286,18 +2296,27 @@ function setupStoryEventListeners() {
         }
     });
 
+    // Toggle bộ lọc nâng cao
+    const btnTogglePipelineAdvanced = document.getElementById("btnTogglePipelineAdvanced");
+    const pipelineAdvancedPanel = document.getElementById("pipelineAdvancedPanel");
+    btnTogglePipelineAdvanced?.addEventListener("click", () => {
+        const isHidden = !pipelineAdvancedPanel || pipelineAdvancedPanel.style.display === "none";
+        if (pipelineAdvancedPanel) {
+            pipelineAdvancedPanel.style.display = isHidden ? "block" : "none";
+        }
+        btnTogglePipelineAdvanced.classList.toggle("open", isHidden);
+    });
+
+
     // Stagnation filter & scan
     btnStagnantFilter?.addEventListener("click", () => {
         stagnantFilterActive = !stagnantFilterActive;
+        btnStagnantFilter.classList.toggle("active", stagnantFilterActive);
         if (stagnantFilterActive) {
-            btnStagnantFilter.classList.add("crm-btn-primary");
-            btnStagnantFilter.classList.remove("crm-btn-secondary");
             btnStagnantFilter.style.background = "#ef4444";
             btnStagnantFilter.style.borderColor = "#ef4444";
             btnStagnantFilter.style.color = "#ffffff";
         } else {
-            btnStagnantFilter.classList.remove("crm-btn-primary");
-            btnStagnantFilter.classList.add("crm-btn-secondary");
             btnStagnantFilter.style.background = "";
             btnStagnantFilter.style.borderColor = "";
             btnStagnantFilter.style.color = "";
