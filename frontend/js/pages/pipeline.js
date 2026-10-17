@@ -68,6 +68,18 @@ const reopenDealReason = document.getElementById("reopenDealReason");
 const reopenDealError = document.getElementById("reopenDealError");
 const btnDrawerReopenDeal = document.getElementById("btnDrawerReopenDeal");
 
+// User Story: Opportunity Reassignment state & elements
+let selectedOppIds = new Set();
+let assignableUsersList = null;
+let reassigningOppIds = [];
+const btnDrawerReassignOpp = document.getElementById("btnDrawerReassignOpp");
+const btnQuickReassignInDrawer = document.getElementById("btnQuickReassignInDrawer");
+const reassignOpportunityModal = document.getElementById("reassignOpportunityModal");
+const reassignOpportunityOverlay = document.getElementById("reassignOpportunityOverlay");
+const reassignOpportunityForm = document.getElementById("reassignOpportunityForm");
+const pipelineBulkActionBar = document.getElementById("pipelineBulkActionBar");
+const bulkSelectedCount = document.getElementById("bulkSelectedCount");
+
 const dealModal = document.getElementById("closeDealModal");
 const dealOverlay = document.getElementById("closeDealOverlay");
 
@@ -1041,6 +1053,12 @@ document.addEventListener("click", async event => {
         return;
     }
 
+    const reassignBtn = event.target.closest("[data-reassign-opportunity]");
+    if (reassignBtn) {
+        openReassignModal([Number(reassignBtn.dataset.reassignOpportunity)]);
+        return;
+    }
+
     if (!event.target.closest(".opportunity-card")) {
         document.querySelectorAll(".card-menu").forEach(menu => menu.classList.remove("open"));
     }
@@ -1244,12 +1262,14 @@ function createCard(record) {
     if (isClosed) {
         cardMenuHtml = `
             <button type="button" data-edit-opportunity="${record.id}">👁 Xem chi tiết (Đã đóng)</button>
+            ${isTeamLeadOrAbove() ? `<button type="button" style="color:#0284c7; font-weight:600;" data-reassign-opportunity="${record.id}">🔄 Phân bổ lại</button>` : ""}
             ${isTeamLeadOrAbove() ? `<button type="button" style="color:#2563eb; font-weight:600;" data-reopen-opportunity="${record.id}">🔓 Mở lại cơ hội</button>` : ""}
             ${isTeamLeadOrAbove() ? `<button type="button" style="color:#ef4444;" data-delete-opportunity="${record.id}">🗑 Xóa</button>` : ""}
         `;
     } else {
         cardMenuHtml = `
             <button type="button" data-edit-opportunity="${record.id}">Sửa</button>
+            ${isTeamLeadOrAbove() ? `<button type="button" style="color:#0284c7; font-weight:600;" data-reassign-opportunity="${record.id}">🔄 Phân bổ lại</button>` : ""}
             ${canPrev ? `<button type="button" data-prev-stage="${record.id}">← Giai đoạn trước</button>` : ""}
             ${canNext ? `<button type="button" data-next-stage="${record.id}">Giai đoạn tiếp →</button>` : ""}
             <button type="button" class="won" data-close-won="${record.id}">✓ Đóng Thắng</button>
@@ -1432,6 +1452,11 @@ async function openOpportunityDrawer(id = null) {
             if (isClosed) {
                 setOpportunityFormDisabled(true);
             }
+
+            const canReassign = isTeamLeadOrAbove();
+            if (btnDrawerReassignOpp) btnDrawerReassignOpp.style.display = canReassign ? "inline-block" : "none";
+            if (btnQuickReassignInDrawer) btnQuickReassignInDrawer.style.display = canReassign ? "inline-block" : "none";
+            loadAndRenderAssignmentHistory(id);
         }
     } else {
         if (titleEl) titleEl.textContent = "Thêm cơ hội";
@@ -1439,6 +1464,10 @@ async function openOpportunityDrawer(id = null) {
         setOpportunityFormDisabled(false);
         if (saveBtn) saveBtn.style.display = "inline-block";
         if (reopenBtn) reopenBtn.style.display = "none";
+        if (btnDrawerReassignOpp) btnDrawerReassignOpp.style.display = "none";
+        if (btnQuickReassignInDrawer) btnQuickReassignInDrawer.style.display = "none";
+        const histSection = document.getElementById("opportunityAssignmentHistorySection");
+        if (histSection) histSection.style.display = "none";
 
         opportunityForm.reset();
         currentOpportunityItems = [];
@@ -2202,7 +2231,11 @@ function renderStagnantSection() {
         const stageName = stage?.name || o.stageName || "Không xác định";
         const stagnantThreshold = o.stageStagnantDays || 7;
 
+        const isChecked = selectedOppIds.has(o.id);
         tr.innerHTML = `
+            <td style="padding: 12px 10px; width: 36px; text-align: center;">
+                <input type="checkbox" class="opp-checkbox stagnant-opp-checkbox" data-opp-id="${o.id}" ${isChecked ? 'checked' : ''}>
+            </td>
             <td style="padding: 12px 16px;">
                 <div style="font-weight: 700; color: #0f172a; cursor: pointer; text-decoration: underline;" onclick="openEditOpportunity(${o.id})">
                     ${escapeHtml(o.name || 'Cơ hội #' + o.id)}
@@ -2244,18 +2277,55 @@ function renderStagnantSection() {
                 </span>
             </td>
             <td style="padding: 12px 16px; text-align: center;">
-                <div style="display: flex; gap: 6px; justify-content: center;">
-                    <button type="button" class="crm-btn crm-btn-secondary" style="padding: 5px 10px; font-size: 12px; font-weight: 600;" onclick="openEditOpportunity(${o.id})" title="Xem chi tiết hồ sơ cơ hội">
+                <div style="display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap;">
+                    <button type="button" class="crm-btn crm-btn-secondary" style="padding: 5px 8px; font-size: 12px; font-weight: 600;" onclick="openEditOpportunity(${o.id})" title="Xem chi tiết hồ sơ cơ hội">
                         👁️ Xem
                     </button>
-                    <button type="button" class="crm-btn crm-btn-primary" style="padding: 5px 10px; font-size: 12px; font-weight: 600; background:#2563eb;" onclick="openInterventionAction(${o.id}, '${escapeHtml(o.name || '')}')" title="Can thiệp và tạo hoạt động đốc thúc">
+                    ${isTeamLeadOrAbove() ? `
+                    <button type="button" class="crm-btn" style="padding: 5px 8px; font-size: 12px; font-weight: 600; background:#0284c7; color:#fff; border-color:#0284c7;" onclick="openReassignModal([${o.id}])" title="Phân bổ lại cơ hội cho người khác">
+                        🔄 Phân bổ
+                    </button>` : ''}
+                    <button type="button" class="crm-btn crm-btn-primary" style="padding: 5px 8px; font-size: 12px; font-weight: 600; background:#2563eb;" onclick="openInterventionAction(${o.id}, '${escapeHtml(o.name || '')}')" title="Can thiệp và tạo hoạt động đốc thúc">
                         📞 Can thiệp
                     </button>
                 </div>
             </td>
         `;
+
+        const rowCb = tr.querySelector(".stagnant-opp-checkbox");
+        rowCb?.addEventListener("change", (e) => {
+            if (e.target.checked) {
+                selectedOppIds.add(o.id);
+            } else {
+                selectedOppIds.delete(o.id);
+            }
+            updateBulkActionBar();
+            const selectAllBox = document.getElementById("selectAllStagnantOpps");
+            if (selectAllBox) {
+                selectAllBox.checked = filtered.length > 0 && filtered.every(item => selectedOppIds.has(item.id));
+            }
+        });
+
         tbody.appendChild(tr);
     });
+
+    // Cập nhật trạng thái ô checkbox Chọn tất cả
+    const selectAllBox = document.getElementById("selectAllStagnantOpps");
+    if (selectAllBox) {
+        selectAllBox.checked = filtered.length > 0 && filtered.every(item => selectedOppIds.has(item.id));
+        selectAllBox.onchange = () => {
+            if (selectAllBox.checked) {
+                filtered.forEach(item => selectedOppIds.add(item.id));
+            } else {
+                filtered.forEach(item => selectedOppIds.delete(item.id));
+            }
+            tbody.querySelectorAll(".stagnant-opp-checkbox").forEach(cb => {
+                const oppId = Number(cb.dataset.oppId);
+                cb.checked = selectedOppIds.has(oppId);
+            });
+            updateBulkActionBar();
+        };
+    }
 }
 
 function openInterventionAction(oppId, oppName) {
@@ -2430,7 +2500,256 @@ function setupStoryEventListeners() {
     });
 
     document.getElementById("btnRefreshForecast")?.addEventListener("click", loadForecastData);
+
+    // Reassignment modal & buttons listeners
+    document.getElementById("closeReassignModalX")?.addEventListener("click", closeReassignModal);
+    document.getElementById("cancelReassignModalBtn")?.addEventListener("click", closeReassignModal);
+    document.getElementById("reassignOpportunityOverlay")?.addEventListener("click", closeReassignModal);
+
+    document.getElementById("reassignReasonPreset")?.addEventListener("change", (e) => {
+        const val = e.target.value;
+        const reasonInput = document.getElementById("reassignReason");
+        if (val && val !== "Khác" && reasonInput) {
+            reasonInput.value = val;
+        }
+    });
+
+    btnDrawerReassignOpp?.addEventListener("click", () => {
+        if (editingOppId) {
+            openReassignModal([editingOppId]);
+        }
+    });
+
+    btnQuickReassignInDrawer?.addEventListener("click", () => {
+        if (editingOppId) {
+            openReassignModal([editingOppId]);
+        }
+    });
+
+    // Bulk bar buttons
+    document.getElementById("btnBulkReassign")?.addEventListener("click", () => {
+        if (selectedOppIds.size > 0) {
+            openReassignModal(Array.from(selectedOppIds));
+        }
+    });
+
+    document.getElementById("btnBulkDeselect")?.addEventListener("click", () => {
+        selectedOppIds.clear();
+        document.querySelectorAll(".stagnant-opp-checkbox").forEach(cb => cb.checked = false);
+        const selectAllBox = document.getElementById("selectAllStagnantOpps");
+        if (selectAllBox) selectAllBox.checked = false;
+        updateBulkActionBar();
+    });
+
+    // Reassign form submit
+    document.getElementById("reassignOpportunityForm")?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!reassigningOppIds || reassigningOppIds.length === 0) return;
+
+        const toUserIdVal = document.getElementById("reassignToUser")?.value;
+        const reasonVal = (document.getElementById("reassignReason")?.value || "").trim();
+        const notesVal = (document.getElementById("reassignNotes")?.value || "").trim();
+        const errorEl = document.getElementById("reassignError");
+        const submitBtn = document.getElementById("submitReassignBtn");
+
+        if (!toUserIdVal) {
+            if (errorEl) errorEl.textContent = "Vui lòng chọn nhân sự tiếp nhận.";
+            return;
+        }
+        if (!reasonVal) {
+            if (errorEl) errorEl.textContent = "Bắt buộc phải nhập lý do phân bổ lại cơ hội.";
+            return;
+        }
+        if (errorEl) errorEl.textContent = "";
+
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Đang chuyển giao...";
+        }
+
+        try {
+            const resp = await api("/api/opportunities/reassign", {
+                method: "POST",
+                body: JSON.stringify({
+                    opportunityIds: reassigningOppIds,
+                    toUserId: Number(toUserIdVal),
+                    reason: reasonVal,
+                    notes: notesVal
+                })
+            });
+
+            const count = resp?.reassignedCount || reassigningOppIds.length;
+            closeReassignModal();
+            selectedOppIds.clear();
+            updateBulkActionBar();
+            await loadOpportunities();
+
+            if (editingOppId && reassigningOppIds.includes(editingOppId)) {
+                await openOpportunityDrawer(editingOppId);
+            }
+
+            alert(`Phân bổ lại thành công ${count} cơ hội bán hàng!`);
+        } catch (err) {
+            if (errorEl) errorEl.textContent = err.message || "Lỗi khi chuyển giao cơ hội";
+            else alert("Lỗi khi chuyển giao cơ hội: " + err.message);
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "🔄 Xác nhận chuyển giao";
+            }
+        }
+    });
 }
+
+/* =========================================================
+   USER STORY: OPPORTUNITY REASSIGNMENT (SINGLE & BULK)
+========================================================= */
+
+function updateBulkActionBar() {
+    const bar = document.getElementById("pipelineBulkActionBar");
+    const countEl = document.getElementById("bulkSelectedCount");
+    if (!bar) return;
+    if (selectedOppIds.size > 0) {
+        if (countEl) countEl.textContent = selectedOppIds.size;
+        bar.classList.add("visible");
+    } else {
+        bar.classList.remove("visible");
+    }
+}
+
+async function loadAssignableUsers() {
+    const select = document.getElementById("reassignToUser");
+    if (!select) return;
+    try {
+        const users = await api("/api/opportunities/assignable-users");
+        assignableUsersList = Array.isArray(users) ? users : [];
+        select.innerHTML = '<option value="">-- Chọn nhân sự tiếp nhận --</option>';
+
+        // Group users by team
+        const teamsMap = new Map();
+        assignableUsersList.forEach(u => {
+            const teamName = u.teamName || "Khác";
+            if (!teamsMap.has(teamName)) {
+                teamsMap.set(teamName, []);
+            }
+            teamsMap.get(teamName).push(u);
+        });
+
+        teamsMap.forEach((teamUsers, teamName) => {
+            const group = document.createElement("optgroup");
+            group.label = `👥 ${teamName}`;
+            teamUsers.forEach(u => {
+                const opt = document.createElement("option");
+                opt.value = u.id;
+                const roleStr = u.roleName || u.roleCode || "";
+                opt.textContent = `${u.fullName}${roleStr ? ` (${roleStr})` : ''} - ${u.email}`;
+                group.appendChild(opt);
+            });
+            select.appendChild(group);
+        });
+    } catch (err) {
+        console.error("Lỗi khi tải danh sách nhân sự phân bổ:", err);
+        select.innerHTML = '<option value="">(Không thể tải danh sách nhân sự)</option>';
+    }
+}
+
+async function openReassignModal(oppIds) {
+    if (!oppIds || oppIds.length === 0) return;
+    reassigningOppIds = oppIds;
+
+    const modal = document.getElementById("reassignOpportunityModal");
+    const overlay = document.getElementById("reassignOpportunityOverlay");
+    const countTitle = document.getElementById("reassignTargetCountTitle");
+    const countBadge = document.getElementById("reassignTargetCountBadge");
+    const contextDetails = document.getElementById("reassignContextDetails");
+    const reasonInput = document.getElementById("reassignReason");
+    const reasonPreset = document.getElementById("reassignReasonPreset");
+    const notesInput = document.getElementById("reassignNotes");
+    const errorEl = document.getElementById("reassignError");
+
+    if (oppIds.length === 1) {
+        const opp = opportunities.find(o => o.id === oppIds[0]);
+        if (countTitle) countTitle.textContent = `Chuyển giao cơ hội: ${opp?.name || '#' + oppIds[0]}`;
+        if (countBadge) countBadge.textContent = "1 DEAL";
+        if (contextDetails) {
+            contextDetails.innerHTML = `Người phụ trách hiện tại: <strong>${escapeHtml(opp?.ownerName || 'Chưa gán')}</strong> (${escapeHtml(opp?.customerName || 'Chưa có KH')}, ${formatMoney(opp?.amount || 0)}).`;
+        }
+    } else {
+        if (countTitle) countTitle.textContent = `Đang phân bổ hàng loạt ${oppIds.length} cơ hội đã chọn`;
+        if (countBadge) countBadge.textContent = `${oppIds.length} DEALS`;
+        if (contextDetails) {
+            contextDetails.innerHTML = `Toàn bộ <strong>${oppIds.length} cơ hội</strong> này sẽ được đổi người sở hữu, bảo lưu đầy đủ lịch sử hoạt động và ghi nhật ký phân bổ kèm lý do.`;
+        }
+    }
+
+    if (reasonInput) reasonInput.value = "";
+    if (reasonPreset) reasonPreset.value = "";
+    if (notesInput) notesInput.value = "";
+    if (errorEl) errorEl.textContent = "";
+
+    await loadAssignableUsers();
+
+    if (modal) modal.style.display = "block";
+    if (overlay) overlay.style.display = "block";
+}
+
+function closeReassignModal() {
+    const modal = document.getElementById("reassignOpportunityModal");
+    const overlay = document.getElementById("reassignOpportunityOverlay");
+    if (modal) modal.style.display = "none";
+    if (overlay) overlay.style.display = "none";
+    reassigningOppIds = [];
+}
+
+async function loadAndRenderAssignmentHistory(oppId) {
+    const section = document.getElementById("opportunityAssignmentHistorySection");
+    const list = document.getElementById("assignmentTimelineList");
+    const countBadge = document.getElementById("assignmentHistoryCountBadge");
+    const emptyEl = document.getElementById("assignmentHistoryEmpty");
+    if (!section || !list) return;
+
+    try {
+        const history = await api(`/api/opportunities/${oppId}/assignment-history`);
+        if (Array.isArray(history) && history.length > 0) {
+            section.style.display = "block";
+            if (countBadge) countBadge.textContent = `${history.length} lần`;
+            if (emptyEl) emptyEl.style.display = "none";
+            list.innerHTML = history.map(item => {
+                const timeStr = item.createdAt ? new Date(item.createdAt).toLocaleString("vi-VN") : "—";
+                return `
+                    <div class="assignment-timeline-item">
+                        <div class="assignment-item-header">
+                            <div class="assignment-users">
+                                <span>${escapeHtml(item.fromUserName || 'Chưa gán')}</span>
+                                <span style="color: #0284c7; margin: 0 4px;">➔</span>
+                                <span style="color: #0284c7; font-weight: 700;">${escapeHtml(item.toUserName || 'N/A')}</span>
+                            </div>
+                            <span class="assignment-time">${timeStr}</span>
+                        </div>
+                        <div class="assignment-reason-box">
+                            <strong>Lý do:</strong> ${escapeHtml(item.reason || 'Bàn giao')}
+                            ${item.notes ? `<div style="font-size: 11.5px; color: #64748b; margin-top: 2px;"><em>Ghi chú:</em> ${escapeHtml(item.notes)}</div>` : ''}
+                        </div>
+                        <div class="assignment-actor">
+                            👤 Người chuyển giao: <strong>${escapeHtml(item.assignedByName || 'Hệ thống')}</strong>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        } else {
+            section.style.display = "block";
+            if (countBadge) countBadge.textContent = "0 lần";
+            if (emptyEl) emptyEl.style.display = "block";
+            list.innerHTML = "";
+        }
+    } catch (err) {
+        section.style.display = "none";
+    }
+}
+
+window.openReassignModal = openReassignModal;
+window.closeReassignModal = closeReassignModal;
+window.updateBulkActionBar = updateBulkActionBar;
 
 // Start
 initPipeline();

@@ -86,11 +86,24 @@ public class OpportunityServlet extends HttpServlet {
                 return;
             }
 
+            if ("/assignable-users".equals(path)) {
+                var users = opportunityService.getAssignableUsers(currentUserId);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Lấy danh sách nhân sự nhận phân bổ thành công", users));
+                return;
+            }
+
             String[] getSegments = segments(path);
             if (getSegments.length == 2 && "items".equals(getSegments[1])) {
                 long targetId = Long.parseLong(getSegments[0]);
                 var items = opportunityService.getItems(currentUserId, targetId);
                 ResponseUtil.json(resp, 200, ApiResponse.success("Lấy danh sách sản phẩm cơ hội thành công", items));
+                return;
+            }
+
+            if (getSegments.length == 2 && "assignment-history".equals(getSegments[1])) {
+                long targetId = Long.parseLong(getSegments[0]);
+                var history = opportunityService.getAssignmentHistory(currentUserId, targetId);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Lấy lịch sử phân bổ cơ hội thành công", history));
                 return;
             }
 
@@ -123,6 +136,40 @@ public class OpportunityServlet extends HttpServlet {
                 Map<String, Object> resData = new HashMap<>();
                 resData.put("flaggedCount", flagged);
                 ResponseUtil.json(resp, 200, ApiResponse.success("Đã quét và đánh giá cơ hội đình trệ: " + flagged + " cơ hội có cờ cảnh báo", resData));
+                return;
+            }
+
+            if ("/reassign".equals(path)) {
+                Map<String, Object> body = JsonUtil.getGson().fromJson(req.getReader(), com.crm.util.JsonUtil.OBJECT_MAP_TYPE);
+                if (body == null) {
+                    throw new IllegalArgumentException("Dữ liệu yêu cầu không hợp lệ.");
+                }
+                List<Long> oppIds = new ArrayList<>();
+                if (body.get("opportunityIds") instanceof List<?> list) {
+                    for (Object item : list) {
+                        if (item instanceof Number n) {
+                            oppIds.add(n.longValue());
+                        } else if (item != null) {
+                            oppIds.add(Long.parseLong(item.toString().trim()));
+                        }
+                    }
+                } else if (body.get("opportunityId") != null) {
+                    oppIds.add(((Number) body.get("opportunityId")).longValue());
+                }
+                if (oppIds.isEmpty()) {
+                    throw new IllegalArgumentException("Vui lòng chọn ít nhất một cơ hội để chuyển giao.");
+                }
+                if (body.get("toUserId") == null) {
+                    throw new IllegalArgumentException("Vui lòng chọn nhân sự tiếp nhận.");
+                }
+                long toUserId = ((Number) body.get("toUserId")).longValue();
+                String reason = body.get("reason") != null ? String.valueOf(body.get("reason")).trim() : "";
+                String notes = body.get("notes") != null ? String.valueOf(body.get("notes")).trim() : "";
+
+                int count = opportunityService.reassign(currentUserId, oppIds, toUserId, reason, notes);
+                Map<String, Object> resData = new HashMap<>();
+                resData.put("reassignedCount", count);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Đã phân bổ lại thành công " + count + " cơ hội", resData));
                 return;
             }
 

@@ -7,6 +7,7 @@ import com.crm.dao.pipeline.PipelineStageDAO;
 import com.crm.dto.pipeline.OpportunityWriteRequest;
 import com.crm.service.permissions.DataScopeContext;
 import com.crm.service.permissions.DataScopeService;
+import com.crm.service.permissions.ScopeType;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -532,6 +533,81 @@ public class OpportunityService {
 
     public int scanAndFlagStagnantOpportunities() throws Exception {
         return opportunityDAO.scanAndFlagStagnantOpportunities();
+    }
+
+    public List<Map<String, Object>> getAssignableUsers(long currentUserId) throws Exception {
+        boolean canManage = permissionDAO.hasRole(currentUserId, "ADMIN")
+                || permissionDAO.hasRole(currentUserId, "DIRECTOR")
+                || permissionDAO.hasRole(currentUserId, "TEAM_LEAD");
+        if (!canManage) {
+            throw new SecurityException("Chỉ Trưởng nhóm trở lên mới có quyền truy cập danh sách phân bổ.");
+        }
+
+        boolean allUsers = permissionDAO.hasRole(currentUserId, "ADMIN")
+                || permissionDAO.hasRole(currentUserId, "DIRECTOR");
+
+        DataScopeContext scope = dataScopeService.resolve(currentUserId, "opportunity", "update");
+        Long teamId = scope.teamId();
+
+        return opportunityDAO.getAssignableUsers(teamId, allUsers || scope.scopeType() == ScopeType.ALL);
+    }
+
+    public int reassign(long currentUserId, List<Long> oppIds, long toUserId, String reason, String notes) throws Exception {
+        boolean canManage = permissionDAO.hasRole(currentUserId, "ADMIN")
+                || permissionDAO.hasRole(currentUserId, "DIRECTOR")
+                || permissionDAO.hasRole(currentUserId, "TEAM_LEAD");
+        if (!canManage) {
+            throw new SecurityException("Chỉ Trưởng nhóm trở lên mới có quyền phân bổ lại cơ hội.");
+        }
+
+        if (oppIds == null || oppIds.isEmpty()) {
+            throw new IllegalArgumentException("Vui lòng chọn ít nhất một cơ hội để chuyển giao.");
+        }
+        if (toUserId <= 0) {
+            throw new IllegalArgumentException("Vui lòng chọn nhân sự tiếp nhận cơ hội.");
+        }
+        if (reason == null || reason.trim().isBlank()) {
+            throw new IllegalArgumentException("Bắt buộc phải nhập lý do chuyển giao cơ hội.");
+        }
+
+        DataScopeContext scope = dataScopeService.resolve(currentUserId, "opportunity", "update");
+        boolean isFullAdmin = permissionDAO.hasRole(currentUserId, "ADMIN") || permissionDAO.hasRole(currentUserId, "DIRECTOR");
+
+        if (!isFullAdmin && scope.scopeType() != ScopeType.ALL) {
+            // Verify that the target user is within the manager's team hierarchy
+            List<Map<String, Object>> assignable = opportunityDAO.getAssignableUsers(scope.teamId(), false);
+            boolean validTarget = assignable.stream().anyMatch(u -> ((Number) u.get("id")).longValue() == toUserId);
+            if (!validTarget) {
+                throw new SecurityException("Nhân sự tiếp nhận không thuộc phạm vi quản lý của bạn.");
+            }
+        }
+
+        // Validate each opportunity exists and is within current user's manageable scope
+        for (Long oppId : oppIds) {
+            Map<String, Object> opp = opportunityDAO.findById(oppId);
+            if (opp == null) {
+                throw new NoSuchElementException("Không tìm thấy cơ hội ID: " + oppId);
+            }
+            Long ownerId = (Long) opp.get("ownerUserId");
+            if (ownerId != null && !scope.canAccessOwner(ownerId)) {
+                throw new SecurityException("Bạn không có quyền chuyển giao cơ hội ID: " + oppId + " do giới hạn phạm vi quản lý.");
+            }
+        }
+
+        return opportunityDAO.bulkReassign(oppIds, toUserId, currentUserId, reason.trim(), notes != null ? notes.trim() : null);
+    }
+
+    public List<Map<String, Object>> getAssignmentHistory(long currentUserId, long oppId) throws Exception {
+        DataScopeContext scope = dataScopeService.resolve(currentUserId, "opportunity", "read");
+        Map<String, Object> opp = opportunityDAO.findById(oppId);
+        if (opp == null) {
+            throw new NoSuchElementException("Cơ hội không tồn tại.");
+        }
+        Long ownerId = (Long) opp.get("ownerUserId");
+        if (ownerId != null && !scope.canAccessOwner(ownerId)) {
+            throw new SecurityException("Bạn không có quyền xem thông tin cơ hội này.");
+        }
+        return opportunityDAO.getAssignmentHistory(oppId);
     }
 
     public void delete(long currentUserId, long id) throws Exception {

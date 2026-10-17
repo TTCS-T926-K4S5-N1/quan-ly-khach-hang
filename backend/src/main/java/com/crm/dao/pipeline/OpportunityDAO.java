@@ -577,5 +577,222 @@ public class OpportunityDAO {
             stmt.executeUpdate();
         }
     }
+
+    public int reassign(long oppId, long toUserId, long assignedByUserId, String reason, String notes) throws SQLException {
+        String oppQuery = "SELECT id, name, customer_id, owner_user_id FROM opportunities WHERE id = ? AND is_deleted = 0";
+        String userQuery = "SELECT id, full_name, email FROM users WHERE id = ?";
+        String updateOppSql = "UPDATE opportunities SET owner_user_id = ?, updated_at = NOW() WHERE id = ?";
+        String insertLogSql = "INSERT INTO opportunity_assignment_logs (opportunity_id, from_user_id, to_user_id, assigned_by_user_id, reason, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())";
+        String insertActivitySql = "INSERT INTO activities (subject, type, description, status, due_date, customer_id, opportunity_id, owner_user_id, created_at, updated_at) VALUES (?, 'NOTE', ?, 'COMPLETED', NOW(), ?, ?, ?, NOW(), NOW())";
+
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                // 1. Lấy thông tin cơ hội
+                long customerId = 0;
+                Long fromUserId = null;
+                String oppName = "Cơ hội #" + oppId;
+                try (PreparedStatement stmt = conn.prepareStatement(oppQuery)) {
+                    stmt.setLong(1, oppId);
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        if (!rs.next()) {
+                            throw new IllegalArgumentException("Không tìm thấy cơ hội #" + oppId);
+                        }
+                        oppName = rs.getString("name");
+                        customerId = rs.getLong("customer_id");
+                        fromUserId = rs.getObject("owner_user_id") != null ? rs.getLong("owner_user_id") : null;
+                    }
+                }
+
+                // 2. Lấy thông tin người nhận
+                String toUserName = "Nhân viên #" + toUserId;
+                try (PreparedStatement stmt = conn.prepareStatement(userQuery)) {
+                    stmt.setLong(1, toUserId);
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        if (rs.next()) {
+                            toUserName = rs.getString("full_name");
+                        }
+                    }
+                }
+
+                // 3. Lấy thông tin người cũ & người thực hiện
+                String fromUserName = "Chưa gán";
+                if (fromUserId != null) {
+                    try (PreparedStatement stmt = conn.prepareStatement(userQuery)) {
+                        stmt.setLong(1, fromUserId);
+                        try (ResultSet rs = stmt.executeQuery()) {
+                            if (rs.next()) fromUserName = rs.getString("full_name");
+                        }
+                    }
+                }
+
+                String assignedByName = "Quản lý";
+                try (PreparedStatement stmt = conn.prepareStatement(userQuery)) {
+                    stmt.setLong(1, assignedByUserId);
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        if (rs.next()) assignedByName = rs.getString("full_name");
+                    }
+                }
+
+                // 4. Cập nhật chủ sở hữu mới trong bảng opportunities
+                try (PreparedStatement stmt = conn.prepareStatement(updateOppSql)) {
+                    stmt.setLong(1, toUserId);
+                    stmt.setLong(2, oppId);
+                    stmt.executeUpdate();
+                }
+
+                // 5. Ghi nhật ký phân bổ vào opportunity_assignment_logs
+                try (PreparedStatement stmt = conn.prepareStatement(insertLogSql)) {
+                    stmt.setLong(1, oppId);
+                    stmt.setObject(2, fromUserId, Types.BIGINT);
+                    stmt.setLong(3, toUserId);
+                    stmt.setLong(4, assignedByUserId);
+                    stmt.setString(5, reason);
+                    stmt.setString(6, notes);
+                    stmt.executeUpdate();
+                }
+
+                // 6. Ghi hoạt động vào bảng activities để hiển thị dòng thời gian cơ hội
+                try (PreparedStatement stmt = conn.prepareStatement(insertActivitySql)) {
+                    stmt.setString(1, "🔄 Bàn giao cơ hội: " + oppName);
+                    String desc = "Chuyển quyền sở hữu từ [" + fromUserName + "] sang [" + toUserName + "].\n"
+                            + "Lý do: " + reason + (notes != null && !notes.isBlank() ? "\nGhi chú: " + notes : "")
+                            + "\nNgười thực hiện: " + assignedByName;
+                    stmt.setString(2, desc);
+                    stmt.setObject(3, customerId > 0 ? customerId : null, Types.BIGINT);
+                    stmt.setLong(4, oppId);
+                    stmt.setLong(5, toUserId);
+                    stmt.executeUpdate();
+                }
+
+                // 7. Ghi audit log
+                try {
+                    com.crm.dao.audit.AuditLogDAO auditLogDAO = new com.crm.dao.audit.AuditLogDAO();
+                    auditLogDAO.insert(assignedByUserId, "OPPORTUNITY", String.valueOf(oppId), "REASSIGN",
+                            "Chuyển cơ hội '" + oppName + "' từ " + fromUserName + " sang " + toUserName + ". Lý do: " + reason,
+                            String.valueOf(fromUserId), String.valueOf(toUserId));
+                } catch (Exception ignored) {}
+
+                conn.commit();
+                return 1;
+            } catch (Exception e) {
+                conn.rollback();
+                if (e instanceof SQLException) throw (SQLException) e;
+                if (e instanceof RuntimeException) throw (RuntimeException) e;
+                throw new SQLException(e);
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+    }
+
+    public int bulkReassign(List<Long> oppIds, long toUserId, long assignedByUserId, String reason, String notes) throws SQLException {
+        int count = 0;
+        for (Long oppId : oppIds) {
+            count += reassign(oppId, toUserId, assignedByUserId, reason, notes);
+        }
+        return count;
+    }
+
+    public List<Map<String, Object>> getAssignmentHistory(long oppId) throws SQLException {
+        String sql = """
+                SELECT 
+                    l.id,
+                    l.opportunity_id,
+                    l.from_user_id,
+                    COALESCE(u_from.full_name, 'Chưa gán') AS from_user_name,
+                    l.to_user_id,
+                    u_to.full_name AS to_user_name,
+                    l.assigned_by_user_id,
+                    u_by.full_name AS assigned_by_name,
+                    l.reason,
+                    l.notes,
+                    l.created_at
+                FROM opportunity_assignment_logs l
+                LEFT JOIN users u_from ON u_from.id = l.from_user_id
+                JOIN users u_to ON u_to.id = l.to_user_id
+                JOIN users u_by ON u_by.id = l.assigned_by_user_id
+                WHERE l.opportunity_id = ?
+                ORDER BY l.created_at DESC, l.id DESC
+                """;
+        List<Map<String, Object>> list = new ArrayList<>();
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, oppId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> map = new LinkedHashMap<>();
+                    map.put("id", rs.getLong("id"));
+                    map.put("opportunityId", rs.getLong("opportunity_id"));
+                    map.put("fromUserId", rs.getObject("from_user_id"));
+                    map.put("fromUserName", rs.getString("from_user_name"));
+                    map.put("toUserId", rs.getLong("to_user_id"));
+                    map.put("toUserName", rs.getString("to_user_name"));
+                    map.put("assignedByUserId", rs.getLong("assigned_by_user_id"));
+                    map.put("assignedByName", rs.getString("assigned_by_name"));
+                    map.put("reason", rs.getString("reason"));
+                    map.put("notes", rs.getString("notes"));
+                    map.put("createdAt", rs.getTimestamp("created_at"));
+                    list.add(map);
+                }
+            }
+        }
+        return list;
+    }
+
+    public List<Map<String, Object>> getAssignableUsers(Long teamId, boolean allUsers) throws SQLException {
+        String sql;
+        if (allUsers || teamId == null) {
+            sql = """
+                    SELECT u.id, u.full_name, u.email, u.team_id, t.name AS team_name, r.code AS role_code, r.name AS role_name
+                    FROM users u
+                    LEFT JOIN teams t ON t.id = u.team_id
+                    LEFT JOIN user_roles ur ON ur.user_id = u.id
+                    LEFT JOIN roles r ON r.id = ur.role_id
+                    WHERE u.status = 'ACTIVE'
+                    ORDER BY t.name, u.full_name
+                    """;
+        } else {
+            sql = """
+                    WITH RECURSIVE descendant_teams(id) AS (
+                        SELECT id FROM teams WHERE id = ? AND active = TRUE
+                        UNION DISTINCT
+                        SELECT child.id FROM teams child
+                        JOIN descendant_teams parent ON child.parent_id = parent.id
+                        WHERE child.active = TRUE
+                    )
+                    SELECT u.id, u.full_name, u.email, u.team_id, t.name AS team_name, r.code AS role_code, r.name AS role_name
+                    FROM users u
+                    JOIN descendant_teams dt ON dt.id = u.team_id
+                    LEFT JOIN teams t ON t.id = u.team_id
+                    LEFT JOIN user_roles ur ON ur.user_id = u.id
+                    LEFT JOIN roles r ON r.id = ur.role_id
+                    WHERE u.status = 'ACTIVE'
+                    ORDER BY t.name, u.full_name
+                    """;
+        }
+
+        List<Map<String, Object>> list = new ArrayList<>();
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            if (!allUsers && teamId != null) {
+                stmt.setLong(1, teamId);
+            }
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> map = new LinkedHashMap<>();
+                    map.put("id", rs.getLong("id"));
+                    map.put("fullName", rs.getString("full_name"));
+                    map.put("email", rs.getString("email"));
+                    map.put("teamId", rs.getObject("team_id"));
+                    map.put("teamName", rs.getString("team_name"));
+                    map.put("roleCode", rs.getString("role_code"));
+                    map.put("roleName", rs.getString("role_name"));
+                    list.add(map);
+                }
+            }
+        }
+        return list;
+    }
 }
 

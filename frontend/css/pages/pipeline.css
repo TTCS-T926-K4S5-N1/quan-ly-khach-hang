@@ -1242,3 +1242,181 @@
     }
 
 }
+/* =========================================================
+   USER STORY: OPPORTUNITY REASSIGNMENT & BULK ACTIONS
+========================================================= */
+
+/* Floating Bulk Action Bar */
+.pipeline-bulk-bar {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    z-index: 900;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 20px;
+    background: #0f172a;
+    color: #ffffff;
+    border-radius: 50px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.35), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.pipeline-bulk-bar.visible {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.bulk-bar-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    font-weight: 500;
+}
+
+.bulk-bar-count {
+    background: #0284c7;
+    color: #ffffff;
+    padding: 2px 9px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.bulk-bar-btn {
+    padding: 7px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+}
+
+.bulk-bar-btn-primary {
+    background: linear-gradient(135deg, #0284c7, #2563eb);
+    color: #ffffff;
+}
+
+.bulk-bar-btn-primary:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+}
+
+.bulk-bar-btn-secondary {
+    background: #334155;
+    color: #cbd5e1;
+}
+
+.bulk-bar-btn-secondary:hover {
+    background: #475569;
+    color: #ffffff;
+}
+
+/* Assignment History Timeline */
+.assignment-history-card {
+    margin-top: 18px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--crm-border, #e2e8f0);
+    background: var(--crm-bg-subtle, #f8fafc);
+}
+
+.assignment-history-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #334155;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.assignment-timeline {
+    position: relative;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.assignment-timeline::before {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    background: #cbd5e1;
+}
+
+.assignment-timeline-item {
+    position: relative;
+    font-size: 12.5px;
+}
+
+.assignment-timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -17px;
+    top: 4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #0284c7;
+    border: 2px solid #ffffff;
+    box-shadow: 0 0 0 2px #bae6fd;
+}
+
+.assignment-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.assignment-users {
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.assignment-time {
+    font-size: 11px;
+    color: #64748b;
+}
+
+.assignment-reason-box {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin-top: 4px;
+    color: #334155;
+    line-height: 1.4;
+}
+
+.assignment-actor {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 3px;
+}
+
+/* Checkbox styling in table */
+.opp-checkbox {
+    width: 17px;
+    height: 17px;
+    cursor: pointer;
+    accent-color: #0284c7;
+}
