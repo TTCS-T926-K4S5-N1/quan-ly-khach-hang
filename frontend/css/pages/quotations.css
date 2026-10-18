@@ -118,6 +118,28 @@
     color: #047857;
 }
 
+.quote-status.accepted {
+    background: #dcfce7;
+    color: #15803d;
+    border: 1px solid #86efac;
+}
+
+.quote-status.converted {
+    background: #ede9fe;
+    color: #6d28d9;
+}
+
+.quote-status.sent {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.quote-status.expired {
+    background: #f1f5f9;
+    color: #64748b;
+    border: 1px dashed #cbd5e1;
+}
+
 .quote-status.rejected {
     background: #fee2e2;
     color: #b91c1c;

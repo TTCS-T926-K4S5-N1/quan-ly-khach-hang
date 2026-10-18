@@ -38,6 +38,11 @@ public class QuoteDAO {
                     q.version,
                     q.parent_quote_id,
                     q.is_active_version,
+                    q.public_token,
+                    q.customer_feedback,
+                    q.customer_feedback_comment,
+                    q.customer_feedback_at,
+                    q.contract_id,
                     c.name AS customer_name,
                     u.full_name AS owner_name,
                     o.name AS opportunity_name
@@ -108,7 +113,16 @@ public class QuoteDAO {
                     q.version,
                     q.parent_quote_id,
                     q.is_active_version,
+                    q.public_token,
+                    q.customer_feedback,
+                    q.customer_feedback_comment,
+                    q.customer_feedback_at,
+                    q.contract_id,
                     c.name AS customer_name,
+                    c.email AS customer_email,
+                    c.phone AS customer_phone,
+                    c.address AS customer_address,
+                    c.tax_code AS customer_tax_code,
                     u.full_name AS owner_name,
                     o.name AS opportunity_name
                 FROM quotes q
@@ -124,9 +138,19 @@ public class QuoteDAO {
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     Map<String, Object> quote = mapQuote(rs);
+                    try {
+                        quote.put("customerEmail", rs.getString("customer_email"));
+                        quote.put("customerPhone", rs.getString("customer_phone"));
+                        quote.put("customerAddress", rs.getString("customer_address"));
+                        quote.put("customerTaxCode", rs.getString("customer_tax_code"));
+                    } catch (SQLException ignored) {}
                     quote.put("items", findItemsByQuoteId(conn, id));
                     quote.put("approvals", getApprovalHistory(id));
                     quote.put("versions", getVersions(id));
+
+                    // Story 3 AC: Quá hạn hiệu lực mà không phản hồi thì báo giá tự chuyển sang Hết hiệu lực (EXPIRED)
+                    checkAndExpireQuote(quote);
+
                     return quote;
                 }
             }
@@ -295,13 +319,14 @@ public class QuoteDAO {
             long ownerId,
             List<Map<String, Object>> items
     ) throws SQLException {
+        String publicToken = UUID.randomUUID().toString().replace("-", "");
         String sql = """
                 INSERT INTO quotes (
                     quote_number, title, customer_id, opportunity_id, discount_percent,
                     subtotal, total_amount, status, requires_approval, approval_level,
                     valid_until, payment_terms, delivery_terms, terms_and_conditions,
-                    version, parent_quote_id, is_active_version, owner_user_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    version, parent_quote_id, is_active_version, owner_user_id, public_token
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection conn = DatabaseConfig.getConnection()) {
@@ -327,6 +352,7 @@ public class QuoteDAO {
                     stmt.setObject(16, parentQuoteId, Types.BIGINT);
                     stmt.setBoolean(17, isActiveVersion);
                     stmt.setLong(18, ownerId);
+                    stmt.setString(19, publicToken);
                     stmt.executeUpdate();
                     try (ResultSet rs = stmt.getGeneratedKeys()) {
                         if (rs.next()) {
@@ -733,6 +759,145 @@ public class QuoteDAO {
         return fallback;
     }
 
+    public Map<String, Object> findByPublicToken(String token) throws SQLException {
+        if (token == null || token.trim().isEmpty()) return null;
+        String sql = """
+                SELECT
+                    q.id,
+                    q.quote_number,
+                    q.title,
+                    q.customer_id,
+                    q.opportunity_id,
+                    q.discount_percent,
+                    q.subtotal,
+                    q.total_amount,
+                    q.status,
+                    q.requires_approval,
+                    q.owner_user_id,
+                    q.created_at,
+                    q.valid_until,
+                    q.payment_terms,
+                    q.delivery_terms,
+                    q.terms_and_conditions,
+                    q.approval_level,
+                    q.rejection_reason,
+                    q.sent_to_customer_at,
+                    q.version,
+                    q.parent_quote_id,
+                    q.is_active_version,
+                    q.public_token,
+                    q.customer_feedback,
+                    q.customer_feedback_comment,
+                    q.customer_feedback_at,
+                    q.contract_id,
+                    c.name AS customer_name,
+                    c.email AS customer_email,
+                    c.phone AS customer_phone,
+                    c.address AS customer_address,
+                    c.tax_code AS customer_tax_code,
+                    u.full_name AS owner_name,
+                    o.name AS opportunity_name
+                FROM quotes q
+                LEFT JOIN customers c ON c.id = q.customer_id
+                LEFT JOIN users u ON u.id = q.owner_user_id
+                LEFT JOIN opportunities o ON o.id = q.opportunity_id
+                WHERE q.public_token = ? AND q.is_deleted = 0
+                LIMIT 1
+                """;
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, token.trim());
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    Map<String, Object> quote = mapQuote(rs);
+                    try {
+                        quote.put("customerEmail", rs.getString("customer_email"));
+                        quote.put("customerPhone", rs.getString("customer_phone"));
+                        quote.put("customerAddress", rs.getString("customer_address"));
+                        quote.put("customerTaxCode", rs.getString("customer_tax_code"));
+                    } catch (SQLException ignored) {}
+                    long quoteId = (Long) quote.get("id");
+                    quote.put("items", findItemsByQuoteId(conn, quoteId));
+
+                    // Story 3 AC: Quá hạn hiệu lực mà không phản hồi thì báo giá tự chuyển sang Hết hiệu lực (EXPIRED)
+                    checkAndExpireQuote(quote);
+
+                    return quote;
+                }
+            }
+        }
+        return null;
+    }
+
+    public void updateCustomerFeedback(long quoteId, String decision, String comment) throws SQLException {
+        String newStatus = "ACCEPT".equalsIgnoreCase(decision) || "ACCEPTED".equalsIgnoreCase(decision) ? "ACCEPTED" : "REJECTED";
+        String sql = """
+                UPDATE quotes SET
+                    customer_feedback = ?,
+                    customer_feedback_comment = ?,
+                    customer_feedback_at = NOW(),
+                    status = ?
+                WHERE id = ?
+                """;
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, newStatus);
+            stmt.setString(2, comment != null ? comment.trim() : null);
+            stmt.setString(3, newStatus);
+            stmt.setLong(4, quoteId);
+            stmt.executeUpdate();
+        }
+    }
+
+    public String ensurePublicToken(long quoteId) throws SQLException {
+        String query = "SELECT public_token FROM quotes WHERE id = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(query)) {
+            ps.setLong(1, quoteId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String token = rs.getString("public_token");
+                    if (token != null && !token.trim().isEmpty()) {
+                        return token;
+                    }
+                }
+            }
+        }
+        String newToken = UUID.randomUUID().toString().replace("-", "");
+        String update = "UPDATE quotes SET public_token = ? WHERE id = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(update)) {
+            ps.setString(1, newToken);
+            ps.setLong(2, quoteId);
+            ps.executeUpdate();
+        }
+        return newToken;
+    }
+
+    public void checkAndExpireQuote(Map<String, Object> quote) {
+        if (quote == null) return;
+        try {
+            java.sql.Date validUntil = (java.sql.Date) quote.get("validUntil");
+            String status = (String) quote.get("status");
+            String feedback = (String) quote.get("customerFeedback");
+
+            if (validUntil != null && feedback == null
+                    && !"ACCEPTED".equalsIgnoreCase(status)
+                    && !"CONVERTED".equalsIgnoreCase(status)
+                    && !"REJECTED".equalsIgnoreCase(status)
+                    && !"EXPIRED".equalsIgnoreCase(status)) {
+                java.time.LocalDate today = java.time.LocalDate.now();
+                java.time.LocalDate validDate = validUntil.toLocalDate();
+                if (today.isAfter(validDate)) {
+                    long quoteId = (Long) quote.get("id");
+                    updateStatus(quoteId, "EXPIRED");
+                    quote.put("status", "EXPIRED");
+                }
+            }
+        } catch (Exception ignored) {}
+    }
+
     private Map<String, Object> mapQuote(ResultSet rs) throws SQLException {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("id", rs.getLong("id"));
@@ -760,6 +925,11 @@ public class QuoteDAO {
         map.put("ownerUserId", rs.getLong("owner_user_id"));
         map.put("ownerName", rs.getString("owner_name"));
         map.put("createdAt", rs.getTimestamp("created_at"));
+        map.put("publicToken", rs.getString("public_token"));
+        map.put("customerFeedback", rs.getString("customer_feedback"));
+        map.put("customerFeedbackComment", rs.getString("customer_feedback_comment"));
+        map.put("customerFeedbackAt", rs.getTimestamp("customer_feedback_at"));
+        map.put("contractId", rs.getObject("contract_id"));
         return map;
     }
 }

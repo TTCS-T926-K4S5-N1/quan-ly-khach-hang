@@ -84,6 +84,7 @@ function normalizeQuote(q) {
         code: q.quoteNumber || q.code || `BG-${q.id}`,
         title: q.title || "",
         customer: q.customerName || q.customer || "Khách hàng",
+        customerEmail: q.customerEmail || "",
         customerId: q.customerId,
         opportunityName: q.opportunityName || "",
         opportunityId: q.opportunityId,
@@ -98,6 +99,11 @@ function normalizeQuote(q) {
         isActiveVersion: !!q.isActiveVersion,
         sentToCustomerAt: q.sentToCustomerAt || null,
         rejectionReason: q.rejectionReason || null,
+        publicToken: q.publicToken || null,
+        customerFeedback: q.customerFeedback || null,
+        customerFeedbackComment: q.customerFeedbackComment || null,
+        customerFeedbackAt: q.customerFeedbackAt || null,
+        contractId: q.contractId || null,
         lines: q.items || []
     };
 }
@@ -146,8 +152,25 @@ function render() {
             // Version chip
             const verHtml = `<span class="version-chip ${quote.isActiveVersion ? 'active' : 'history'}">v${quote.version}${quote.isActiveVersion ? ' (Hiệu lực)' : ''}</span>`;
 
-            // Can send to customer check: only APPROVED quotes can be sent (Story 2)
-            const canSend = quote.status === "APPROVED";
+            // Can send to customer check: APPROVED or SENT quotes can be sent (Story 3)
+            const canSend = quote.status === "APPROVED" || quote.status === "SENT";
+
+            // Story 1: Can convert to contract if ACCEPTED or APPROVED and not yet converted
+            const canCreateContract = (quote.status === "ACCEPTED" || quote.status === "APPROVED") && !quote.contractId && quote.status !== "CONVERTED";
+
+            // Customer feedback / rejection note
+            let statusNote = '';
+            if (quote.status === "ACCEPTED") {
+                statusNote = `<div style="font-size:10.5px; color:#15803d; max-width:140px; margin-top:2px;">✓ Khách đồng ý${quote.customerFeedbackComment ? ': ' + escapeHtml(quote.customerFeedbackComment) : ''}</div>`;
+            } else if (quote.status === "REJECTED" || quote.customerFeedback === "REJECTED") {
+                statusNote = `<div style="font-size:10.5px; color:#ef4444; max-width:140px; margin-top:2px;">✕ Khách từ chối${quote.customerFeedbackComment ? ': ' + escapeHtml(quote.customerFeedbackComment) : ''}</div>`;
+            } else if (quote.status === "CONVERTED") {
+                statusNote = `<div style="font-size:10.5px; color:#7c3aed; max-width:140px; margin-top:2px;">Đã lập hợp đồng #${quote.contractId || ''}</div>`;
+            } else if (quote.status === "EXPIRED") {
+                statusNote = `<div style="font-size:10.5px; color:#64748b; max-width:140px; margin-top:2px;">Hết hạn hiệu lực</div>`;
+            } else if (quote.rejectionReason) {
+                statusNote = `<div style="font-size:10.5px; color:#ef4444; max-width:140px; margin-top:2px;" title="${escapeHtml(quote.rejectionReason)}">Lý do: ${escapeHtml(quote.rejectionReason)}</div>`;
+            }
 
             tr.innerHTML = `
                 <td class="quote-code">
@@ -175,7 +198,7 @@ function render() {
                     <span class="quote-status ${quote.status.toLowerCase()}">
                         ${statusLabel(quote.status)}
                     </span>
-                    ${quote.rejectionReason ? `<div style="font-size:10.5px; color:#ef4444; max-width:140px; margin-top:2px;" title="${escapeHtml(quote.rejectionReason)}">Lý do: ${escapeHtml(quote.rejectionReason)}</div>` : ''}
+                    ${statusNote}
                 </td>
                 <td>
                     ${escapeHtml(quote.validUntil || "—")}
@@ -186,6 +209,16 @@ function render() {
                             Xem / Sửa
                         </a>
 
+                        <a class="quote-action" style="color:#4f46e5; font-weight:600;" href="quote-print.html?id=${encodeURIComponent(quote.id)}" target="_blank" title="In hoặc xuất PDF báo giá chuẩn nhận diện">
+                            🖨️ In/PDF
+                        </a>
+
+                        ${
+                            canCreateContract
+                            ? `<a class="quote-action" style="color:#059669; font-weight:700; background:#f0fdf4; border-color:#86efac;" href="contract-create.html?id=${encodeURIComponent(quote.id)}" title="Chuyển báo giá thành Hợp đồng kinh tế">📝 Tạo HĐ</a>`
+                            : ""
+                        }
+
                         ${
                             quote.status === "PENDING_APPROVAL" || quote.status === "CHANGES_REQUESTED"
                             ? `<button type="button" class="quote-action" style="color:#10b981; font-weight:700;" onclick="openApprovalModal(${quote.id})">⚖️ Duyệt</button>`
@@ -193,7 +226,7 @@ function render() {
                         }
 
                         <button type="button" class="quote-action" style="${canSend ? 'color:#2563eb; font-weight:600;' : 'color:#94a3b8; cursor:not-allowed;'}" 
-                                onclick="handleSendToCustomer(${quote.id}, '${quote.status}')" title="${canSend ? 'Gửi báo giá chính thức cho khách' : 'Chỉ báo giá đã duyệt mới gửi được cho khách'}">
+                                onclick="openSendEmailModal(${quote.id})" title="${canSend ? 'Gửi email kèm liên kết trực tuyến cho khách' : 'Chỉ báo giá đã duyệt mới gửi được cho khách'}">
                             ✉️ Gửi khách
                         </button>
 
@@ -350,25 +383,88 @@ function showApprError(msg) {
 }
 
 /* =========================================================
-   STORY 2: GỬI BÁO GIÁ CHO KHÁCH (CHỈ GỬI KHI ĐÃ DUYỆT)
+   STORY 3: GỬI BÁO GIÁ CHO KHÁCH KÈM LINK TRỰC TUYẾN
 ========================================================= */
-window.handleSendToCustomer = async function(quoteId, status) {
-    if (status !== "APPROVED") {
-        alert("Chỉ báo giá ở trạng thái ĐÃ DUYỆT (APPROVED) mới được phép gửi cho khách hàng.");
+let activeSendQuoteId = null;
+
+window.openSendEmailModal = async function(quoteId) {
+    const q = quotes.find(item => item.id === quoteId);
+    if (!q) return;
+
+    if (q.status !== "APPROVED" && q.status !== "SENT" && q.status !== "ACCEPTED") {
+        alert("Chỉ báo giá ở trạng thái ĐÃ DUYỆT (APPROVED) hoặc ĐÃ GỬI mới được phép gửi email cho khách.");
         return;
     }
 
-    if (!confirm("Xác nhận gửi báo giá chính thức này cho khách hàng? Báo giá sẽ được chuyển sang trạng thái ĐÃ GỬI (SENT).")) {
+    activeSendQuoteId = quoteId;
+    document.getElementById("sendEmailRecipient").value = q.customerEmail || "";
+    document.getElementById("sendEmailMessage").value = `Kính gửi Quý khách hàng (${q.customer}),\n\nChúng tôi xin gửi thông tin Báo giá ${q.code} với tổng giá trị ${money(q.total)}.\nKính mời Quý khách truy cập liên kết bảo mật bên dưới để xem chi tiết và xác nhận trực tuyến.\n\nTrân trọng cảm ơn!`;
+
+    // Ensure we have a public token
+    let token = q.publicToken;
+    if (!token) {
+        try {
+            const detail = await api(`/api/quotes/${quoteId}`);
+            token = detail?.publicToken;
+            q.publicToken = token;
+        } catch (_) {}
+    }
+
+    const host = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, "");
+    const publicUrl = token ? `${host}/public-quote.html?token=${token}` : `${host}/public-quote.html?id=${quoteId}`;
+    document.getElementById("sendEmailPublicUrl").value = publicUrl;
+
+    document.getElementById("sendEmailErrorMsg").style.display = "none";
+    document.getElementById("sendEmailModal").style.display = "flex";
+};
+
+window.closeSendEmailModal = function() {
+    document.getElementById("sendEmailModal").style.display = "none";
+    activeSendQuoteId = null;
+};
+
+window.copyPublicUrl = function() {
+    const input = document.getElementById("sendEmailPublicUrl");
+    if (input) {
+        input.select();
+        navigator.clipboard.writeText(input.value);
+        alert("Đã sao chép liên kết xem báo giá vào bộ nhớ tạm!");
+    }
+};
+
+window.submitSendQuoteEmail = async function() {
+    if (!activeSendQuoteId) return;
+    const recipient = document.getElementById("sendEmailRecipient").value.trim();
+    const msg = document.getElementById("sendEmailMessage").value.trim();
+    if (!recipient) {
+        document.getElementById("sendEmailErrorMsg").textContent = "Vui lòng nhập email người nhận.";
+        document.getElementById("sendEmailErrorMsg").style.display = "block";
         return;
     }
+
+    const btn = document.getElementById("btnSubmitSendEmail");
+    btn.disabled = true;
+    btn.textContent = "Đang gửi email...";
 
     try {
-        const res = await api(`/api/quotes/${quoteId}/send`, { method: "POST" });
-        alert(`Báo giá ${res.quoteNumber || ""} đã được gửi cho khách hàng thành công!`);
+        await api(`/api/quotes/${activeSendQuoteId}/send-email`, {
+            method: "POST",
+            body: JSON.stringify({ recipientEmail: recipient, message: msg })
+        });
+        alert("Đã gửi email báo giá kèm liên kết trực tuyến thành công!");
+        closeSendEmailModal();
         await loadQuotes();
     } catch (err) {
-        alert("Lỗi khi gửi báo giá: " + err.message);
+        document.getElementById("sendEmailErrorMsg").textContent = "Lỗi gửi email: " + err.message;
+        document.getElementById("sendEmailErrorMsg").style.display = "block";
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "✉️ Gửi Email & Chuyển trạng thái";
     }
+};
+
+window.handleSendToCustomer = function(quoteId, status) {
+    openSendEmailModal(quoteId);
 };
 
 /* =========================================================
@@ -631,12 +727,18 @@ function statusLabel(status) {
             return "Chờ duyệt";
         case "APPROVED":
             return "Đã duyệt";
+        case "SENT":
+            return "Đã gửi khách";
+        case "ACCEPTED":
+            return "Khách chấp nhận";
         case "REJECTED":
             return "Từ chối";
         case "CHANGES_REQUESTED":
             return "Yêu cầu sửa";
-        case "SENT":
-            return "Đã gửi khách";
+        case "CONVERTED":
+            return "Đã tạo hợp đồng";
+        case "EXPIRED":
+            return "Hết hiệu lực";
         default:
             return "Nháp";
     }

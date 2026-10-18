@@ -1,20 +1,27 @@
 package com.crm.service.quotes;
 
+import com.crm.config.DatabaseConfig;
 import com.crm.dao.products.ProductDAO;
 import com.crm.dao.quotes.QuoteDAO;
+import com.crm.dao.templates.DocumentTemplateDAO;
 import com.crm.service.audit.AuditLogService;
 import com.crm.service.permissions.DataScopeContext;
 import com.crm.service.permissions.DataScopeService;
+import com.crm.util.VietnameseNumberToWords;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.sql.Connection;
 import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.Types;
 import java.util.*;
 
 public class QuoteService {
 
     private final QuoteDAO quoteDAO = new QuoteDAO();
     private final ProductDAO productDAO = new ProductDAO();
+    private final DocumentTemplateDAO templateDAO = new DocumentTemplateDAO();
     private final DataScopeService dataScopeService = new DataScopeService();
     private final AuditLogService auditLogService = new AuditLogService();
 
@@ -654,5 +661,141 @@ public class QuoteService {
         } catch (Exception ignored) {}
 
         return getById(currentUserId, id);
+    }
+
+    public Map<String, Object> getPrintData(long currentUserId, long quoteId) throws Exception {
+        Map<String, Object> quote = getById(currentUserId, quoteId);
+        if (quote == null) {
+            throw new NoSuchElementException("Không tìm thấy báo giá #" + quoteId);
+        }
+
+        BigDecimal total = (BigDecimal) quote.get("totalAmount");
+        quote.put("totalAmountInWords", VietnameseNumberToWords.convert(total));
+
+        Map<String, Object> template = templateDAO.findByType("QUOTE");
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("quote", quote);
+        result.put("template", template);
+        return result;
+    }
+
+    public Map<String, Object> getPublicQuote(String token) throws Exception {
+        Map<String, Object> quote = quoteDAO.findByPublicToken(token);
+        if (quote == null) {
+            throw new NoSuchElementException("Không tìm thấy báo giá hoặc liên kết trực tuyến không hợp lệ.");
+        }
+
+        BigDecimal total = (BigDecimal) quote.get("totalAmount");
+        quote.put("totalAmountInWords", VietnameseNumberToWords.convert(total));
+
+        Map<String, Object> template = templateDAO.findByType("QUOTE");
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("quote", quote);
+        result.put("template", template);
+        return result;
+    }
+
+    public Map<String, Object> submitCustomerFeedback(String token, String decision, String comment) throws Exception {
+        Map<String, Object> quote = quoteDAO.findByPublicToken(token);
+        if (quote == null) {
+            throw new NoSuchElementException("Không tìm thấy báo giá hoặc liên kết trực tuyến không hợp lệ.");
+        }
+
+        String currentStatus = (String) quote.get("status");
+        if ("EXPIRED".equalsIgnoreCase(currentStatus)) {
+            throw new IllegalStateException("Báo giá này đã quá hạn hiệu lực, không thể gửi phản hồi.");
+        }
+
+        if (quote.get("customerFeedback") != null) {
+            throw new IllegalStateException("Báo giá này đã được phản hồi trước đó (" + quote.get("customerFeedback") + ").");
+        }
+
+        long quoteId = (Long) quote.get("id");
+        quoteDAO.updateCustomerFeedback(quoteId, decision, comment);
+
+        boolean isAccept = "ACCEPT".equalsIgnoreCase(decision) || "ACCEPTED".equalsIgnoreCase(decision);
+        String quoteNumber = (String) quote.get("quoteNumber");
+        String subject = (isAccept ? "Khách hàng ĐỒNG Ý báo giá: " : "Khách hàng TỪ CHỐI báo giá: ") + quoteNumber;
+        String desc = "Khách hàng đã " + (isAccept ? "CHẤP NHẬN" : "TỪ CHỐI") + " báo giá qua liên kết bảo mật.\n"
+                + "Ý kiến phản hồi: " + (comment != null && !comment.isBlank() ? comment.trim() : "Không có");
+
+        // Ghi nhận ngay vào dòng thời gian cơ hội (activities)
+        String actSql = """
+                INSERT INTO activities (
+                    type, subject, description, due_date, status, customer_id, opportunity_id, owner_user_id, created_at
+                ) VALUES ('FEEDBACK', ?, ?, NOW(), 'COMPLETED', ?, ?, ?, NOW())
+                """;
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(actSql)) {
+            ps.setString(1, subject);
+            ps.setString(2, desc);
+            ps.setObject(3, quote.get("customerId"), Types.BIGINT);
+            ps.setObject(4, quote.get("opportunityId"), Types.BIGINT);
+            ps.setLong(5, (Long) quote.get("ownerUserId"));
+            ps.executeUpdate();
+        }
+
+        try {
+            auditLogService.log(
+                    (Long) quote.get("ownerUserId"),
+                    "QUOTE_FEEDBACK",
+                    quoteNumber,
+                    isAccept ? "CUSTOMER_ACCEPT" : "CUSTOMER_REJECT",
+                    subject + ". " + desc,
+                    currentStatus,
+                    isAccept ? "ACCEPTED" : "REJECTED"
+            );
+        } catch (Exception ignored) {}
+
+        return getPublicQuote(token);
+    }
+
+    public Map<String, Object> sendQuoteEmail(long currentUserId, long quoteId, String recipientEmail, String customMessage) throws Exception {
+        Map<String, Object> quote = getById(currentUserId, quoteId);
+        if (quote == null) {
+            throw new NoSuchElementException("Không tìm thấy báo giá #" + quoteId);
+        }
+
+        String token = quoteDAO.ensurePublicToken(quoteId);
+        quoteDAO.markSent(quoteId);
+
+        String subject = "Gửi email báo giá " + quote.get("quoteNumber");
+        String desc = "Đã gửi email báo giá tới " + (recipientEmail != null ? recipientEmail : quote.get("customerEmail"))
+                + " kèm liên kết trực tuyến: /public-quote.html?token=" + token
+                + (customMessage != null && !customMessage.isBlank() ? "\nLời nhắn: " + customMessage.trim() : "");
+
+        String actSql = """
+                INSERT INTO activities (
+                    type, subject, description, due_date, status, customer_id, opportunity_id, owner_user_id, created_at
+                ) VALUES ('EMAIL', ?, ?, NOW(), 'COMPLETED', ?, ?, ?, NOW())
+                """;
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(actSql)) {
+            ps.setString(1, subject);
+            ps.setString(2, desc);
+            ps.setObject(3, quote.get("customerId"), Types.BIGINT);
+            ps.setObject(4, quote.get("opportunityId"), Types.BIGINT);
+            ps.setLong(5, currentUserId);
+            ps.executeUpdate();
+        }
+
+        try {
+            auditLogService.log(
+                    currentUserId,
+                    "QUOTE",
+                    String.valueOf(quote.get("quoteNumber")),
+                    "SEND_QUOTE_EMAIL",
+                    "Gửi email báo giá kèm liên kết trực tuyến tới " + recipientEmail,
+                    String.valueOf(quote.get("status")),
+                    "SENT"
+            );
+        } catch (Exception ignored) {}
+
+        Map<String, Object> res = new LinkedHashMap<>();
+        res.put("success", true);
+        res.put("publicToken", token);
+        res.put("publicUrl", "/public-quote.html?token=" + token);
+        res.put("recipientEmail", recipientEmail != null ? recipientEmail : quote.get("customerEmail"));
+        return res;
     }
 }

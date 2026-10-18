@@ -80,6 +80,12 @@ public class QuoteServlet extends HttpServlet {
                     return;
                 }
 
+                if (parts.length >= 3 && "print".equalsIgnoreCase(parts[2])) {
+                    var printData = quoteService.getPrintData(currentUserId, id);
+                    ResponseUtil.json(resp, 200, ApiResponse.success("Lấy dữ liệu in báo giá thành công", printData));
+                    return;
+                }
+
                 // Default: get quote by id
                 var item = quoteService.getById(currentUserId, id);
                 if (item == null) {
@@ -143,6 +149,13 @@ public class QuoteServlet extends HttpServlet {
                         case "send" -> {
                             var res = quoteService.sendToCustomer(currentUserId, quoteId);
                             ResponseUtil.json(resp, 200, ApiResponse.success("Gửi báo giá cho khách hàng thành công", res));
+                            return;
+                        }
+                        case "send-email" -> {
+                            String recipientEmail = (String) body.get("recipientEmail");
+                            String message = (String) body.get("message");
+                            var res = quoteService.sendQuoteEmail(currentUserId, quoteId, recipientEmail, message);
+                            ResponseUtil.json(resp, 200, ApiResponse.success("Gửi email báo giá kèm liên kết trực tuyến thành công", res));
                             return;
                         }
                         case "create-version" -> {

@@ -183,13 +183,22 @@
 
         </div>
 
-        <a
-            href="quote-editor"
-            class="crm-btn crm-btn-primary"
-            style="text-decoration:none"
-        >
-            + Tạo báo giá
-        </a>
+        <div style="display:flex; gap: 8px;">
+            <a
+                href="document-templates.html"
+                class="crm-btn"
+                style="text-decoration:none; background: #ffffff; border: 1px solid var(--crm-border); color: var(--crm-text-1);"
+            >
+                ⚙️ Mẫu Báo giá & HĐ
+            </a>
+            <a
+                href="quote-editor"
+                class="crm-btn crm-btn-primary"
+                style="text-decoration:none"
+            >
+                + Tạo báo giá
+            </a>
+        </div>
 
     </section>
 
@@ -215,12 +224,28 @@
                 Nháp
             </option>
 
-            <option value="pending">
+            <option value="pending_approval">
                 Chờ duyệt
             </option>
 
             <option value="approved">
                 Đã duyệt
+            </option>
+
+            <option value="sent">
+                Đã gửi khách
+            </option>
+
+            <option value="accepted">
+                Khách chấp nhận
+            </option>
+
+            <option value="converted">
+                Đã tạo hợp đồng
+            </option>
+
+            <option value="expired">
+                Hết hiệu lực
             </option>
 
             <option value="rejected">
@@ -442,6 +467,49 @@
                     ⭐ Đặt Phiên bản này làm hiệu lực duy nhất
                 </button>
                 <button type="button" class="crm-btn crm-btn-secondary" onclick="closeCompareModal()">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         MODAL 4: GỬI EMAIL BÁO GIÁ KÈM LINK XEM (STORY 3)
+    ========================================================= -->
+    <div id="sendEmailModal" class="modal-overlay">
+        <div class="modal-dialog" style="max-width: 580px;">
+            <div class="modal-head">
+                <h3>✉️ Gửi Email Báo Giá Kèm Liên Kết Trực Tuyến</h3>
+                <button type="button" class="crm-icon-btn" onclick="closeSendEmailModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 12px; margin-bottom: 14px; font-size: 12.5px; color: #0369a1; line-height: 1.5;">
+                    💡 Khách hàng có thể truy cập vào liên kết bảo mật bên dưới để xem chi tiết báo giá và bấm <b>Chấp nhận</b> hoặc <b>Từ chối</b> (kèm ý kiến). Trạng thái và dòng thời gian cơ hội sẽ tự động cập nhật ngay lập tức.
+                </div>
+
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label style="display: block; font-weight: 600; font-size: 13px; margin-bottom: 4px;">Email người nhận (*):</label>
+                    <input id="sendEmailRecipient" type="email" class="crm-input" style="width: 100%;" placeholder="khachhang@congty.com">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label style="display: block; font-weight: 600; font-size: 13px; margin-bottom: 4px;">Liên kết xem & phản hồi trực tuyến (dành riêng cho báo giá này):</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input id="sendEmailPublicUrl" type="text" class="crm-input" style="width: 100%; background: #f8fafc;" readonly>
+                        <button type="button" class="crm-btn" style="white-space: nowrap;" onclick="copyPublicUrl()">📋 Copy</button>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label style="display: block; font-weight: 600; font-size: 13px; margin-bottom: 4px;">Lời nhắn gửi kèm:</label>
+                    <textarea id="sendEmailMessage" class="crm-input" rows="3" style="width: 100%; resize: vertical;" placeholder="Kính gửi Quý khách hàng, chúng tôi xin gửi báo giá giải pháp..."></textarea>
+                </div>
+
+                <div id="sendEmailErrorMsg" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: none;"></div>
+            </div>
+            <div class="modal-foot">
+                <button type="button" class="crm-btn crm-btn-secondary" onclick="closeSendEmailModal()">Hủy</button>
+                <button type="button" id="btnSubmitSendEmail" class="crm-btn crm-btn-primary" onclick="submitSendQuoteEmail()">
+                    ✉️ Gửi Email & Chuyển trạng thái
+                </button>
             </div>
         </div>
     </div>
