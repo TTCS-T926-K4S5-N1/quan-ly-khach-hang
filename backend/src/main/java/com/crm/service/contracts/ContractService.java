@@ -20,9 +20,65 @@ public class ContractService {
     private final DataScopeService dataScopeService = new DataScopeService();
     private final AuditLogService auditLogService = new AuditLogService();
 
-    public List<Map<String, Object>> search(long currentUserId, String keyword, String status) throws Exception {
+    public List<Map<String, Object>> search(long currentUserId, String keyword, String status, Integer customThreshold) throws Exception {
         DataScopeContext scope = dataScopeService.resolve(currentUserId, "quote", "read");
-        return contractDAO.search(scope, keyword, status);
+        return contractDAO.search(scope, keyword, status, customThreshold);
+    }
+
+    public Map<String, Object> getSummary(long currentUserId, Integer customThreshold) throws Exception {
+        DataScopeContext scope = dataScopeService.resolve(currentUserId, "quote", "read");
+        return contractDAO.getSummary(scope, customThreshold);
+    }
+
+    public Map<String, Object> getThresholdSettings(long currentUserId) throws Exception {
+        dataScopeService.resolve(currentUserId, "quote", "read");
+        int threshold = contractDAO.getExpiringThresholdDays();
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("expiringThresholdDays", threshold);
+        return result;
+    }
+
+    public Map<String, Object> updateThresholdSettings(long currentUserId, int days) throws Exception {
+        dataScopeService.resolve(currentUserId, "quote", "update");
+        if (days < 1 || days > 365) {
+            throw new IllegalArgumentException("Ngưỡng cảnh báo phải nằm trong khoảng từ 1 đến 365 ngày.");
+        }
+        contractDAO.updateExpiringThresholdDays(days);
+
+        try {
+            auditLogService.log(
+                    currentUserId,
+                    "CONTRACT_SETTINGS",
+                    "expiring_threshold_days",
+                    "UPDATE_SETTINGS",
+                    "Cập nhật ngưỡng cảnh báo hợp đồng sắp hết hạn thành " + days + " ngày.",
+                    null,
+                    String.valueOf(days)
+            );
+        } catch (Exception ignored) {}
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("expiringThresholdDays", days);
+        return result;
+    }
+
+    public Map<String, Object> createRenewalOpportunity(long currentUserId, long contractId, String title, BigDecimal amount, String notes) throws Exception {
+        dataScopeService.resolve(currentUserId, "quote", "create");
+        Map<String, Object> renewalResult = contractDAO.createRenewalOpportunity(contractId, currentUserId, title, amount, notes);
+
+        try {
+            auditLogService.log(
+                    currentUserId,
+                    "CONTRACT",
+                    String.valueOf(renewalResult.get("contractNumber")),
+                    "RENEWAL_OPPORTUNITY_CREATED",
+                    "Đã tạo cơ hội gia hạn #" + renewalResult.get("opportunityId") + " (" + renewalResult.get("opportunityName") + ") từ hợp đồng #" + renewalResult.get("contractNumber"),
+                    null,
+                    "RENEWED"
+            );
+        } catch (Exception ignored) {}
+
+        return renewalResult;
     }
 
     public Map<String, Object> getById(long currentUserId, long id) throws Exception {
@@ -78,7 +134,6 @@ public class ContractService {
         }
 
         String quoteStatus = (String) quote.get("status");
-        // Báo giá phải được chấp nhận hoặc đã duyệt mới được tạo hợp đồng
         if ("REJECTED".equalsIgnoreCase(quoteStatus) || "DRAFT".equalsIgnoreCase(quoteStatus)) {
             throw new IllegalStateException("Chỉ báo giá đã được duyệt hoặc khách hàng chấp nhận mới được chuyển thành hợp đồng.");
         }

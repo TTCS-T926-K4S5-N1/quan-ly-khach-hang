@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<script>
+(function () {
+    try {
+        var theme = localStorage.getItem("crm_ui_theme");
+        document.documentElement.setAttribute("data-theme", theme === "dark" ? "dark" : "light");
+        document.documentElement.removeAttribute("data-crm-theme");
+    } catch (e) {
+        document.documentElement.setAttribute("data-theme", "light");
+    }
+})();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Chỉ tiêu Doanh số & Đo lường Thực tế - CRM</title>
+<link rel="stylesheet" href="css/design-system.css">
+<link rel="stylesheet" href="css/app-shell.css">
+<link rel="stylesheet" href="css/pages/sales-targets.css">
+<link rel="stylesheet" href="css/pages/contracts.css">
+<link rel="stylesheet" href="css/animations.css">
+</head>
+
+<body class="crm-private">
+
+<aside class="crm-sidebar">
+    <div class="crm-brand">
+        <div class="crm-brand-mark">C</div>
+        <span class="crm-brand-name">Corporate CRM</span>
+    </div>
+    <nav class="crm-nav">
+        <div class="crm-nav-section">Không gian làm việc</div>
+        <a href="dashboard" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+            <span class="crm-nav-label">Tổng quan</span>
+        </a>
+        <a href="customers" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
+            <span class="crm-nav-label">Khách hàng</span>
+        </a>
+        <a href="pipeline" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24"><path d="m12 3 8 9-8 9-8-9 8-9Z"/></svg></span>
+            <span class="crm-nav-label">Cơ hội</span>
+        </a>
+        <a href="quotations" class="crm-nav-item">
+            <span class="crm-nav-icon">▤</span>
+            <span class="crm-nav-label">Báo giá</span>
+        </a>
+        <a href="contracts" class="crm-nav-item">
+            <span class="crm-nav-icon">📜</span>
+            <span class="crm-nav-label">Hợp đồng</span>
+        </a>
+        <a href="sales-targets" class="crm-nav-item active">
+            <span class="crm-nav-icon">🎯</span>
+            <span class="crm-nav-label">Chỉ tiêu doanh số</span>
+        </a>
+        <a href="calendar" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4m8-4v4M3 10h18"/></svg></span>
+            <span class="crm-nav-label">Lịch</span>
+        </a>
+        <div class="crm-nav-section">Quản lý</div>
+        <a href="document-templates" class="crm-nav-item">
+            <span class="crm-nav-icon">⚙️</span>
+            <span class="crm-nav-label">Mẫu Báo giá & HĐ</span>
+        </a>
+        <a href="products" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24"><path d="m12 3 8 4-8 4-8-4 8-4ZM4 7v10l8 4 8-4V7M12 11v10"/></svg></span>
+            <span class="crm-nav-label">Sản phẩm</span>
+        </a>
+    </nav>
+</aside>
+
+<main class="crm-main">
+    <header class="crm-topbar">
+        <div class="crm-topbar-left">
+            <button class="crm-menu-toggle" id="mobileMenuBtn" aria-label="Menu">
+                <svg viewBox="0 0 24 24" class="crm-inline-icon"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+            <div class="crm-breadcrumb">
+                <a href="dashboard">CRM</a>
+                <span>/</span>
+                <span class="active">Chỉ tiêu doanh số & Đo lường</span>
+            </div>
+        </div>
+        <div class="crm-topbar-right">
+            <a href="pipeline" class="crm-btn crm-btn-secondary" style="font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                <span>📊</span> Xem Dự báo Pipeline
+            </a>
+            <button id="btnOpenCreateTargetModal" class="crm-btn crm-btn-primary" style="font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
+                <span>+</span> Khai báo chỉ tiêu
+            </button>
+        </div>
+    </header>
+
+    <div class="targets-container">
+        <!-- Header Title Block -->
+        <div class="targets-header">
+            <div class="targets-title-block">
+                <h1>
+                    <span>🎯</span> Chỉ tiêu Doanh số & Đo lường Cam kết (Sales Quotas)
+                </h1>
+                <p>Khai báo chỉ tiêu theo nhân viên, nhóm và kỳ để đo lường kết quả thực tế so với cam kết đầu kỳ.</p>
+            </div>
+        </div>
+
+        <!-- Period Picker Toolbar (Story 2 AC) -->
+        <div class="period-picker-bar">
+            <div class="period-selectors">
+                <div style="font-size: 13px; font-weight: 700; color: #475569;">KỲ ĐO LƯỜNG:</div>
+                
+                <!-- Year selector -->
+                <select id="selectTargetYear" class="period-select" title="Chọn năm">
+                    <option value="2025">Năm 2025</option>
+                    <option value="2026" selected>Năm 2026</option>
+                    <option value="2027">Năm 2027</option>
+                </select>
+
+                <!-- Period Type Pills -->
+                <div class="period-type-pills">
+                    <button type="button" class="period-pill-btn active" data-period-type="MONTH">Tháng</button>
+                    <button type="button" class="period-pill-btn" data-period-type="QUARTER">Quý</button>
+                    <button type="button" class="period-pill-btn" data-period-type="YEAR">Cả năm</button>
+                </div>
+
+                <!-- Month / Quarter Selector Dropdown -->
+                <select id="selectTargetPeriodValue" class="period-select" title="Chọn tháng cụ thể">
+                    <option value="1">Tháng 1</option>
+                    <option value="2">Tháng 2</option>
+                    <option value="3">Tháng 3</option>
+                    <option value="4">Tháng 4</option>
+                    <option value="5">Tháng 5</option>
+                    <option value="6">Tháng 6</option>
+                    <option value="7">Tháng 7</option>
+                    <option value="8">Tháng 8</option>
+                    <option value="9">Tháng 9</option>
+                    <option value="10" selected>Tháng 10 (Hiện tại)</option>
+                    <option value="11">Tháng 11</option>
+                    <option value="12">Tháng 12</option>
+                </select>
+
+                <span id="periodDateRangeLabel" style="font-size: 12.5px; color: #64748b; font-weight: 500;">
+                    (01/10/2026 ~ 31/10/2026)
+                </span>
+            </div>
+
+            <div>
+                <button id="btnRefreshTargets" class="crm-btn crm-btn-secondary" style="font-size: 13px;">🔄 Tải lại</button>
+            </div>
+        </div>
+
+        <!-- KPI Cards Grid (Story 2 AC) -->
+        <div class="target-kpis-grid">
+            <div class="target-kpi-card">
+                <div class="kpi-label">🎯 Tổng Chỉ tiêu Cam kết</div>
+                <div class="kpi-value" id="kpiTargetAmount">0 ₫</div>
+                <div class="kpi-subtext">Mục tiêu: <span id="kpiTargetDeals">0</span> hợp đồng chốt</div>
+            </div>
+
+            <div class="target-kpi-card kpi-actual">
+                <div class="kpi-label">💰 Thực tế Đạt được (Won)</div>
+                <div class="kpi-value" style="color: #059669;" id="kpiActualAmount">0 ₫</div>
+                <div class="kpi-subtext">Đã chốt: <strong id="kpiActualDeals" style="color: #059669;">0</strong> hợp đồng thành công</div>
+            </div>
+
+            <div class="target-kpi-card kpi-rate">
+                <div class="kpi-label">📈 Tỷ lệ Hoàn thành Toàn kỳ</div>
+                <div class="kpi-value" style="color: #2563eb;" id="kpiOverallRate">0%</div>
+                <div class="kpi-subtext">Độ chênh lệch: <strong id="kpiVarianceText">0 ₫</strong></div>
+            </div>
+
+            <div class="target-kpi-card kpi-achieved">
+                <div class="kpi-label">🏆 Tình trạng Đạt chỉ tiêu</div>
+                <div class="kpi-value" style="color: #7c3aed;" id="kpiAchievedCount">0</div>
+                <div class="kpi-subtext">
+                    <span style="color:#059669;">✔ Đạt: <strong id="kpiCountCompleted">0</strong></span> | 
+                    <span style="color:#2563eb;">⚡ Tiến độ: <strong id="kpiCountOnTrack">0</strong></span> | 
+                    <span style="color:#dc2626;">⚠️ Nguy cơ: <strong id="kpiCountBehind">0</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs Switcher (User vs Team vs All) -->
+        <div class="target-view-tabs">
+            <button type="button" class="target-view-tab active" data-type="ALL">
+                📊 Tất cả đối tượng
+            </button>
+            <button type="button" class="target-view-tab" data-type="USER">
+                👤 Theo Nhân viên kinh doanh
+            </button>
+            <button type="button" class="target-view-tab" data-type="TEAM">
+                👥 Theo Nhóm kinh doanh
+            </button>
+        </div>
+
+        <!-- Targets Data Table -->
+        <div class="targets-card">
+            <div class="targets-table-wrapper">
+                <table class="targets-table">
+                    <thead>
+                        <tr>
+                            <th>Đối tượng Cam kết</th>
+                            <th>Nhóm trực thuộc</th>
+                            <th>Kỳ áp dụng</th>
+                            <th style="text-align: right;">Chỉ tiêu Cam kết (₫)</th>
+                            <th style="text-align: right;">Thực tế Đạt được (₫)</th>
+                            <th style="width: 180px;">Tiến độ & Tỷ lệ (%)</th>
+                            <th style="text-align: right;">Độ Chênh lệch (₫)</th>
+                            <th style="text-align: center;">Đánh giá</th>
+                            <th>Ghi chú đầu kỳ</th>
+                            <th style="text-align: right;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="targetsTableBody">
+                        <tr>
+                            <td colspan="10" style="text-align: center; padding: 40px; color: #94a3b8;">
+                                ⏳ Đang tải dữ liệu chỉ tiêu doanh số...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- MODAL: KHAI BÁO / CẬP NHẬT CHỈ TIÊU DOANH SỐ (Story 2 AC) -->
+<div id="modalTargetForm" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="targetModalTitle">🎯 Khai báo Chỉ tiêu Doanh số Mới</h3>
+            <button class="modal-close-btn" onclick="closeTargetModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="targetForm">
+                <input type="hidden" id="formTargetId">
+
+                <!-- Target Type Radio -->
+                <div class="form-group">
+                    <label>Đối tượng gán chỉ tiêu: <span style="color:#ef4444;">*</span></label>
+                    <div style="display: flex; gap: 20px; margin-top: 4px;">
+                        <label style="display: inline-flex; align-items: center; gap: 6px; font-weight: 500; cursor: pointer;">
+                            <input type="radio" name="targetEntityType" value="USER" checked onchange="onTargetTypeChange()">
+                            <span>👤 Nhân viên kinh doanh</span>
+                        </label>
+                        <label style="display: inline-flex; align-items: center; gap: 6px; font-weight: 500; cursor: pointer;">
+                            <input type="radio" name="targetEntityType" value="TEAM" onchange="onTargetTypeChange()">
+                            <span>👥 Nhóm kinh doanh</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Select User (when type == USER) -->
+                <div class="form-group" id="groupSelectUser">
+                    <label for="formUserId">Chọn Nhân viên kinh doanh <span style="color:#ef4444;">*</span></label>
+                    <select id="formUserId" required>
+                        <option value="">-- Chọn nhân viên --</option>
+                    </select>
+                </div>
+
+                <!-- Select Team (when type == TEAM) -->
+                <div class="form-group" id="groupSelectTeam" style="display: none;">
+                    <label for="formTeamId">Chọn Nhóm kinh doanh <span style="color:#ef4444;">*</span></label>
+                    <select id="formTeamId">
+                        <option value="">-- Chọn nhóm --</option>
+                    </select>
+                </div>
+
+                <!-- Period Controls in Form -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label for="formYear">Năm <span style="color:#ef4444;">*</span></label>
+                        <select id="formYear" required>
+                            <option value="2025">2025</option>
+                            <option value="2026" selected>2026</option>
+                            <option value="2027">2027</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="formPeriodType">Loại kỳ <span style="color:#ef4444;">*</span></label>
+                        <select id="formPeriodType" required onchange="onFormPeriodTypeChange()">
+                            <option value="MONTH" selected>Theo Tháng</option>
+                            <option value="QUARTER">Theo Quý</option>
+                            <option value="YEAR">Cả năm</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="formPeriodValueGroup">
+                        <label for="formPeriodValue" id="formPeriodValueLabel">Tháng <span style="color:#ef4444;">*</span></label>
+                        <select id="formPeriodValue">
+                            <option value="1">Tháng 1</option>
+                            <option value="2">Tháng 2</option>
+                            <option value="3">Tháng 3</option>
+                            <option value="4">Tháng 4</option>
+                            <option value="5">Tháng 5</option>
+                            <option value="6">Tháng 6</option>
+                            <option value="7">Tháng 7</option>
+                            <option value="8">Tháng 8</option>
+                            <option value="9">Tháng 9</option>
+                            <option value="10" selected>Tháng 10</option>
+                            <option value="11">Tháng 11</option>
+                            <option value="12">Tháng 12</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Target Amount & Deals -->
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label for="formTargetAmount">Chỉ tiêu Doanh số (₫) <span style="color:#ef4444;">*</span></label>
+                        <input type="number" id="formTargetAmount" required min="0" step="1000000" placeholder="VD: 250000000">
+                        <div id="formAmountFormatted" style="font-size: 12px; color: #059669; margin-top: 4px; font-weight: 600;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="formTargetDeals">Mục tiêu số deal</label>
+                        <input type="number" id="formTargetDeals" min="0" placeholder="VD: 5">
+                    </div>
+                </div>
+
+                <!-- Notes / Commitments -->
+                <div class="form-group">
+                    <label for="formNotes">Ghi chú cam kết đầu kỳ</label>
+                    <textarea id="formNotes" rows="2" placeholder="VD: Cam kết hoàn thành chỉ tiêu B2B miền Bắc Quý 4..."></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="crm-btn crm-btn-secondary" onclick="closeTargetModal()">Hủy</button>
+            <button type="button" class="crm-btn crm-btn-primary" id="btnSaveTarget">💾 Lưu chỉ tiêu</button>
+        </div>
+    </div>
+</div>
+
+<script src="js/pages/sales-targets.js"></script>
+<script src="js/page-transition.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/shared-shell.js"></script>
+<script src="js/ui-core.js"></script>
+<script src="js/ui-effects.js"></script>
+</body>
+</html>
