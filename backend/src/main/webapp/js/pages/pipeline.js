@@ -1322,6 +1322,7 @@ function createCard(record) {
     } else {
         cardMenuHtml = `
             <button type="button" data-edit-opportunity="${record.id}">Sửa</button>
+            <button type="button" style="color:#059669; font-weight:600;" onclick="window.location.href='quote-editor?opportunityId=${record.id}'">📄 Soạn báo giá</button>
             ${isTeamLeadOrAbove() ? `<button type="button" style="color:#0284c7; font-weight:600;" data-reassign-opportunity="${record.id}">🔄 Phân bổ lại</button>` : ""}
             ${canPrev ? `<button type="button" data-prev-stage="${record.id}">← Giai đoạn trước</button>` : ""}
             ${canNext ? `<button type="button" data-next-stage="${record.id}">Giai đoạn tiếp →</button>` : ""}
@@ -1509,6 +1510,13 @@ async function openOpportunityDrawer(id = null) {
             const canReassign = isTeamLeadOrAbove();
             if (btnDrawerReassignOpp) btnDrawerReassignOpp.style.display = canReassign ? "inline-block" : "none";
             if (btnQuickReassignInDrawer) btnQuickReassignInDrawer.style.display = canReassign ? "inline-block" : "none";
+            const btnCreateQuote = document.getElementById("btnDrawerCreateQuote");
+            if (btnCreateQuote) {
+                btnCreateQuote.style.display = "inline-block";
+                btnCreateQuote.onclick = () => {
+                    window.location.href = `quote-editor?opportunityId=${id}`;
+                };
+            }
             loadAndRenderAssignmentHistory(id);
             loadAndRenderFieldHistory(id);
             loadAndRenderOpportunityTeam(id);
@@ -1526,6 +1534,8 @@ async function openOpportunityDrawer(id = null) {
         if (reopenBtn) reopenBtn.style.display = "none";
         if (btnDrawerReassignOpp) btnDrawerReassignOpp.style.display = "none";
         if (btnQuickReassignInDrawer) btnQuickReassignInDrawer.style.display = "none";
+        const btnCreateQuoteNew = document.getElementById("btnDrawerCreateQuote");
+        if (btnCreateQuoteNew) btnCreateQuoteNew.style.display = "none";
         const histSection = document.getElementById("opportunityAssignmentHistorySection");
         if (histSection) histSection.style.display = "none";
         const fieldHistSection = document.getElementById("opportunityFieldHistorySection");
