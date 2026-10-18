@@ -186,10 +186,20 @@
 
         <div class="pipeline-head-right">
             <button
+                id="btnQuickLogActivityGlobal"
+                class="crm-btn crm-btn-secondary"
+                type="button"
+                style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600; border-color: #3b82f6; color: #1d4ed8; background: #eff6ff;"
+                title="Ghi nhận hoạt động nhanh (cuộc gọi, cuộc gặp, email, ghi chú) ngay trên điện thoại/máy tính sau khi gặp khách"
+            >
+                ⚡ Ghi nhanh hoạt động
+            </button>
+
+            <button
                 id="btnExportOppExcel"
                 class="crm-btn crm-btn-secondary"
                 type="button"
-                title="Xuất danh sách cơ hội ra file Excel bao gồm trường tùy chỉnh"
+                title="Xuất danh sách cơ hội ra file Excel theo bộ lọc hiện tại (Tự động kiểm soát hiển thị Giá vốn & Biên lợi nhuận theo phân quyền vai trò)"
             >
                 📥 Xuất Excel
             </button>
@@ -1030,28 +1040,66 @@
                 </button>
             </div>
 
-            <!-- Box Ghi nhận hoạt động (Dành cho cả Chủ sở hữu & Thành viên tham gia) -->
-            <div id="opportunityQuickActivitySection" class="opp-quick-activity-box">
+            <!-- Box Ghi nhận hoạt động (Dành cho cả Chủ sở hữu & Thành viên tham gia) (Story 3) -->
+            <div id="opportunityQuickActivitySection" class="opp-quick-activity-box" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-top: 12px;">
                 <div style="font-weight: 700; font-size: 12.5px; color: #1e293b; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
-                    <span>📝 Ghi nhận hoạt động thương vụ</span>
-                    <small style="color: #64748b; font-weight: normal;">Thành viên được chia sẻ có quyền ghi nhận</small>
+                    <span>⚡ Ghi nhận hoạt động trao đổi (Story 3)</span>
+                    <small style="color: #64748b; font-weight: normal;">Hỗ trợ quá khứ & thời lượng trao đổi</small>
                 </div>
+
+                <!-- Hàng 1: Loại hoạt động & Tiêu đề -->
                 <div style="display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
-                    <select id="quickActivityType" class="crm-input" style="flex: 1; min-width: 110px; font-size: 12px;">
-                        <option value="NOTE">📝 Ghi chú trao đổi</option>
+                    <select id="quickActivityType" class="crm-input" style="flex: 1; min-width: 120px; font-size: 12px;">
                         <option value="CALL">📞 Cuộc gọi</option>
-                        <option value="MEETING">🤝 Cuộc họp</option>
-                        <option value="TASK">✅ Nhiệm vụ / Task</option>
+                        <option value="MEETING">🤝 Cuộc gặp trực tiếp</option>
+                        <option value="EMAIL">✉️ Email</option>
+                        <option value="NOTE">📝 Ghi chú trao đổi</option>
                     </select>
-                    <input id="quickActivitySubject" class="crm-input" type="text" placeholder="Tiêu đề hoạt động (VD: Trao đổi nhu cầu qua điện thoại)..." style="flex: 2; min-width: 180px; font-size: 12px;">
+                    <input id="quickActivitySubject" class="crm-input" type="text" placeholder="Tiêu đề (VD: Trao đổi nhu cầu qua điện thoại, Gặp trao đổi báo giá)..." style="flex: 2; min-width: 190px; font-size: 12px;">
                 </div>
+
+                <!-- Hàng 2: Người liên hệ, Thời điểm, Thời lượng -->
+                <div style="display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; align-items: center;">
+                    <select id="quickActivityContact" class="crm-input" style="flex: 1; min-width: 130px; font-size: 12px;" title="Người liên hệ đại diện khách hàng">
+                        <option value="">-- Người liên hệ --</option>
+                    </select>
+                    <input id="quickActivityTime" class="crm-input" type="datetime-local" style="flex: 1; min-width: 160px; font-size: 12px;" title="Thời điểm diễn ra (hỗ trợ ghi nhận hoạt động trong quá khứ)">
+                    <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+                        <input id="quickActivityDuration" class="crm-input" type="number" min="0" placeholder="Thời lượng (phút)..." style="width: 110px; font-size: 12px;" value="30">
+                        <span style="font-size: 11px; color: #64748b;">phút</span>
+                    </div>
+                </div>
+
+                <!-- Chips chọn nhanh thời lượng -->
+                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 11px; flex-wrap: wrap;">
+                    <span style="color: #64748b; font-weight: 600;">Chọn nhanh:</span>
+                    <button type="button" class="crm-chip-duration" onclick="setQuickActivityDuration(15)" style="background: #e2e8f0; border: none; padding: 2px 7px; border-radius: 4px; cursor: pointer; font-size: 11px;">15 phút</button>
+                    <button type="button" class="crm-chip-duration" onclick="setQuickActivityDuration(30)" style="background: #e2e8f0; border: none; padding: 2px 7px; border-radius: 4px; cursor: pointer; font-size: 11px;">30 phút</button>
+                    <button type="button" class="crm-chip-duration" onclick="setQuickActivityDuration(45)" style="background: #e2e8f0; border: none; padding: 2px 7px; border-radius: 4px; cursor: pointer; font-size: 11px;">45 phút</button>
+                    <button type="button" class="crm-chip-duration" onclick="setQuickActivityDuration(60)" style="background: #e2e8f0; border: none; padding: 2px 7px; border-radius: 4px; cursor: pointer; font-size: 11px;">60 phút</button>
+                </div>
+
+                <!-- Hàng 3: Nội dung trao đổi -->
                 <div style="margin-bottom: 8px;">
                     <textarea id="quickActivityDescription" class="crm-input" rows="2" placeholder="Nội dung tóm tắt kết quả trao đổi, thắc mắc từ khách hàng..." style="font-size: 12px; resize: vertical;"></textarea>
                 </div>
+
+                <!-- Hàng 4: Kết quả trao đổi (Outcome) -->
+                <div style="margin-bottom: 8px;">
+                    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 11px; flex-wrap: wrap;">
+                        <span style="color: #64748b; font-weight: 600;">Kết quả nhanh:</span>
+                        <button type="button" onclick="setQuickActivityOutcome('Khách hàng rất quan tâm, hẹn demo chi tiết')" style="background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; padding: 2px 7px; border-radius: 4px; cursor: pointer; font-size: 11px;">🎯 Khách quan tâm</button>
+                        <button type="button" onclick="setQuickActivityOutcome('Cần chuẩn bị báo giá chính thức & hợp đồng mẫu')" style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a; padding: 2px 7px; border-radius: 4px; cursor: pointer; font-size: 11px;">📑 Cần gửi báo giá</button>
+                        <button type="button" onclick="setQuickActivityOutcome('Khách đã đồng ý ký hợp đồng triển khai')" style="background: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; padding: 2px 7px; border-radius: 4px; cursor: pointer; font-size: 11px;">✅ Đã chốt thương vụ</button>
+                        <button type="button" onclick="setQuickActivityOutcome('Khách bận, hẹn gọi lại tuần tới')" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; padding: 2px 7px; border-radius: 4px; cursor: pointer; font-size: 11px;">⏳ Hẹn liên hệ lại</button>
+                    </div>
+                    <input id="quickActivityOutcome" class="crm-input" type="text" placeholder="Kết quả / Thống nhất tiếp theo..." style="font-size: 12px;">
+                </div>
+
                 <div style="display: flex; justify-content: flex-end; gap: 8px; align-items: center;">
                     <span id="quickActivityMsg" style="font-size: 11.5px; color: #16a34a; font-weight: 600; display: none;">Đã lưu hoạt động!</span>
-                    <button id="btnLogOpportunityActivity" type="button" class="crm-btn crm-btn-primary" style="padding: 5px 12px; font-size: 12px;">
-                        Lưu hoạt động
+                    <button id="btnLogOpportunityActivity" type="button" class="crm-btn crm-btn-primary" style="padding: 5px 14px; font-size: 12px;">
+                        💾 Lưu hoạt động
                     </button>
                 </div>
 
@@ -1059,6 +1107,45 @@
                 <div style="margin-top: 10px; border-top: 1px dashed #e2e8f0; padding-top: 8px;">
                     <div style="font-size: 11.5px; font-weight: 700; color: #64748b; margin-bottom: 6px;">Hoạt động đã ghi nhận:</div>
                     <div id="opportunityActivitiesList" class="opp-activities-list">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- USER STORY 1: TÀI LIỆU ĐÍNH KÈM THƯƠNG VỤ (HỒ SƠ THẦU, BIÊN BẢN HỌP) -->
+            <div id="opportunityAttachmentsSection" class="opp-attachments-box" style="margin-top: 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                <div style="font-weight: 700; font-size: 13px; color: #1e293b; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span>📎 Tài liệu đính kèm thương vụ (Story 1)</span>
+                        <span id="oppAttachmentsCountBadge" class="opp-history-badge" style="background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">0 tệp</span>
+                    </div>
+                    <small style="color: #64748b; font-size: 11px;">Hồ sơ thầu, biên bản họp, tài liệu kỹ thuật</small>
+                </div>
+
+                <!-- Phân quyền bảo mật thông báo -->
+                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 7px 10px; margin-bottom: 10px; font-size: 11.5px; color: #1e40af; display: flex; align-items: flex-start; gap: 6px;">
+                    <span style="font-size: 14px;">🔒</span>
+                    <div>
+                        <strong>Phân quyền bảo mật tải xuống:</strong> Chỉ người sở hữu cơ hội và các cộng tác viên được chia sẻ trong đội ngũ mới được tải xuống tài liệu.
+                    </div>
+                </div>
+
+                <!-- Vùng tải lên nhiều tệp (Dropzone) -->
+                <div id="oppAttachmentDropzone" style="border: 2px dashed #94a3b8; border-radius: 8px; padding: 14px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s;" onclick="document.getElementById('oppAttachmentFileInput').click()">
+                    <input type="file" id="oppAttachmentFileInput" multiple style="display: none;" />
+                    <div style="font-size: 24px; margin-bottom: 4px;">📂</div>
+                    <div style="font-weight: 600; font-size: 12.5px; color: #1e293b;">Bấm để chọn tệp hoặc kéo thả tệp vào đây</div>
+                    <div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">
+                        Tải lên nhiều tệp cùng lúc (PDF, DOCX, XLSX, Ảnh...). Tối đa <strong>20MB</strong> mỗi tệp.
+                    </div>
+                </div>
+
+                <div id="oppAttachmentUploadMsg" style="display: none; margin-top: 8px; font-size: 12px; text-align: center; font-weight: 600;"></div>
+
+                <!-- Danh sách tài liệu đính kèm -->
+                <div style="margin-top: 12px;">
+                    <div style="font-size: 11.5px; font-weight: 700; color: #475569; margin-bottom: 6px;">Danh sách tài liệu đã đính kèm:</div>
+                    <div id="oppAttachmentsList" style="display: flex; flex-direction: column; gap: 6px;">
                         <!-- Rendered dynamically -->
                     </div>
                 </div>
@@ -1708,6 +1795,132 @@
         <footer style="display: flex; justify-content: flex-end; gap: 8px;">
             <button id="cancelSaveFilterModalBtn" type="button" class="crm-btn crm-btn-secondary">Hủy</button>
             <button id="confirmSaveFilterBtn" type="submit" class="crm-btn crm-btn-primary">Lưu bộ lọc</button>
+        </footer>
+    </form>
+</section>
+
+<!-- =========================================================
+     GLOBAL QUICK ACTIVITY MODAL (USER STORY 3 - MOBILE FRIENDLY)
+========================================================= -->
+<div id="globalQuickActivityOverlay" class="pipeline-overlay" style="display: none; z-index: 10005; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(3px);"></div>
+
+<section id="globalQuickActivityModal" class="crm-card" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10006; width: 94%; max-width: 540px; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 30px -5px rgba(0, 0, 0, 0.25); border-radius: 14px; padding: 20px; background: #ffffff; border: 1px solid #e2e8f0;">
+    <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 22px;">⚡</span>
+            <div>
+                <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #0f172a;">Ghi nhanh hoạt động khách hàng</h3>
+                <span style="font-size: 11.5px; color: #64748b;">Ghi nhận ngay sau khi rời văn phòng khách (hỗ trợ điện thoại)</span>
+            </div>
+        </div>
+        <button id="closeGlobalQuickActivityModalX" type="button" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #94a3b8; padding: 4px;">✕</button>
+    </header>
+
+    <form id="globalQuickActivityForm">
+        <!-- 1. Loại hoạt động (Pills) -->
+        <label style="display: block; margin-bottom: 12px;">
+            <span style="font-weight: 600; font-size: 12.5px; color: #334155; margin-bottom: 6px; display: block;">1. Loại hoạt động <em style="color: #ef4444;">*</em></span>
+            <div id="modalActivityTypePills" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+                <button type="button" class="act-type-btn active" data-type="CALL" style="padding: 8px 4px; border-radius: 8px; border: 1.5px solid #2563eb; background: #eff6ff; color: #1d4ed8; font-weight: 700; font-size: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                    <span style="font-size: 16px;">📞</span>
+                    <span>Cuộc gọi</span>
+                </button>
+                <button type="button" class="act-type-btn" data-type="MEETING" style="padding: 8px 4px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; color: #475569; font-weight: 600; font-size: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                    <span style="font-size: 16px;">🤝</span>
+                    <span>Cuộc gặp</span>
+                </button>
+                <button type="button" class="act-type-btn" data-type="EMAIL" style="padding: 8px 4px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; color: #475569; font-weight: 600; font-size: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                    <span style="font-size: 16px;">✉️</span>
+                    <span>Email</span>
+                </button>
+                <button type="button" class="act-type-btn" data-type="NOTE" style="padding: 8px 4px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; color: #475569; font-weight: 600; font-size: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                    <span style="font-size: 16px;">📝</span>
+                    <span>Ghi chú</span>
+                </button>
+            </div>
+            <input type="hidden" id="modalActivityTypeVal" value="CALL">
+        </label>
+
+        <!-- 2. Gắn với Khách hàng & Người liên hệ & Cơ hội liên quan -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-bottom: 12px;">
+            <div style="font-weight: 600; font-size: 12px; color: #475569; margin-bottom: 6px;">2. Đối tượng liên quan:</div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div>
+                    <label style="font-size: 11.5px; color: #64748b; display: block; margin-bottom: 2px;">Khách hàng <em style="color: #ef4444;">*</em></label>
+                    <select id="modalActivityCustomerSelect" class="crm-input" style="width: 100%; font-size: 12.5px;" required>
+                        <option value="">-- Đang tải khách hàng... --</option>
+                    </select>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div>
+                        <label style="font-size: 11.5px; color: #64748b; display: block; margin-bottom: 2px;">Người liên hệ</label>
+                        <select id="modalActivityContactSelect" class="crm-input" style="width: 100%; font-size: 12.5px;">
+                            <option value="">-- Chọn khách trước --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 11.5px; color: #64748b; display: block; margin-bottom: 2px;">Cơ hội liên quan</label>
+                        <select id="modalActivityOppSelect" class="crm-input" style="width: 100%; font-size: 12.5px;">
+                            <option value="">-- Không gắn cơ hội --</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Tiêu đề hoạt động -->
+        <label style="display: block; margin-bottom: 12px;">
+            <span style="font-weight: 600; font-size: 12.5px; color: #334155; margin-bottom: 4px; display: block;">3. Tiêu đề hoạt động <em style="color: #ef4444;">*</em></span>
+            <input id="modalActivitySubjectInput" class="crm-input" type="text" placeholder="VD: Gặp trao đổi báo giá tại văn phòng khách hàng..." required style="width: 100%; font-size: 12.5px;">
+        </label>
+
+        <!-- 4. Thời điểm & Thời lượng (Hỗ trợ cả quá khứ) -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px;">
+            <label>
+                <span style="font-weight: 600; font-size: 12px; color: #334155; display: block; margin-bottom: 4px;">Thời điểm diễn ra</span>
+                <input id="modalActivityTimeInput" class="crm-input" type="datetime-local" style="width: 100%; font-size: 12px;" title="Ghi nhận hoạt động đã diễn ra trong quá khứ hoặc sắp tới">
+            </label>
+            <label>
+                <span style="font-weight: 600; font-size: 12px; color: #334155; display: block; margin-bottom: 4px;">Thời lượng (phút)</span>
+                <input id="modalActivityDurationInput" class="crm-input" type="number" min="0" value="30" style="width: 100%; font-size: 12px;">
+            </label>
+        </div>
+
+        <!-- Chips thời lượng nhanh -->
+        <div style="display: flex; gap: 6px; margin-bottom: 12px; align-items: center; flex-wrap: wrap;">
+            <span style="font-size: 11px; color: #64748b; font-weight: 600;">Chọn nhanh:</span>
+            <button type="button" class="modal-duration-chip" onclick="setModalDuration(15)" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer;">15p</button>
+            <button type="button" class="modal-duration-chip" onclick="setModalDuration(30)" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer;">30p</button>
+            <button type="button" class="modal-duration-chip" onclick="setModalDuration(45)" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer;">45p</button>
+            <button type="button" class="modal-duration-chip" onclick="setModalDuration(60)" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer;">60p (1h)</button>
+            <button type="button" class="modal-duration-chip" onclick="setModalDuration(90)" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer;">90p (1.5h)</button>
+        </div>
+
+        <!-- 5. Nội dung trao đổi -->
+        <label style="display: block; margin-bottom: 10px;">
+            <span style="font-weight: 600; font-size: 12.5px; color: #334155; margin-bottom: 4px; display: block;">5. Nội dung trao đổi & thảo luận</span>
+            <textarea id="modalActivityDescriptionInput" class="crm-input" rows="3" placeholder="Ghi nhanh các ý chính khách hàng chia sẻ, nhu cầu, ngân sách..." style="width: 100%; font-size: 12.5px; resize: vertical;"></textarea>
+        </label>
+
+        <!-- 6. Kết quả trao đổi (Outcome) -->
+        <label style="display: block; margin-bottom: 14px;">
+            <span style="font-weight: 600; font-size: 12.5px; color: #334155; margin-bottom: 4px; display: block;">6. Kết quả / Thống nhất hành động tiếp theo</span>
+            <div style="display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 6px;">
+                <button type="button" onclick="setModalOutcome('Khách rất quan tâm, hẹn demo trực tiếp tuần tới')" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer;">🎯 Khách quan tâm</button>
+                <button type="button" onclick="setModalOutcome('Cần lập báo giá chi tiết và gửi trước ngày mai')" style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a; border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer;">📑 Cần gửi báo giá</button>
+                <button type="button" onclick="setModalOutcome('Đã thống nhất điều khoản hợp đồng và chuẩn bị ký kết')" style="background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer;">✅ Chốt hợp đồng</button>
+                <button type="button" onclick="setModalOutcome('Khách đang bận họp, hẹn liên hệ lại vào tuần sau')" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer;">⏳ Hẹn liên hệ lại</button>
+            </div>
+            <input id="modalActivityOutcomeInput" class="crm-input" type="text" placeholder="Kết quả cuộc họp/gọi..." style="width: 100%; font-size: 12.5px;">
+        </label>
+
+        <div id="modalActivityErrorMsg" style="color: #ef4444; font-size: 12px; margin-bottom: 10px; display: none;"></div>
+
+        <footer style="display: flex; justify-content: flex-end; gap: 10px; padding-top: 10px; border-top: 1px solid #f1f5f9;">
+            <button id="cancelGlobalQuickActivityBtn" type="button" class="crm-btn crm-btn-secondary">Hủy</button>
+            <button id="btnSubmitGlobalQuickActivity" type="submit" class="crm-btn crm-btn-primary" style="padding: 7px 18px; font-weight: 700;">
+                💾 Lưu hoạt động ngay
+            </button>
         </footer>
     </form>
 </section>

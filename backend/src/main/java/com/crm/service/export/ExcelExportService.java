@@ -192,6 +192,19 @@ public class ExcelExportService {
             List<Map<String, Object>> customFields,
             Map<Long, Map<String, Object>> customValues
     ) throws IOException {
+        exportOpportunities(response, opportunities, customFields, customValues, true);
+    }
+
+    /**
+     * Xuất danh sách cơ hội bán hàng ra file Excel .xlsx bao gồm các trường tùy chỉnh và phân quyền Giá vốn/Biên lợi nhuận.
+     */
+    public void exportOpportunities(
+            HttpServletResponse response,
+            List<Map<String, Object>> opportunities,
+            List<Map<String, Object>> customFields,
+            Map<Long, Map<String, Object>> customValues,
+            boolean canViewCost
+    ) throws IOException {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         String filename = "Danh_sach_co_hoi_" + timestamp + ".xlsx";
 
@@ -225,7 +238,8 @@ public class ExcelExportService {
             Row infoRow = sheet.createRow(1);
             Cell infoCell = infoRow.createCell(0);
             infoCell.setCellValue("Thời gian xuất: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))
-                    + " | Tổng số bản ghi: " + opportunities.size());
+                    + " | Tổng số bản ghi: " + opportunities.size()
+                    + (canViewCost ? " | Quyền: Đầy đủ (Bao gồm Giá vốn & Biên lợi nhuận)" : " | Quyền: Giới hạn (Không hiển thị Giá vốn & Biên lợi nhuận)"));
 
             // Header columns
             List<String> headers = new ArrayList<>();
@@ -236,6 +250,10 @@ public class ExcelExportService {
             headers.add("Giai đoạn");
             headers.add("Xác suất (%)");
             headers.add("Giá trị (VNĐ)");
+            if (canViewCost) {
+                headers.add("Giá vốn (VNĐ)");
+                headers.add("Biên lợi nhuận (%)");
+            }
             headers.add("Ngày dự kiến chốt");
             headers.add("Trạng thái");
             headers.add("Người phụ trách");
@@ -291,6 +309,32 @@ public class ExcelExportService {
                 Cell numCell = row.createCell(col++);
                 numCell.setCellValue(amt);
                 numCell.setCellStyle(currNumStyle);
+
+                if (canViewCost) {
+                    // Giá vốn (VNĐ)
+                    Object costObj = opp.get("totalCost");
+                    double cost = 0;
+                    if (costObj instanceof Number) {
+                        cost = ((Number) costObj).doubleValue();
+                    } else if (costObj != null) {
+                        try { cost = Double.parseDouble(String.valueOf(costObj)); } catch (Exception ignored) {}
+                    }
+                    Cell costCell = row.createCell(col++);
+                    costCell.setCellValue(cost);
+                    costCell.setCellStyle(currNumStyle);
+
+                    // Biên lợi nhuận (%)
+                    Object marginObj = opp.get("profitMargin");
+                    double margin = 0;
+                    if (marginObj instanceof Number) {
+                        margin = ((Number) marginObj).doubleValue();
+                    } else if (marginObj != null) {
+                        try { margin = Double.parseDouble(String.valueOf(marginObj)); } catch (Exception ignored) {}
+                    }
+                    Cell marginCell = row.createCell(col++);
+                    marginCell.setCellValue(margin);
+                    marginCell.setCellStyle(currNumStyle);
+                }
 
                 // Ngày dự kiến chốt
                 createCell(row, col++, valStr(opp.get("expectedCloseDate")), currentStyle);

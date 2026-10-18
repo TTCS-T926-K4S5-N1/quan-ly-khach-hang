@@ -89,8 +89,15 @@ public class OpportunityServlet extends HttpServlet {
                         .toList();
                 Map<Long, Map<String, Object>> customValues = cfDao.getValuesForRecords("OPPORTUNITY", oppIds);
 
+                com.crm.dao.permissions.PermissionDAO permDao = new com.crm.dao.permissions.PermissionDAO();
+                boolean canViewCost = permDao.hasRole(currentUserId, "ADMIN")
+                        || permDao.hasRole(currentUserId, "DIRECTOR")
+                        || permDao.hasRole(currentUserId, "TEAM_LEAD")
+                        || permDao.findByUserId(currentUserId).contains("product.cost.read")
+                        || permDao.findByUserId(currentUserId).contains("product.update");
+
                 com.crm.service.export.ExcelExportService exportService = new com.crm.service.export.ExcelExportService();
-                exportService.exportOpportunities(resp, items, activeFields, customValues);
+                exportService.exportOpportunities(resp, items, activeFields, customValues, canViewCost);
                 return;
             }
 
@@ -292,8 +299,17 @@ public class OpportunityServlet extends HttpServlet {
                         throw new IllegalArgumentException("Dữ liệu hoạt động không hợp lệ.");
                     }
                     String subject = body.get("subject") != null ? String.valueOf(body.get("subject")) : "Ghi chú hoạt động";
-                    String type = body.get("activityType") != null ? String.valueOf(body.get("activityType")) : "NOTE";
+                    String type = body.get("activityType") != null ? String.valueOf(body.get("activityType")) : (body.get("type") != null ? String.valueOf(body.get("type")) : "NOTE");
                     String description = body.get("description") != null ? String.valueOf(body.get("description")) : "";
+                    String outcome = body.get("outcome") != null ? String.valueOf(body.get("outcome")) : null;
+                    int durationMinutes = 0;
+                    if (body.get("durationMinutes") instanceof Number) {
+                        durationMinutes = ((Number) body.get("durationMinutes")).intValue();
+                    } else if (body.get("durationMinutes") != null) {
+                        try { durationMinutes = Integer.parseInt(String.valueOf(body.get("durationMinutes"))); } catch (Exception ignored) {}
+                    }
+                    Long contactId = body.get("contactId") != null ? ((Number) body.get("contactId")).longValue() : null;
+
                     java.sql.Timestamp dueDate = new java.sql.Timestamp(System.currentTimeMillis());
                     if (body.get("dueDate") != null && !String.valueOf(body.get("dueDate")).isBlank()) {
                         try {
@@ -305,7 +321,7 @@ public class OpportunityServlet extends HttpServlet {
                         }
                     }
 
-                    var act = opportunityService.logActivity(currentUserId, targetId, subject, type, description, dueDate);
+                    var act = opportunityService.logActivity(currentUserId, targetId, subject, type, description, outcome, durationMinutes, contactId, dueDate);
                     ResponseUtil.json(resp, 201, ApiResponse.success("Ghi nhận hoạt động cơ hội thành công", act));
                     return;
                 }

@@ -759,6 +759,22 @@ btnExportOppExcel?.addEventListener("click", () => {
     const kw = (searchInput?.value || "").trim();
     if (kw) params.append("keyword", kw);
 
+    const stageVal = stageFilter?.value || "";
+    if (stageVal) params.append("stageId", stageVal);
+
+    const productVal = productFilter?.value || "";
+    if (productVal) params.append("productId", productVal);
+
+    const minAmt = amountMin?.value ? amountMin.value.trim() : "";
+    if (minAmt) params.append("minAmount", minAmt);
+
+    const maxAmt = amountMax?.value ? amountMax.value.trim() : "";
+    if (maxAmt) params.append("maxAmount", maxAmt);
+
+    if (stagnantFilterActive) {
+        params.append("stagnantOnly", "true");
+    }
+
     const ownerVal = ownerFilter?.value || "";
     if (ownerVal === "MINE" || ownerVal === "Tôi") {
         params.append("ownerFilter", "MINE");
@@ -1496,6 +1512,11 @@ async function openOpportunityDrawer(id = null) {
             loadAndRenderAssignmentHistory(id);
             loadAndRenderFieldHistory(id);
             loadAndRenderOpportunityTeam(id);
+            loadAndRenderOpportunityAttachments(id);
+            const timeInput = document.getElementById("quickActivityTime");
+            if (timeInput) {
+                timeInput.value = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+            }
         }
     } else {
         if (titleEl) titleEl.textContent = "Thêm cơ hội";
@@ -1511,6 +1532,8 @@ async function openOpportunityDrawer(id = null) {
         if (fieldHistSection) fieldHistSection.style.display = "none";
         const teamSection = document.getElementById("opportunityTeamSection");
         if (teamSection) teamSection.style.display = "none";
+        const attSection = document.getElementById("opportunityAttachmentsSection");
+        if (attSection) attSection.style.display = "none";
 
         opportunityForm.reset();
         currentOpportunityItems = [];
@@ -3160,6 +3183,28 @@ async function loadAndRenderOpportunityTeam(oppId) {
         }
 
         renderOpportunityActivities(activities);
+
+        // Load contacts for quick activity contact dropdown
+        if (detail?.customerId) {
+            try {
+                const contactsRes = await api(`/api/contacts?customerId=${detail.customerId}`);
+                const contactSelect = document.getElementById("quickActivityContact");
+                if (contactSelect) {
+                    contactSelect.innerHTML = '<option value="">-- Người liên hệ --</option>';
+                    if (Array.isArray(contactsRes)) {
+                        contactsRes.forEach(c => {
+                            const opt = document.createElement("option");
+                            opt.value = c.id;
+                            opt.textContent = `${c.name || 'Người liên hệ'} (${c.phone || c.email || 'Liên hệ'})`;
+                            if (detail.contactId && c.id === detail.contactId) {
+                                opt.selected = true;
+                            }
+                            contactSelect.appendChild(opt);
+                        });
+                    }
+                }
+            } catch (_) {}
+        }
     } catch (e) {
         console.warn("Could not load opportunity team:", e);
     }
@@ -3170,20 +3215,33 @@ function renderOpportunityActivities(activities) {
     if (!actListEl) return;
 
     if (Array.isArray(activities) && activities.length > 0) {
-        actListEl.innerHTML = activities.slice(0, 10).map(act => {
-            const timeStr = act.createdAt ? new Date(act.createdAt).toLocaleString("vi-VN", {
-                day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"
-            }) : "—";
-            const typeEmoji = act.type === "CALL" ? "📞" : act.type === "MEETING" ? "🤝" : act.type === "TASK" ? "✅" : "📝";
+        actListEl.innerHTML = activities.slice(0, 15).map(act => {
+            const timeStr = act.dueDate ? new Date(act.dueDate).toLocaleString("vi-VN", {
+                day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit"
+            }) : (act.createdAt ? new Date(act.createdAt).toLocaleString("vi-VN", {
+                day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit"
+            }) : "—");
+
+            const typeEmoji = act.type === "CALL" ? "📞" : act.type === "MEETING" ? "🤝" : act.type === "EMAIL" ? "✉️" : "📝";
+            const typeLabel = act.type === "CALL" ? "Cuộc gọi" : act.type === "MEETING" ? "Cuộc gặp" : act.type === "EMAIL" ? "Email" : "Ghi chú";
+
             return `
-                <div class="opp-activity-item">
-                    <div class="opp-activity-header">
-                        <strong>${typeEmoji} ${escapeHtml(act.subject || 'Hoạt động')}</strong>
-                        <span style="font-size: 11px; color: #94a3b8;">${timeStr}</span>
+                <div class="opp-activity-item" style="border-left: 3px solid #3b82f6; background: #ffffff; border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
+                    <div class="opp-activity-header" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                        <div>
+                            <span style="display: inline-block; background: #eff6ff; color: #1d4ed8; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-right: 4px;">${typeEmoji} ${typeLabel}</span>
+                            <strong style="font-size: 12.5px; color: #0f172a;">${escapeHtml(act.subject || 'Hoạt động')}</strong>
+                        </div>
+                        <span style="font-size: 11px; color: #64748b; white-space: nowrap;">📅 ${timeStr}</span>
                     </div>
-                    ${act.description ? `<div style="color: #475569; margin-top: 2px;">${escapeHtml(act.description)}</div>` : ''}
-                    <div style="font-size: 10.5px; color: #64748b; margin-top: 3px;">
-                        Người ghi: <strong>${escapeHtml(act.createdByName || act.ownerName || 'Thành viên')}</strong>
+
+                    ${act.description ? `<div style="color: #334155; font-size: 12px; margin: 4px 0; line-height: 1.4;">${escapeHtml(act.description)}</div>` : ''}
+
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 4px; font-size: 11px;">
+                        ${act.contactName ? `<span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px;">👤 ${escapeHtml(act.contactName)}</span>` : ''}
+                        ${act.durationMinutes ? `<span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-weight: 600;">⏱️ ${act.durationMinutes} phút</span>` : ''}
+                        ${act.outcome ? `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-weight: 600;">🎯 ${escapeHtml(act.outcome)}</span>` : ''}
+                        <span style="color: #94a3b8; margin-left: auto;">Người ghi: <strong>${escapeHtml(act.ownerName || 'Thành viên')}</strong></span>
                     </div>
                 </div>
             `;
@@ -3240,6 +3298,10 @@ async function handleLogOpportunityActivity() {
     const type = document.getElementById("quickActivityType")?.value || "NOTE";
     const subject = document.getElementById("quickActivitySubject")?.value.trim();
     const desc = document.getElementById("quickActivityDescription")?.value.trim();
+    const contactId = document.getElementById("quickActivityContact")?.value || null;
+    const timeVal = document.getElementById("quickActivityTime")?.value || null;
+    const duration = document.getElementById("quickActivityDuration")?.value || 30;
+    const outcome = document.getElementById("quickActivityOutcome")?.value.trim() || null;
     const msgEl = document.getElementById("quickActivityMsg");
 
     if (!subject) {
@@ -3253,14 +3315,20 @@ async function handleLogOpportunityActivity() {
             body: JSON.stringify({
                 activityType: type,
                 subject: subject,
-                description: desc
+                description: desc,
+                contactId: contactId ? Number(contactId) : null,
+                dueDate: timeVal ? `${timeVal.replace('T', ' ')}:00` : null,
+                durationMinutes: Number(duration) || 0,
+                outcome: outcome
             })
         });
 
         const subInput = document.getElementById("quickActivitySubject");
         const descInput = document.getElementById("quickActivityDescription");
+        const outcomeInput = document.getElementById("quickActivityOutcome");
         if (subInput) subInput.value = "";
         if (descInput) descInput.value = "";
+        if (outcomeInput) outcomeInput.value = "";
 
         if (msgEl) {
             msgEl.style.display = "inline";
@@ -3273,6 +3341,376 @@ async function handleLogOpportunityActivity() {
         alert("Lỗi khi ghi hoạt động: " + err.message);
     }
 }
+
+/* =========================================================
+   USER STORY 1: OPPORTUNITY ATTACHMENTS (HỒ SƠ THẦU, BIÊN BẢN HỌP)
+========================================================= */
+function formatBytes(bytes) {
+    if (!bytes || bytes <= 0) return "0 B";
+    const k = 1024;
+    const dm = 1;
+    const sizes = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
+}
+
+function getFileIcon(type, name) {
+    const ext = (name && name.includes(".")) ? name.split(".").pop().toUpperCase() : (type || "").toUpperCase();
+    if (ext.includes("PDF")) return "📕";
+    if (ext.includes("DOC") || ext.includes("DOCX")) return "📘";
+    if (ext.includes("XLS") || ext.includes("XLSX") || ext.includes("CSV")) return "📗";
+    if (ext.includes("PNG") || ext.includes("JPG") || ext.includes("JPEG") || ext.includes("WEBP")) return "🖼️";
+    if (ext.includes("ZIP") || ext.includes("RAR")) return "🗜️";
+    return "📄";
+}
+
+async function loadAndRenderOpportunityAttachments(oppId) {
+    const section = document.getElementById("opportunityAttachmentsSection");
+    const countBadge = document.getElementById("oppAttachmentsCountBadge");
+    const listEl = document.getElementById("oppAttachmentsList");
+
+    if (!section || !listEl) return;
+    section.style.display = "block";
+
+    try {
+        const res = await api(`/api/attachments?opportunityId=${oppId}`);
+        const attachments = Array.isArray(res) ? res : [];
+        if (countBadge) countBadge.textContent = `${attachments.length} tệp`;
+
+        if (attachments.length === 0) {
+            listEl.innerHTML = '<div style="font-size: 11.5px; color: #94a3b8; font-style: italic; padding: 6px 0;">Chưa có tài liệu hay hồ sơ thầu nào được đính kèm vào cơ hội này.</div>';
+            return;
+        }
+
+        listEl.innerHTML = attachments.map(att => {
+            const timeStr = att.createdAt ? new Date(att.createdAt).toLocaleString("vi-VN", {
+                day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit"
+            }) : "—";
+            const icon = getFileIcon(att.fileType, att.name);
+            const sizeStr = formatBytes(att.fileSize);
+
+            return `
+                <div class="opp-att-item" style="display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 10px;">
+                    <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
+                        <span style="font-size: 20px;">${icon}</span>
+                        <div style="min-width: 0;">
+                            <div style="font-weight: 600; font-size: 12.5px; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(att.name)}">
+                                ${escapeHtml(att.name)}
+                            </div>
+                            <div style="font-size: 11px; color: #64748b; display: flex; gap: 8px; align-items: center; margin-top: 2px;">
+                                <span>${sizeStr}</span>
+                                <span>•</span>
+                                <span>Người tải: <strong>${escapeHtml(att.uploadedBy || 'Người dùng')}</strong></span>
+                                <span>•</span>
+                                <span>📅 ${timeStr}</span>
+                            </div>
+                            ${att.notes ? `<div style="font-size: 10.5px; color: #475569; font-style: italic; margin-top: 2px;">"${escapeHtml(att.notes)}"</div>` : ''}
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <button type="button" class="crm-btn crm-btn-secondary" style="padding: 4px 10px; font-size: 11.5px; white-space: nowrap;" onclick="handleDownloadAttachment(${att.id})">
+                            📥 Tải về
+                        </button>
+                        <button type="button" class="crm-btn" style="padding: 4px 8px; font-size: 11px; color: #ef4444; border: 1px solid #fee2e2; background: #fff;" title="Xóa tài liệu" onclick="handleDeleteAttachment(${att.id}, '${escapeHtml(att.name)}')">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join("");
+    } catch (e) {
+        console.warn("Could not load attachments:", e);
+        listEl.innerHTML = '<div style="font-size: 11.5px; color: #dc2626;">Lỗi tải danh sách tài liệu.</div>';
+    }
+}
+
+async function handleOppFileUpload(files) {
+    if (!editingOppId || !files || files.length === 0) return;
+    const msgEl = document.getElementById("oppAttachmentUploadMsg");
+
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file.size > 20 * 1024 * 1024) { // 20MB check
+            alert(`⚠️ Tệp "${file.name}" có dung lượng ${(file.size / (1024 * 1024)).toFixed(1)}MB, vượt quá giới hạn tối đa 20MB theo quy định.`);
+            return;
+        }
+    }
+
+    const formData = new FormData();
+    formData.append("opportunityId", String(editingOppId));
+    if (currentOppDetail?.customerId) {
+        formData.append("customerId", String(currentOppDetail.customerId));
+    }
+    for (let i = 0; i < files.length; i++) {
+        formData.append("files", files[i]);
+    }
+
+    if (msgEl) {
+        msgEl.style.display = "block";
+        msgEl.style.color = "#2563eb";
+        msgEl.textContent = `⏳ Đang tải lên ${files.length} tệp...`;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/api/attachments`, {
+            method: "POST",
+            credentials: "include",
+            body: formData
+        });
+        const result = await res.json();
+        if (!res.ok || !result.success) {
+            throw new Error(result?.message || `HTTP ${res.status}`);
+        }
+        if (msgEl) {
+            msgEl.style.display = "block";
+            msgEl.style.color = "#16a34a";
+            msgEl.textContent = `✅ Đã tải lên thành công ${files.length} tệp!`;
+            setTimeout(() => { msgEl.style.display = "none"; }, 4000);
+        }
+        const fileInput = document.getElementById("oppAttachmentFileInput");
+        if (fileInput) fileInput.value = "";
+        await loadAndRenderOpportunityAttachments(editingOppId);
+    } catch (err) {
+        if (msgEl) {
+            msgEl.style.display = "block";
+            msgEl.style.color = "#dc2626";
+            msgEl.textContent = `❌ Lỗi: ${err.message}`;
+        } else {
+            alert("Lỗi khi tải tệp: " + err.message);
+        }
+    }
+}
+
+async function handleDownloadAttachment(id) {
+    try {
+        const resp = await fetch(`${API_BASE}/api/attachments/${id}/download`, { credentials: "include" });
+        if (resp.status === 403) {
+            let msg = "Bạn không có quyền tải xuống tài liệu này. Chỉ người sở hữu cơ hội và các cộng tác viên được chia sẻ trong đội ngũ mới được tải xuống.";
+            try {
+                const j = await resp.json();
+                if (j?.message) msg = j.message;
+            } catch (_) {}
+            alert("⛔ PHÂN QUYỀN BẢO MẬT:\n" + msg);
+            return;
+        }
+        if (!resp.ok) {
+            alert("Không thể tải tài liệu: HTTP " + resp.status);
+            return;
+        }
+        const blob = await resp.blob();
+        let filename = "tai_lieu_" + id;
+        const disp = resp.headers.get("Content-Disposition");
+        if (disp && disp.includes("filename=")) {
+            const match = disp.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+            if (match && match[1]) filename = decodeURIComponent(match[1]);
+        }
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+    } catch (err) {
+        alert("Lỗi tải tài liệu: " + err.message);
+    }
+}
+
+async function handleDeleteAttachment(id, name) {
+    if (!confirm(`Bạn có chắc chắn muốn xóa tệp "${name}" khỏi cơ hội này?`)) return;
+    try {
+        await api(`/api/attachments/${id}`, { method: "DELETE" });
+        await loadAndRenderOpportunityAttachments(editingOppId);
+    } catch (err) {
+        alert("Lỗi khi xóa tệp: " + err.message);
+    }
+}
+
+/* =========================================================
+   USER STORY 3: GLOBAL QUICK ACTIVITY MODAL (MOBILE FRIENDLY)
+========================================================= */
+let globalCustomersList = [];
+
+async function openGlobalQuickActivityModal() {
+    const modal = document.getElementById("globalQuickActivityModal");
+    const overlay = document.getElementById("globalQuickActivityOverlay");
+    const custSelect = document.getElementById("modalActivityCustomerSelect");
+    const contactSelect = document.getElementById("modalActivityContactSelect");
+    const oppSelect = document.getElementById("modalActivityOppSelect");
+    const timeInput = document.getElementById("modalActivityTimeInput");
+    const errorMsg = document.getElementById("modalActivityErrorMsg");
+
+    if (!modal) return;
+    if (errorMsg) errorMsg.style.display = "none";
+
+    // Reset default time to now
+    if (timeInput) {
+        timeInput.value = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    }
+
+    modal.style.display = "block";
+    if (overlay) overlay.style.display = "block";
+
+    // Load customers list
+    try {
+        if (custSelect) {
+            custSelect.innerHTML = '<option value="">-- Đang tải danh sách khách hàng... --</option>';
+            const res = await api("/api/customers");
+            globalCustomersList = Array.isArray(res) ? res : (res?.items || []);
+            custSelect.innerHTML = '<option value="">-- Chọn khách hàng --</option>';
+            globalCustomersList.forEach(c => {
+                const opt = document.createElement("option");
+                opt.value = c.id;
+                opt.textContent = c.name || `Khách hàng #${c.id}`;
+                custSelect.appendChild(opt);
+            });
+        }
+    } catch (err) {
+        if (custSelect) custSelect.innerHTML = '<option value="">Lỗi tải danh sách khách hàng</option>';
+    }
+}
+
+function closeGlobalQuickActivityModal() {
+    const modal = document.getElementById("globalQuickActivityModal");
+    const overlay = document.getElementById("globalQuickActivityOverlay");
+    if (modal) modal.style.display = "none";
+    if (overlay) overlay.style.display = "none";
+}
+
+async function onModalCustomerChanged() {
+    const custId = document.getElementById("modalActivityCustomerSelect")?.value;
+    const contactSelect = document.getElementById("modalActivityContactSelect");
+    const oppSelect = document.getElementById("modalActivityOppSelect");
+
+    if (!custId) {
+        if (contactSelect) contactSelect.innerHTML = '<option value="">-- Chọn khách trước --</option>';
+        if (oppSelect) oppSelect.innerHTML = '<option value="">-- Không gắn cơ hội --</option>';
+        return;
+    }
+
+    // Load contacts of this customer
+    try {
+        if (contactSelect) {
+            contactSelect.innerHTML = '<option value="">-- Đang tải người liên hệ... --</option>';
+            const contacts = await api(`/api/contacts?customerId=${custId}`);
+            contactSelect.innerHTML = '<option value="">-- Chọn người liên hệ --</option>';
+            if (Array.isArray(contacts)) {
+                contacts.forEach(c => {
+                    const opt = document.createElement("option");
+                    opt.value = c.id;
+                    opt.textContent = `${c.name || 'Người liên hệ'} (${c.phone || c.email || 'Liên hệ'})`;
+                    contactSelect.appendChild(opt);
+                });
+            }
+        }
+    } catch (_) {
+        if (contactSelect) contactSelect.innerHTML = '<option value="">-- Không có người liên hệ --</option>';
+    }
+
+    // Load opportunities of this customer
+    try {
+        if (oppSelect) {
+            oppSelect.innerHTML = '<option value="">-- Đang tải cơ hội... --</option>';
+            const opps = await api(`/api/opportunities?customerId=${custId}`);
+            oppSelect.innerHTML = '<option value="">-- Không gắn cơ hội --</option>';
+            if (Array.isArray(opps)) {
+                opps.forEach(o => {
+                    const opt = document.createElement("option");
+                    opt.value = o.id;
+                    opt.textContent = `${o.name || 'Cơ hội'} (${o.stageName || 'OPEN'})`;
+                    oppSelect.appendChild(opt);
+                });
+            }
+        }
+    } catch (_) {
+        if (oppSelect) oppSelect.innerHTML = '<option value="">-- Không có cơ hội --</option>';
+    }
+}
+
+async function handleGlobalQuickActivitySubmit(e) {
+    e.preventDefault();
+    const type = document.getElementById("modalActivityTypeVal")?.value || "CALL";
+    const custId = document.getElementById("modalActivityCustomerSelect")?.value;
+    const contactId = document.getElementById("modalActivityContactSelect")?.value || null;
+    const oppId = document.getElementById("modalActivityOppSelect")?.value || null;
+    const subject = document.getElementById("modalActivitySubjectInput")?.value.trim();
+    const timeVal = document.getElementById("modalActivityTimeInput")?.value || null;
+    const duration = document.getElementById("modalActivityDurationInput")?.value || 30;
+    const desc = document.getElementById("modalActivityDescriptionInput")?.value.trim();
+    const outcome = document.getElementById("modalActivityOutcomeInput")?.value.trim() || null;
+    const errorMsg = document.getElementById("modalActivityErrorMsg");
+
+    if (!custId) {
+        if (errorMsg) {
+            errorMsg.textContent = "Vui lòng chọn khách hàng liên quan.";
+            errorMsg.style.display = "block";
+        }
+        return;
+    }
+
+    if (!subject) {
+        if (errorMsg) {
+            errorMsg.textContent = "Vui lòng nhập tiêu đề hoạt động.";
+            errorMsg.style.display = "block";
+        }
+        return;
+    }
+
+    try {
+        await api("/api/activities", {
+            method: "POST",
+            body: JSON.stringify({
+                type: type,
+                subject: subject,
+                description: desc,
+                customerId: Number(custId),
+                contactId: contactId ? Number(contactId) : null,
+                opportunityId: oppId ? Number(oppId) : null,
+                dueDate: timeVal ? `${timeVal.replace('T', ' ')}:00` : null,
+                durationMinutes: Number(duration) || 0,
+                outcome: outcome,
+                status: "COMPLETED"
+            })
+        });
+
+        alert("✅ Đã ghi nhận hoạt động thành công!");
+        closeGlobalQuickActivityModal();
+
+        // If editing opportunity is open, refresh activities
+        if (editingOppId) {
+            const activities = await api(`/api/opportunities/${editingOppId}/activities`);
+            renderOpportunityActivities(activities);
+        }
+    } catch (err) {
+        if (errorMsg) {
+            errorMsg.textContent = "Lỗi: " + err.message;
+            errorMsg.style.display = "block";
+        } else {
+            alert("Lỗi khi ghi hoạt động: " + err.message);
+        }
+    }
+}
+
+// Helpers for quick activity chips
+window.setQuickActivityDuration = function(mins) {
+    const input = document.getElementById("quickActivityDuration");
+    if (input) input.value = mins;
+};
+
+window.setQuickActivityOutcome = function(val) {
+    const input = document.getElementById("quickActivityOutcome");
+    if (input) input.value = val;
+};
+
+window.setModalDuration = function(mins) {
+    const input = document.getElementById("modalActivityDurationInput");
+    if (input) input.value = mins;
+};
+
+window.setModalOutcome = function(val) {
+    const input = document.getElementById("modalActivityOutcomeInput");
+    if (input) input.value = val;
+};
 
 function setupCollaborationAndFilterListeners() {
     stageFilter?.addEventListener("change", loadOpportunities);
@@ -3291,13 +3729,51 @@ function setupCollaborationAndFilterListeners() {
 
     document.getElementById("btnAddMemberBtn")?.addEventListener("click", handleAddMember);
     document.getElementById("btnLogOpportunityActivity")?.addEventListener("click", handleLogOpportunityActivity);
+
+    // Attachment file input listener
+    document.getElementById("oppAttachmentFileInput")?.addEventListener("change", function() {
+        handleOppFileUpload(this.files);
+    });
+
+    // Global Quick Activity Modal listeners
+    document.getElementById("btnQuickLogActivityGlobal")?.addEventListener("click", openGlobalQuickActivityModal);
+    document.getElementById("closeGlobalQuickActivityModalX")?.addEventListener("click", closeGlobalQuickActivityModal);
+    document.getElementById("cancelGlobalQuickActivityBtn")?.addEventListener("click", closeGlobalQuickActivityModal);
+    document.getElementById("globalQuickActivityOverlay")?.addEventListener("click", closeGlobalQuickActivityModal);
+    document.getElementById("modalActivityCustomerSelect")?.addEventListener("change", onModalCustomerChanged);
+    document.getElementById("globalQuickActivityForm")?.addEventListener("submit", handleGlobalQuickActivitySubmit);
+
+    // Activity Type pills in modal
+    document.querySelectorAll(".act-type-btn").forEach(btn => {
+        btn.addEventListener("click", function() {
+            document.querySelectorAll(".act-type-btn").forEach(b => {
+                b.classList.remove("active");
+                b.style.borderColor = "#cbd5e1";
+                b.style.background = "#fff";
+                b.style.color = "#475569";
+            });
+            this.classList.add("active");
+            this.style.borderColor = "#2563eb";
+            this.style.background = "#eff6ff";
+            this.style.color = "#1d4ed8";
+            const val = this.dataset.type;
+            const hidden = document.getElementById("modalActivityTypeVal");
+            if (hidden) hidden.value = val;
+        });
+    });
 }
 
 window.handleRemoveMember = handleRemoveMember;
 window.openReassignModal = openReassignModal;
 window.closeReassignModal = closeReassignModal;
 window.updateBulkActionBar = updateBulkActionBar;
+window.handleDownloadAttachment = handleDownloadAttachment;
+window.handleDeleteAttachment = handleDeleteAttachment;
+window.handleOppFileUpload = handleOppFileUpload;
+window.openGlobalQuickActivityModal = openGlobalQuickActivityModal;
+window.closeGlobalQuickActivityModal = closeGlobalQuickActivityModal;
 
 // Start
 initPipeline();
+
 

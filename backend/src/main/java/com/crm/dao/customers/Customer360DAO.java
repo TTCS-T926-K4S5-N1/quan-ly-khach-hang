@@ -338,21 +338,114 @@ public class Customer360DAO {
         return list;
     }
 
-    public long addAttachment(long customerId, String name, String fileType, long fileSize, String fileUrl, String notes, long userId) throws SQLException {
+    public List<Map<String, Object>> getOpportunityAttachments(long oppId) throws SQLException {
         String sql = """
-                INSERT INTO attachments (customer_id, name, file_type, file_size, file_url, notes, uploaded_by_user_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                SELECT
+                    att.id,
+                    att.customer_id,
+                    att.opportunity_id,
+                    att.name,
+                    att.file_type,
+                    att.file_size,
+                    att.file_url,
+                    att.notes,
+                    att.created_at,
+                    att.uploaded_by_user_id,
+                    COALESCE(u.full_name, 'Hệ thống') AS uploaded_by
+                FROM attachments att
+                LEFT JOIN users u ON u.id = att.uploaded_by_user_id
+                WHERE att.opportunity_id = ? AND att.is_deleted = 0
+                ORDER BY att.id DESC
+                """;
+
+        List<Map<String, Object>> list = new ArrayList<>();
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, oppId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> map = new LinkedHashMap<>();
+                    map.put("id", rs.getLong("id"));
+                    map.put("customerId", rs.getObject("customer_id"));
+                    map.put("opportunityId", rs.getObject("opportunity_id"));
+                    map.put("name", rs.getString("name"));
+                    map.put("fileType", rs.getString("file_type"));
+                    map.put("fileSize", rs.getLong("file_size"));
+                    map.put("fileUrl", rs.getString("file_url"));
+                    map.put("notes", rs.getString("notes"));
+                    map.put("createdAt", rs.getTimestamp("created_at"));
+                    map.put("uploadedByUserId", rs.getObject("uploaded_by_user_id"));
+                    map.put("uploadedBy", rs.getString("uploaded_by"));
+                    list.add(map);
+                }
+            }
+        }
+        return list;
+    }
+
+    public Map<String, Object> getAttachmentById(long id) throws SQLException {
+        String sql = """
+                SELECT
+                    att.id,
+                    att.customer_id,
+                    att.opportunity_id,
+                    att.name,
+                    att.file_type,
+                    att.file_size,
+                    att.file_url,
+                    att.notes,
+                    att.created_at,
+                    att.uploaded_by_user_id,
+                    COALESCE(u.full_name, 'Hệ thống') AS uploaded_by
+                FROM attachments att
+                LEFT JOIN users u ON u.id = att.uploaded_by_user_id
+                WHERE att.id = ? AND att.is_deleted = 0
+                """;
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, id);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    Map<String, Object> map = new LinkedHashMap<>();
+                    map.put("id", rs.getLong("id"));
+                    map.put("customerId", rs.getObject("customer_id"));
+                    map.put("opportunityId", rs.getObject("opportunity_id"));
+                    map.put("name", rs.getString("name"));
+                    map.put("fileType", rs.getString("file_type"));
+                    map.put("fileSize", rs.getLong("file_size"));
+                    map.put("fileUrl", rs.getString("file_url"));
+                    map.put("notes", rs.getString("notes"));
+                    map.put("createdAt", rs.getTimestamp("created_at"));
+                    map.put("uploadedByUserId", rs.getObject("uploaded_by_user_id"));
+                    map.put("uploadedBy", rs.getString("uploaded_by"));
+                    return map;
+                }
+            }
+        }
+        return null;
+    }
+
+    public long addAttachment(long customerId, String name, String fileType, long fileSize, String fileUrl, String notes, long userId) throws SQLException {
+        return addOpportunityAttachment(customerId, null, name, fileType, fileSize, fileUrl, notes, userId);
+    }
+
+    public long addOpportunityAttachment(Long customerId, Long oppId, String name, String fileType, long fileSize, String fileUrl, String notes, long userId) throws SQLException {
+        String sql = """
+                INSERT INTO attachments (customer_id, opportunity_id, name, file_type, file_size, file_url, notes, uploaded_by_user_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            stmt.setLong(1, customerId);
-            stmt.setString(2, name);
-            stmt.setString(3, fileType != null ? fileType.toUpperCase() : "FILE");
-            stmt.setLong(4, fileSize > 0 ? fileSize : 102400);
-            stmt.setString(5, fileUrl != null ? fileUrl : "#");
-            stmt.setString(6, notes);
-            stmt.setLong(7, userId);
+            stmt.setObject(1, customerId, Types.BIGINT);
+            stmt.setObject(2, oppId, Types.BIGINT);
+            stmt.setString(3, name);
+            stmt.setString(4, fileType != null ? fileType.toUpperCase() : "FILE");
+            stmt.setLong(5, fileSize > 0 ? fileSize : 102400);
+            stmt.setString(6, fileUrl != null ? fileUrl : "#");
+            stmt.setString(7, notes);
+            stmt.setLong(8, userId);
 
             stmt.executeUpdate();
             try (ResultSet rs = stmt.getGeneratedKeys()) {
@@ -373,3 +466,4 @@ public class Customer360DAO {
         }
     }
 }
+

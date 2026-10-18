@@ -717,6 +717,10 @@ public class OpportunityService {
     }
 
     public Map<String, Object> logActivity(long currentUserId, long oppId, String subject, String type, String description, java.sql.Timestamp dueDate) throws Exception {
+        return logActivity(currentUserId, oppId, subject, type, description, null, 0, null, dueDate);
+    }
+
+    public Map<String, Object> logActivity(long currentUserId, long oppId, String subject, String type, String description, String outcome, int durationMinutes, Long contactId, java.sql.Timestamp dueDate) throws Exception {
         Map<String, Object> opp = opportunityDAO.findById(oppId);
         if (opp == null) throw new NoSuchElementException("Không tìm thấy cơ hội ID: " + oppId);
 
@@ -733,8 +737,11 @@ public class OpportunityService {
         }
 
         Long customerId = opp.get("customerId") != null ? ((Number) opp.get("customerId")).longValue() : null;
+        if (contactId == null && opp.get("contactId") != null) {
+            contactId = ((Number) opp.get("contactId")).longValue();
+        }
         com.crm.service.activities.ActivityService actService = new com.crm.service.activities.ActivityService();
-        return actService.create(currentUserId, subject, type != null ? type : "NOTE", description, "COMPLETED",
-                dueDate != null ? dueDate : new java.sql.Timestamp(System.currentTimeMillis()), customerId, oppId);
+        return actService.create(currentUserId, subject, type != null ? type : "NOTE", description, outcome, "COMPLETED",
+                dueDate != null ? dueDate : new java.sql.Timestamp(System.currentTimeMillis()), durationMinutes, customerId, contactId, oppId);
     }
 }

@@ -15,24 +15,41 @@ public class ActivityDAO {
             String type,
             String status
     ) throws SQLException {
+        return search(scope, customerId, null, opportunityId, type, status);
+    }
+
+    public List<Map<String, Object>> search(
+            DataScopeContext scope,
+            Long customerId,
+            Long contactId,
+            Long opportunityId,
+            String type,
+            String status
+    ) throws SQLException {
         StringBuilder sql = new StringBuilder("""
                 SELECT
                     a.id,
                     a.subject,
                     a.type,
                     a.description,
+                    a.outcome,
                     a.status,
                     a.due_date,
+                    a.duration_minutes,
                     a.customer_id,
+                    a.contact_id,
                     a.opportunity_id,
                     a.owner_user_id,
                     a.created_at,
                     u.full_name AS owner_name,
                     c.name AS customer_name,
+                    ct.name AS contact_name,
+                    ct.phone AS contact_phone,
                     o.name AS opportunity_name
                 FROM activities a
                 LEFT JOIN users u ON u.id = a.owner_user_id
                 LEFT JOIN customers c ON c.id = a.customer_id
+                LEFT JOIN contacts ct ON ct.id = a.contact_id
                 LEFT JOIN opportunities o ON o.id = a.opportunity_id
                 WHERE a.is_deleted = 0
                 """);
@@ -45,6 +62,11 @@ public class ActivityDAO {
         if (customerId != null) {
             sql.append(" AND a.customer_id = ?");
             params.add(customerId);
+        }
+
+        if (contactId != null) {
+            sql.append(" AND a.contact_id = ?");
+            params.add(contactId);
         }
 
         if (opportunityId != null) {
@@ -86,18 +108,24 @@ public class ActivityDAO {
                     a.subject,
                     a.type,
                     a.description,
+                    a.outcome,
                     a.status,
                     a.due_date,
+                    a.duration_minutes,
                     a.customer_id,
+                    a.contact_id,
                     a.opportunity_id,
                     a.owner_user_id,
                     a.created_at,
                     u.full_name AS owner_name,
                     c.name AS customer_name,
+                    ct.name AS contact_name,
+                    ct.phone AS contact_phone,
                     o.name AS opportunity_name
                 FROM activities a
                 LEFT JOIN users u ON u.id = a.owner_user_id
                 LEFT JOIN customers c ON c.id = a.customer_id
+                LEFT JOIN contacts ct ON ct.id = a.contact_id
                 LEFT JOIN opportunities o ON o.id = a.opportunity_id
                 WHERE a.id = ? AND a.is_deleted = 0
                 """;
@@ -124,22 +152,41 @@ public class ActivityDAO {
             Long opportunityId,
             long ownerId
     ) throws SQLException {
+        return create(subject, type, description, null, status, dueDate, 0, customerId, null, opportunityId, ownerId);
+    }
+
+    public long create(
+            String subject,
+            String type,
+            String description,
+            String outcome,
+            String status,
+            Timestamp dueDate,
+            int durationMinutes,
+            Long customerId,
+            Long contactId,
+            Long opportunityId,
+            long ownerId
+    ) throws SQLException {
         String sql = """
                 INSERT INTO activities (
-                    subject, type, description, status, due_date, customer_id, opportunity_id, owner_user_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    subject, type, description, outcome, status, due_date, duration_minutes, customer_id, contact_id, opportunity_id, owner_user_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setString(1, subject);
-            stmt.setString(2, type != null ? type : "CALL");
+            stmt.setString(2, type != null ? type.toUpperCase() : "CALL");
             stmt.setString(3, description);
-            stmt.setString(4, status != null ? status : "COMPLETED");
-            stmt.setTimestamp(5, dueDate);
-            stmt.setObject(6, customerId, Types.BIGINT);
-            stmt.setObject(7, opportunityId, Types.BIGINT);
-            stmt.setLong(8, ownerId);
+            stmt.setString(4, outcome);
+            stmt.setString(5, status != null ? status : "COMPLETED");
+            stmt.setTimestamp(6, dueDate != null ? dueDate : new Timestamp(System.currentTimeMillis()));
+            stmt.setInt(7, durationMinutes > 0 ? durationMinutes : 15);
+            stmt.setObject(8, customerId, Types.BIGINT);
+            stmt.setObject(9, contactId, Types.BIGINT);
+            stmt.setObject(10, opportunityId, Types.BIGINT);
+            stmt.setLong(11, ownerId);
 
             stmt.executeUpdate();
             try (ResultSet rs = stmt.getGeneratedKeys()) {
@@ -159,19 +206,36 @@ public class ActivityDAO {
             String status,
             Timestamp dueDate
     ) throws SQLException {
+        update(id, subject, type, description, null, status, dueDate, 0, null);
+    }
+
+    public void update(
+            long id,
+            String subject,
+            String type,
+            String description,
+            String outcome,
+            String status,
+            Timestamp dueDate,
+            int durationMinutes,
+            Long contactId
+    ) throws SQLException {
         String sql = """
                 UPDATE activities SET
-                    subject = ?, type = ?, description = ?, status = ?, due_date = ?
+                    subject = ?, type = ?, description = ?, outcome = ?, status = ?, due_date = ?, duration_minutes = ?, contact_id = ?
                 WHERE id = ? AND is_deleted = 0
                 """;
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, subject);
-            stmt.setString(2, type);
+            stmt.setString(2, type != null ? type.toUpperCase() : "CALL");
             stmt.setString(3, description);
-            stmt.setString(4, status);
-            stmt.setTimestamp(5, dueDate);
-            stmt.setLong(6, id);
+            stmt.setString(4, outcome);
+            stmt.setString(5, status != null ? status : "COMPLETED");
+            stmt.setTimestamp(6, dueDate);
+            stmt.setInt(7, durationMinutes);
+            stmt.setObject(8, contactId, Types.BIGINT);
+            stmt.setLong(9, id);
             stmt.executeUpdate();
         }
     }
@@ -191,10 +255,15 @@ public class ActivityDAO {
         map.put("subject", rs.getString("subject"));
         map.put("type", rs.getString("type"));
         map.put("description", rs.getString("description"));
+        map.put("outcome", rs.getString("outcome"));
         map.put("status", rs.getString("status"));
         map.put("dueDate", rs.getTimestamp("due_date"));
+        map.put("durationMinutes", rs.getInt("duration_minutes"));
         map.put("customerId", rs.getObject("customer_id"));
         map.put("customerName", rs.getString("customer_name"));
+        map.put("contactId", rs.getObject("contact_id"));
+        map.put("contactName", rs.getString("contact_name"));
+        map.put("contactPhone", rs.getString("contact_phone"));
         map.put("opportunityId", rs.getObject("opportunity_id"));
         map.put("opportunityName", rs.getString("opportunity_name"));
         map.put("ownerUserId", rs.getLong("owner_user_id"));

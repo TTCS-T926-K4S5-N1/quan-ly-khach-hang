@@ -448,13 +448,35 @@
         </label>
 
 
-        <label>
-            Nội dung
+        <div class="activity-two-cols">
+            <label>
+                Thời lượng (phút)
+                <input
+                    id="activityDuration"
+                    class="crm-input"
+                    type="number"
+                    min="0"
+                    value="30"
+                >
+            </label>
 
+            <label>
+                Kết quả / Thống nhất tiếp theo
+                <input
+                    id="activityOutcome"
+                    class="crm-input"
+                    type="text"
+                    placeholder="VD: Khách quan tâm, Cần báo giá..."
+                >
+            </label>
+        </div>
+
+        <label>
+            Nội dung trao đổi
             <textarea
                 id="activityDescription"
-                rows="5"
-                placeholder="Ghi chú chi tiết..."
+                rows="4"
+                placeholder="Ghi chú chi tiết nội dung cuộc gọi/họp/email..."
             ></textarea>
         </label>
 

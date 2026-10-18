@@ -139,7 +139,8 @@ public class OpportunityDAO {
                     ct.phone AS contact_phone,
                     ct.email AS contact_email,
                     DATEDIFF(NOW(), o.stage_updated_at) AS days_in_stage,
-                    DATEDIFF(NOW(), o.expected_close_date) AS days_overdue
+                    DATEDIFF(NOW(), o.expected_close_date) AS days_overdue,
+                    (SELECT COALESCE(SUM(oi.quantity * COALESCE(p.cost_price, 0)), 0) FROM opportunity_items oi LEFT JOIN products p ON p.id = oi.product_id WHERE oi.opportunity_id = o.id) AS total_cost
                 FROM opportunities o
                 LEFT JOIN customers c ON c.id = o.customer_id
                 LEFT JOIN contacts ct ON ct.id = o.contact_id
@@ -323,7 +324,8 @@ public class OpportunityDAO {
                     ct.phone AS contact_phone,
                     ct.email AS contact_email,
                     DATEDIFF(NOW(), o.stage_updated_at) AS days_in_stage,
-                    DATEDIFF(NOW(), o.expected_close_date) AS days_overdue
+                    DATEDIFF(NOW(), o.expected_close_date) AS days_overdue,
+                    (SELECT COALESCE(SUM(oi.quantity * COALESCE(p.cost_price, 0)), 0) FROM opportunity_items oi LEFT JOIN products p ON p.id = oi.product_id WHERE oi.opportunity_id = o.id) AS total_cost
                 FROM opportunities o
                 LEFT JOIN customers c ON c.id = o.customer_id
                 LEFT JOIN contacts ct ON ct.id = o.contact_id
@@ -520,7 +522,20 @@ public class OpportunityDAO {
         map.put("contactPersonName", rs.getString("contact_person_name"));
         map.put("contactPhone", rs.getString("contact_phone"));
         map.put("contactEmail", rs.getString("contact_email"));
-        map.put("amount", rs.getBigDecimal("amount"));
+        java.math.BigDecimal amount = rs.getBigDecimal("amount");
+        map.put("amount", amount);
+        java.math.BigDecimal totalCost = java.math.BigDecimal.ZERO;
+        try {
+            java.math.BigDecimal tc = rs.getBigDecimal("total_cost");
+            if (tc != null) totalCost = tc;
+        } catch (Exception ignored) {}
+        map.put("totalCost", totalCost);
+        java.math.BigDecimal profitMargin = java.math.BigDecimal.ZERO;
+        if (amount != null && amount.compareTo(java.math.BigDecimal.ZERO) > 0 && totalCost != null) {
+            java.math.BigDecimal profit = amount.subtract(totalCost);
+            profitMargin = profit.multiply(java.math.BigDecimal.valueOf(100)).divide(amount, 2, java.math.RoundingMode.HALF_UP);
+        }
+        map.put("profitMargin", profitMargin);
         map.put("stageId", rs.getObject("stage_id"));
         map.put("stageName", rs.getString("stage_name"));
         map.put("stageOrder", rs.getObject("stage_order"));

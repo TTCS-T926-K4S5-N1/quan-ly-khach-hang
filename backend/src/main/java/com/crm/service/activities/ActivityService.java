@@ -19,8 +19,19 @@ public class ActivityService {
             String type,
             String status
     ) throws Exception {
+        return search(currentUserId, customerId, null, opportunityId, type, status);
+    }
+
+    public List<Map<String, Object>> search(
+            long currentUserId,
+            Long customerId,
+            Long contactId,
+            Long opportunityId,
+            String type,
+            String status
+    ) throws Exception {
         DataScopeContext scope = dataScopeService.resolve(currentUserId, "activity", "read");
-        return activityDAO.search(scope, customerId, opportunityId, type, status);
+        return activityDAO.search(scope, customerId, contactId, opportunityId, type, status);
     }
 
     public Map<String, Object> getById(long currentUserId, long id) throws Exception {
@@ -45,11 +56,27 @@ public class ActivityService {
             Long customerId,
             Long opportunityId
     ) throws Exception {
+        return create(currentUserId, subject, type, description, null, status, dueDate, 0, customerId, null, opportunityId);
+    }
+
+    public Map<String, Object> create(
+            long currentUserId,
+            String subject,
+            String type,
+            String description,
+            String outcome,
+            String status,
+            Timestamp dueDate,
+            int durationMinutes,
+            Long customerId,
+            Long contactId,
+            Long opportunityId
+    ) throws Exception {
         if (subject == null || subject.isBlank()) {
             throw new IllegalArgumentException("Tiêu đề hoạt động là bắt buộc.");
         }
         dataScopeService.resolve(currentUserId, "activity", "create");
-        long id = activityDAO.create(subject, type, description, status, dueDate, customerId, opportunityId, currentUserId);
+        long id = activityDAO.create(subject, type, description, outcome, status, dueDate, durationMinutes, customerId, contactId, opportunityId, currentUserId);
         return getById(currentUserId, id);
     }
 
@@ -61,6 +88,21 @@ public class ActivityService {
             String description,
             String status,
             Timestamp dueDate
+    ) throws Exception {
+        return update(currentUserId, id, subject, type, description, null, status, dueDate, 0, null);
+    }
+
+    public Map<String, Object> update(
+            long currentUserId,
+            long id,
+            String subject,
+            String type,
+            String description,
+            String outcome,
+            String status,
+            Timestamp dueDate,
+            int durationMinutes,
+            Long contactId
     ) throws Exception {
         if (subject == null || subject.isBlank()) {
             throw new IllegalArgumentException("Tiêu đề hoạt động là bắt buộc.");
@@ -74,7 +116,7 @@ public class ActivityService {
             throw new SecurityException("Bạn không có quyền truy cập dữ liệu này do giới hạn phạm vi sở hữu.");
         }
 
-        activityDAO.update(id, subject, type, description, status, dueDate);
+        activityDAO.update(id, subject, type, description, outcome, status, dueDate, durationMinutes, contactId);
         return getById(currentUserId, id);
     }
 

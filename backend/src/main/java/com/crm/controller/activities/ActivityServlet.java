@@ -32,11 +32,12 @@ public class ActivityServlet extends HttpServlet {
 
             if (path == null || path.equals("/")) {
                 Long customerId = longParam(req, "customerId");
+                Long contactId = longParam(req, "contactId");
                 Long opportunityId = longParam(req, "opportunityId");
                 String type = req.getParameter("type");
                 String status = req.getParameter("status");
 
-                var items = activityService.search(currentUserId, customerId, opportunityId, type, status);
+                var items = activityService.search(currentUserId, customerId, contactId, opportunityId, type, status);
                 ResponseUtil.json(resp, 200, ApiResponse.success("Lấy danh sách hoạt động thành công", items));
                 return;
             }
@@ -54,12 +55,13 @@ public class ActivityServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
-            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));
+            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ: " + e.getMessage(), null));
         }
     }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        req.setCharacterEncoding("UTF-8");
         try {
             long currentUserId = requireUser(req);
             Map<String, Object> body = JsonUtil.getGson().fromJson(req.getReader(), com.crm.util.JsonUtil.OBJECT_MAP_TYPE);
@@ -68,41 +70,88 @@ public class ActivityServlet extends HttpServlet {
             }
 
             String subject = (String) body.get("subject");
-            String type = (String) body.get("type");
+            if (subject == null || subject.isBlank()) {
+                subject = (String) body.get("title");
+            }
+            if (subject == null || subject.isBlank()) {
+                throw new IllegalArgumentException("Tiêu đề hoạt động là bắt buộc.");
+            }
+
+            String type = body.get("type") != null ? ((String) body.get("type")).toUpperCase() : "CALL";
             String description = (String) body.get("description");
-            String status = (String) body.get("status");
+            String outcome = (String) body.get("outcome");
+            String status = body.get("status") != null ? (String) body.get("status") : "COMPLETED";
+
+            // Support past or future dueDate / activityTime
             String dueDateStr = (String) body.get("dueDate");
+            if (dueDateStr == null || dueDateStr.isBlank()) {
+                dueDateStr = (String) body.get("activityTime");
+            }
+            if (dueDateStr == null || dueDateStr.isBlank()) {
+                dueDateStr = (String) body.get("date");
+            }
             Timestamp dueDate = parseTimestamp(dueDateStr);
+            if (dueDate == null) {
+                dueDate = new Timestamp(System.currentTimeMillis());
+            }
+
+            int durationMinutes = 0;
+            if (body.get("durationMinutes") instanceof Number) {
+                durationMinutes = ((Number) body.get("durationMinutes")).intValue();
+            } else if (body.get("duration") instanceof Number) {
+                durationMinutes = ((Number) body.get("duration")).intValue();
+            } else if (body.get("durationMinutes") != null) {
+                try { durationMinutes = Integer.parseInt(String.valueOf(body.get("durationMinutes"))); } catch (Exception ignored) {}
+            }
 
             Long customerId = body.get("customerId") != null ? ((Number) body.get("customerId")).longValue() : null;
+            Long contactId = body.get("contactId") != null ? ((Number) body.get("contactId")).longValue() : null;
             Long opportunityId = body.get("opportunityId") != null ? ((Number) body.get("opportunityId")).longValue() : null;
 
-            var created = activityService.create(currentUserId, subject, type, description, status, dueDate, customerId, opportunityId);
+            var created = activityService.create(currentUserId, subject, type, description, outcome, status, dueDate, durationMinutes, customerId, contactId, opportunityId);
             ResponseUtil.json(resp, 201, ApiResponse.success("Tạo hoạt động thành công", created));
         } catch (SecurityException e) {
             ResponseUtil.json(resp, 403, ApiResponse.error(e.getMessage(), null));
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
-            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));
+            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ: " + e.getMessage(), null));
         }
     }
 
     @Override
     protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        req.setCharacterEncoding("UTF-8");
         try {
             long currentUserId = requireUser(req);
             long id = parseId(req.getPathInfo());
             Map<String, Object> body = JsonUtil.getGson().fromJson(req.getReader(), com.crm.util.JsonUtil.OBJECT_MAP_TYPE);
 
             String subject = (String) body.get("subject");
-            String type = (String) body.get("type");
+            if (subject == null || subject.isBlank()) {
+                subject = (String) body.get("title");
+            }
+            String type = body.get("type") != null ? ((String) body.get("type")).toUpperCase() : "CALL";
             String description = (String) body.get("description");
+            String outcome = (String) body.get("outcome");
             String status = (String) body.get("status");
+
             String dueDateStr = (String) body.get("dueDate");
+            if (dueDateStr == null || dueDateStr.isBlank()) {
+                dueDateStr = (String) body.get("activityTime");
+            }
             Timestamp dueDate = parseTimestamp(dueDateStr);
 
-            var updated = activityService.update(currentUserId, id, subject, type, description, status, dueDate);
+            int durationMinutes = 0;
+            if (body.get("durationMinutes") instanceof Number) {
+                durationMinutes = ((Number) body.get("durationMinutes")).intValue();
+            } else if (body.get("durationMinutes") != null) {
+                try { durationMinutes = Integer.parseInt(String.valueOf(body.get("durationMinutes"))); } catch (Exception ignored) {}
+            }
+
+            Long contactId = body.get("contactId") != null ? ((Number) body.get("contactId")).longValue() : null;
+
+            var updated = activityService.update(currentUserId, id, subject, type, description, outcome, status, dueDate, durationMinutes, contactId);
             if (updated == null) {
                 ResponseUtil.json(resp, 404, ApiResponse.error("Không tìm thấy hoạt động", null));
                 return;
@@ -114,7 +163,7 @@ public class ActivityServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
-            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));
+            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ: " + e.getMessage(), null));
         }
     }
 
@@ -133,7 +182,7 @@ public class ActivityServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
-            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));
+            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ: " + e.getMessage(), null));
         }
     }
 

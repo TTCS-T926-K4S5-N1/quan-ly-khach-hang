@@ -128,7 +128,11 @@ function normalizeActivityFromBackend(item) {
         reminder: !!item.reminder,
         status: st,
         customerId: item.customerId,
+        contactId: item.contactId,
+        contactName: fixMojibake(item.contactName || ""),
         opportunityId: item.opportunityId,
+        durationMinutes: item.durationMinutes || 0,
+        outcome: fixMojibake(item.outcome || ""),
         createdAt: item.createdAt || new Date().toISOString()
     };
 }
@@ -235,6 +239,9 @@ async function saveActivity() {
     const description = value("activityDescription");
     const reminder = document.getElementById("activityReminder")?.checked;
 
+    const duration = value("activityDuration") || 30;
+    const outcome = value("activityOutcome");
+
     const dueDateStr = date ? `${date} ${time || "09:00"}:00` : null;
 
     try {
@@ -245,6 +252,8 @@ async function saveActivity() {
                     subject: title,
                     type: type.toUpperCase(),
                     description: description,
+                    outcome: outcome,
+                    durationMinutes: Number(duration) || 0,
                     status: "OPEN",
                     dueDate: dueDateStr
                 })
@@ -257,7 +266,9 @@ async function saveActivity() {
                     subject: title,
                     type: type.toUpperCase(),
                     description: description,
-                    status: "OPEN",
+                    outcome: outcome,
+                    durationMinutes: Number(duration) || 0,
+                    status: "COMPLETED",
                     dueDate: dueDateStr
                 })
             });
@@ -305,6 +316,11 @@ function render() {
             <div class="activity-main">
                 <strong>${escapeHtml(item.title)}</strong>
                 <p>${escapeHtml(item.description || "Không có ghi chú")}</p>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; font-size: 11px;">
+                    ${item.durationMinutes ? `<span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-weight: 600;">⏱️ ${item.durationMinutes}p</span>` : ''}
+                    ${item.outcome ? `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-weight: 600;">🎯 ${escapeHtml(item.outcome)}</span>` : ''}
+                    ${item.contactName ? `<span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px;">👤 ${escapeHtml(item.contactName)}</span>` : ''}
+                </div>
             </div>
 
             <div class="activity-relation">
@@ -364,6 +380,8 @@ function openDrawer(item = null) {
         setValue("activityDate", item.date);
         setValue("activityTime", item.time);
         setValue("activityOwner", item.owner);
+        setValue("activityDuration", item.durationMinutes || 30);
+        setValue("activityOutcome", item.outcome || "");
         setValue("activityDescription", item.description);
         const rem = document.getElementById("activityReminder");
         if (rem) rem.checked = !!item.reminder;
@@ -374,6 +392,8 @@ function openDrawer(item = null) {
         setValue("activityType", "task");
         setValue("activityDate", todayString());
         setValue("activityTime", "09:00");
+        setValue("activityDuration", "30");
+        setValue("activityOutcome", "");
     }
 
     drawer?.classList.add("open");
