@@ -13,6 +13,9 @@ import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
 import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
@@ -30,14 +33,29 @@ public class ActivityServlet extends HttpServlet {
             long currentUserId = requireUser(req);
             String path = req.getPathInfo();
 
+            if ("/assignable-users".equals(path)) {
+                var users = activityService.getAssignableUsers(currentUserId);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Lấy danh sách nhân sự giao việc thành công", users));
+                return;
+            }
+
             if (path == null || path.equals("/")) {
                 Long customerId = longParam(req, "customerId");
                 Long contactId = longParam(req, "contactId");
                 Long opportunityId = longParam(req, "opportunityId");
                 String type = req.getParameter("type");
                 String status = req.getParameter("status");
+                String priority = req.getParameter("priority");
+                Long ownerUserId = longParam(req, "ownerUserId");
+                Boolean includeTeam = "true".equalsIgnoreCase(req.getParameter("includeTeam"));
 
-                var items = activityService.search(currentUserId, customerId, contactId, opportunityId, type, status);
+                Timestamp fromDate = parseTimestamp(req.getParameter("fromDate"));
+                Timestamp toDate = parseTimestamp(req.getParameter("toDate"));
+
+                var items = activityService.search(
+                        currentUserId, customerId, contactId, opportunityId,
+                        type, status, priority, ownerUserId, fromDate, toDate, includeTeam
+                );
                 ResponseUtil.json(resp, 200, ApiResponse.success("Lấy danh sách hoạt động thành công", items));
                 return;
             }
@@ -64,6 +82,37 @@ public class ActivityServlet extends HttpServlet {
         req.setCharacterEncoding("UTF-8");
         try {
             long currentUserId = requireUser(req);
+            String path = req.getPathInfo();
+
+            // Action: /api/activities/{id}/complete
+            if (path != null && path.endsWith("/complete")) {
+                long id = parseId(path.replace("/complete", ""));
+                var completed = activityService.complete(currentUserId, id);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Đã hoàn thành công việc", completed));
+                return;
+            }
+
+            // Action: /api/activities/{id}/postpone
+            if (path != null && path.endsWith("/postpone")) {
+                long id = parseId(path.replace("/postpone", ""));
+                Map<String, Object> body = JsonUtil.getGson().fromJson(req.getReader(), com.crm.util.JsonUtil.OBJECT_MAP_TYPE);
+                String reason = body != null && body.get("postponeReason") != null ? String.valueOf(body.get("postponeReason")).trim() : "";
+                if (reason.isBlank() && body != null && body.get("reason") != null) {
+                    reason = String.valueOf(body.get("reason")).trim();
+                }
+                if (reason.isBlank()) {
+                    throw new IllegalArgumentException("Vui lòng nhập lý do hoãn công việc.");
+                }
+
+                String newDueDateStr = body != null ? (String) body.get("newDueDate") : null;
+                if (newDueDateStr == null && body != null) newDueDateStr = (String) body.get("dueDate");
+                Timestamp newDue = parseTimestamp(newDueDateStr);
+
+                var postponed = activityService.postpone(currentUserId, id, reason, newDue);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Đã cập nhật trạng thái hoãn công việc", postponed));
+                return;
+            }
+
             Map<String, Object> body = JsonUtil.getGson().fromJson(req.getReader(), com.crm.util.JsonUtil.OBJECT_MAP_TYPE);
             if (body == null) {
                 throw new IllegalArgumentException("Thiếu dữ liệu body");
@@ -74,13 +123,14 @@ public class ActivityServlet extends HttpServlet {
                 subject = (String) body.get("title");
             }
             if (subject == null || subject.isBlank()) {
-                throw new IllegalArgumentException("Tiêu đề hoạt động là bắt buộc.");
+                throw new IllegalArgumentException("Tiêu đề hoạt động/công việc là bắt buộc.");
             }
 
-            String type = body.get("type") != null ? ((String) body.get("type")).toUpperCase() : "CALL";
+            String type = body.get("type") != null ? ((String) body.get("type")).toUpperCase() : "TASK";
             String description = (String) body.get("description");
             String outcome = (String) body.get("outcome");
-            String status = body.get("status") != null ? (String) body.get("status") : "COMPLETED";
+            String status = body.get("status") != null ? (String) body.get("status") : ("TASK".equalsIgnoreCase(type) ? "OPEN" : "COMPLETED");
+            String priority = body.get("priority") != null ? (String) body.get("priority") : "MEDIUM";
 
             // Support past or future dueDate / activityTime
             String dueDateStr = (String) body.get("dueDate");
@@ -107,9 +157,16 @@ public class ActivityServlet extends HttpServlet {
             Long customerId = body.get("customerId") != null ? ((Number) body.get("customerId")).longValue() : null;
             Long contactId = body.get("contactId") != null ? ((Number) body.get("contactId")).longValue() : null;
             Long opportunityId = body.get("opportunityId") != null ? ((Number) body.get("opportunityId")).longValue() : null;
+            Long assigneeUserId = body.get("assigneeUserId") != null ? ((Number) body.get("assigneeUserId")).longValue() : null;
+            if (assigneeUserId == null && body.get("ownerUserId") != null) {
+                assigneeUserId = ((Number) body.get("ownerUserId")).longValue();
+            }
 
-            var created = activityService.create(currentUserId, subject, type, description, outcome, status, dueDate, durationMinutes, customerId, contactId, opportunityId);
-            ResponseUtil.json(resp, 201, ApiResponse.success("Tạo hoạt động thành công", created));
+            var created = activityService.create(
+                    currentUserId, subject, type, description, outcome, status, priority,
+                    dueDate, durationMinutes, customerId, contactId, opportunityId, assigneeUserId
+            );
+            ResponseUtil.json(resp, 201, ApiResponse.success("Tạo hoạt động/công việc thành công", created));
         } catch (SecurityException e) {
             ResponseUtil.json(resp, 403, ApiResponse.error(e.getMessage(), null));
         } catch (IllegalArgumentException e) {
@@ -131,14 +188,19 @@ public class ActivityServlet extends HttpServlet {
             if (subject == null || subject.isBlank()) {
                 subject = (String) body.get("title");
             }
-            String type = body.get("type") != null ? ((String) body.get("type")).toUpperCase() : "CALL";
+            String type = body.get("type") != null ? ((String) body.get("type")).toUpperCase() : "TASK";
             String description = (String) body.get("description");
             String outcome = (String) body.get("outcome");
             String status = (String) body.get("status");
+            String priority = (String) body.get("priority");
+            String postponeReason = (String) body.get("postponeReason");
 
             String dueDateStr = (String) body.get("dueDate");
             if (dueDateStr == null || dueDateStr.isBlank()) {
                 dueDateStr = (String) body.get("activityTime");
+            }
+            if (dueDateStr == null || dueDateStr.isBlank()) {
+                dueDateStr = (String) body.get("date");
             }
             Timestamp dueDate = parseTimestamp(dueDateStr);
 
@@ -150,8 +212,15 @@ public class ActivityServlet extends HttpServlet {
             }
 
             Long contactId = body.get("contactId") != null ? ((Number) body.get("contactId")).longValue() : null;
+            Long assigneeUserId = body.get("assigneeUserId") != null ? ((Number) body.get("assigneeUserId")).longValue() : null;
+            if (assigneeUserId == null && body.get("ownerUserId") != null) {
+                assigneeUserId = ((Number) body.get("ownerUserId")).longValue();
+            }
 
-            var updated = activityService.update(currentUserId, id, subject, type, description, outcome, status, dueDate, durationMinutes, contactId);
+            var updated = activityService.update(
+                    currentUserId, id, subject, type, description, outcome, status, priority,
+                    dueDate, durationMinutes, contactId, assigneeUserId, postponeReason
+            );
             if (updated == null) {
                 ResponseUtil.json(resp, 404, ApiResponse.error("Không tìm thấy hoạt động", null));
                 return;
@@ -172,7 +241,6 @@ public class ActivityServlet extends HttpServlet {
         try {
             long currentUserId = requireUser(req);
             long id = parseId(req.getPathInfo());
-
             activityService.delete(currentUserId, id);
             ResponseUtil.json(resp, 200, ApiResponse.success("Xóa hoạt động thành công", null));
         } catch (SecurityException e) {
@@ -186,24 +254,6 @@ public class ActivityServlet extends HttpServlet {
         }
     }
 
-    private long requireUser(HttpServletRequest req) {
-        HttpSession session = req.getSession(false);
-        if (session == null || session.getAttribute("userId") == null) {
-            throw new SecurityException("Phiên đăng nhập không hợp lệ hoặc đã hết hạn.");
-        }
-        return (Long) session.getAttribute("userId");
-    }
-
-    private long parseId(String pathInfo) {
-        if (pathInfo == null || pathInfo.equals("/")) {
-            throw new IllegalArgumentException("Thiếu activity id");
-        }
-        String clean = pathInfo.startsWith("/") ? pathInfo.substring(1) : pathInfo;
-        int slash = clean.indexOf('/');
-        String idStr = slash >= 0 ? clean.substring(0, slash) : clean;
-        return Long.parseLong(idStr);
-    }
-
     private Long longParam(HttpServletRequest req, String name) {
         String val = req.getParameter(name);
         if (val == null || val.isBlank()) return null;
@@ -214,18 +264,44 @@ public class ActivityServlet extends HttpServlet {
         }
     }
 
+    private long parseId(String path) {
+        if (path == null || path.equals("/")) throw new IllegalArgumentException("Thiếu ID");
+        String clean = path.startsWith("/") ? path.substring(1) : path;
+        int slash = clean.indexOf('/');
+        if (slash > 0) clean = clean.substring(0, slash);
+        return Long.parseLong(clean);
+    }
+
     private Timestamp parseTimestamp(String str) {
         if (str == null || str.isBlank()) return null;
-        str = str.trim().replace('T', ' ');
-        if (str.length() == 10) {
-            str = str + " 00:00:00";
-        } else if (str.length() == 16) {
-            str = str + ":00";
-        }
+        String val = str.trim();
         try {
-            return Timestamp.valueOf(str);
+            if (val.length() == 10) { // YYYY-MM-DD
+                LocalDate ld = LocalDate.parse(val);
+                return Timestamp.valueOf(ld.atStartOfDay());
+            }
+            if (val.length() == 16) { // YYYY-MM-DDTHH:mm or YYYY-MM-DD HH:mm
+                val = val.replace("T", " ") + ":00";
+            } else if (val.contains("T")) {
+                val = val.replace("T", " ");
+                if (val.endsWith("Z")) val = val.substring(0, val.length() - 1);
+                if (val.contains(".")) val = val.substring(0, val.indexOf('.'));
+            }
+            return Timestamp.valueOf(val);
         } catch (Exception e) {
-            return null;
+            try {
+                return new Timestamp(java.time.Instant.parse(str).toEpochMilli());
+            } catch (Exception ignored) {
+                return null;
+            }
         }
+    }
+
+    private long requireUser(HttpServletRequest req) {
+        HttpSession session = req.getSession(false);
+        if (session == null || session.getAttribute("userId") == null) {
+            throw new SecurityException("Phiên đăng nhập không hợp lệ hoặc đã hết hạn.");
+        }
+        return (Long) session.getAttribute("userId");
     }
 }

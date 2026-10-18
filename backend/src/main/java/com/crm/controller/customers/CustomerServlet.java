@@ -174,6 +174,20 @@ public class CustomerServlet extends HttpServlet {
                 return;
             }
 
+            // 4b. Dòng thời gian tương tác hợp nhất Khách hàng (Unified Timeline)
+            if (path.endsWith("/timeline")) {
+                if (!path.matches("/[1-9][0-9]*/timeline")) throw new IllegalArgumentException("ID không hợp lệ");
+                long id = parseId(path);
+                String typeFilter = req.getParameter("type");
+                String actorIdStr = req.getParameter("actorId");
+                Long actorId = (actorIdStr != null && !actorIdStr.isBlank()) ? Long.parseLong(actorIdStr.trim()) : null;
+
+                com.crm.dao.customers.Customer360DAO dao = new com.crm.dao.customers.Customer360DAO();
+                var data = dao.getUnifiedTimeline(id, typeFilter, actorId, 500);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Lấy dòng thời gian tương tác thành công", data));
+                return;
+            }
+
             // 5. Kiểm tra trùng lặp cho 1 khách hàng cụ thể
             if (path.endsWith("/duplicates")) {
                 long id = parseId(path);

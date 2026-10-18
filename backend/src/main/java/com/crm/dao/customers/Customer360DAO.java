@@ -41,9 +41,13 @@ public class Customer360DAO {
             Map<String, Object> opportunities = getOpportunitiesGrouped(conn, customerId);
             result.put("opportunities", opportunities);
 
-            // 5. Dòng thời gian hoạt động (500 hoạt động tối ưu index)
-            List<Map<String, Object>> activities = getActivities(conn, customerId, 500);
+            // 5. Dòng thời gian tương tác hợp nhất (Hoạt động, Thay đổi cơ hội, Báo giá đã gửi)
+            Map<String, Object> timelineData = getUnifiedTimeline(conn, customerId, null, null, 500);
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> activities = (List<Map<String, Object>>) timelineData.get("timeline");
             result.put("activities", activities);
+            result.put("timeline", activities);
+            result.put("timelineActors", timelineData.get("actors"));
             kpis.put("activitiesCount", activities.size());
 
             // 6. Tệp đính kèm
@@ -258,44 +262,246 @@ public class Customer360DAO {
         return res;
     }
 
+    @SuppressWarnings("unchecked")
     private List<Map<String, Object>> getActivities(Connection conn, long customerId, int limit) throws SQLException {
-        String sql = """
+        Map<String, Object> t = getUnifiedTimeline(conn, customerId, null, null, limit);
+        return (List<Map<String, Object>>) t.get("timeline");
+    }
+
+    public Map<String, Object> getUnifiedTimeline(long customerId, String typeFilter, Long actorId, int limit) throws SQLException {
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            return getUnifiedTimeline(conn, customerId, typeFilter, actorId, limit);
+        }
+    }
+
+    public Map<String, Object> getUnifiedTimeline(Connection conn, long customerId, String typeFilter, Long actorId, int limit) throws SQLException {
+        List<Map<String, Object>> timeline = new ArrayList<>();
+        Map<Long, String> actorsMap = new LinkedHashMap<>();
+
+        // 1. Hoạt động (Activities: CALL, MEETING, EMAIL, NOTE, TASK)
+        String actSql = """
                 SELECT
                     a.id,
-                    a.type,
-                    a.subject,
+                    'ACTIVITY' AS event_category,
+                    LOWER(a.type) AS event_type,
+                    a.subject AS title,
                     a.description,
+                    a.outcome,
                     a.status,
+                    a.priority,
+                    a.postpone_reason,
                     a.due_date,
+                    a.duration_minutes,
                     a.created_at,
-                    u.full_name AS owner_name
+                    u.id AS actor_id,
+                    COALESCE(u.full_name, 'Người dùng') AS actor_name,
+                    ct.name AS contact_name,
+                    o.name AS opportunity_name
                 FROM activities a
                 LEFT JOIN users u ON u.id = a.owner_user_id
+                LEFT JOIN contacts ct ON ct.id = a.contact_id
+                LEFT JOIN opportunities o ON o.id = a.opportunity_id
                 WHERE a.customer_id = ? AND a.is_deleted = 0
                 ORDER BY a.created_at DESC, a.id DESC
                 LIMIT ?
                 """;
 
-        List<Map<String, Object>> list = new ArrayList<>();
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(actSql)) {
             stmt.setLong(1, customerId);
             stmt.setInt(2, limit);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    Map<String, Object> map = new LinkedHashMap<>();
-                    map.put("id", rs.getLong("id"));
-                    map.put("type", rs.getString("type"));
-                    map.put("subject", rs.getString("subject"));
-                    map.put("description", rs.getString("description"));
-                    map.put("status", rs.getString("status"));
-                    map.put("dueDate", rs.getTimestamp("due_date"));
-                    map.put("createdAt", rs.getTimestamp("created_at"));
-                    map.put("ownerName", rs.getString("owner_name"));
-                    list.add(map);
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("id", rs.getLong("id"));
+                    item.put("eventCategory", rs.getString("event_category"));
+                    item.put("eventType", rs.getString("event_type"));
+                    item.put("type", rs.getString("event_type"));
+                    item.put("title", rs.getString("title"));
+                    item.put("subject", rs.getString("title"));
+                    item.put("description", rs.getString("description"));
+                    item.put("outcome", rs.getString("outcome"));
+                    item.put("status", rs.getString("status"));
+                    item.put("priority", rs.getString("priority"));
+                    item.put("postponeReason", rs.getString("postpone_reason"));
+                    item.put("dueDate", rs.getTimestamp("due_date"));
+                    item.put("durationMinutes", rs.getInt("duration_minutes"));
+                    item.put("createdAt", rs.getTimestamp("created_at"));
+                    item.put("timestamp", rs.getTimestamp("created_at"));
+                    long aId = rs.getLong("actor_id");
+                    String aName = rs.getString("actor_name");
+                    item.put("actorId", aId > 0 ? aId : null);
+                    item.put("actorName", aName);
+                    item.put("ownerName", aName);
+                    item.put("contactName", rs.getString("contact_name"));
+                    item.put("opportunityName", rs.getString("opportunity_name"));
+                    timeline.add(item);
+                    if (aId > 0) actorsMap.put(aId, aName);
                 }
             }
         }
-        return list;
+
+        // 2. Thay đổi cơ hội (Opportunity Field History)
+        String oppHistSql = """
+                SELECT
+                    h.id,
+                    'OPPORTUNITY' AS event_category,
+                    'opp_change' AS event_type,
+                    CONCAT('[Cơ hội] ', o.name) AS title,
+                    CONCAT('Thay đổi ', COALESCE(h.field_label, h.field_name), ': ', COALESCE(h.old_value, '(trống)'), ' ➔ ', COALESCE(h.new_value, '(trống)')) AS description,
+                    h.reason AS outcome,
+                    o.status,
+                    'MEDIUM' AS priority,
+                    h.created_at,
+                    u.id AS actor_id,
+                    COALESCE(u.full_name, 'Hệ thống') AS actor_name,
+                    o.name AS opportunity_name,
+                    o.amount
+                FROM opportunity_field_history h
+                JOIN opportunities o ON o.id = h.opportunity_id
+                LEFT JOIN users u ON u.id = h.changed_by_user_id
+                WHERE o.customer_id = ?
+                ORDER BY h.created_at DESC
+                LIMIT ?
+                """;
+
+        try (PreparedStatement stmt = conn.prepareStatement(oppHistSql)) {
+            stmt.setLong(1, customerId);
+            stmt.setInt(2, limit);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("id", 1000000L + rs.getLong("id"));
+                    item.put("eventCategory", rs.getString("event_category"));
+                    item.put("eventType", rs.getString("event_type"));
+                    item.put("type", "opp_change");
+                    item.put("title", rs.getString("title"));
+                    item.put("subject", rs.getString("title"));
+                    item.put("description", rs.getString("description"));
+                    item.put("outcome", rs.getString("outcome"));
+                    item.put("status", rs.getString("status"));
+                    item.put("priority", rs.getString("priority"));
+                    item.put("dueDate", rs.getTimestamp("created_at"));
+                    item.put("createdAt", rs.getTimestamp("created_at"));
+                    item.put("timestamp", rs.getTimestamp("created_at"));
+                    long aId = rs.getLong("actor_id");
+                    String aName = rs.getString("actor_name");
+                    item.put("actorId", aId > 0 ? aId : null);
+                    item.put("actorName", aName);
+                    item.put("ownerName", aName);
+                    item.put("opportunityName", rs.getString("opportunity_name"));
+                    item.put("amount", rs.getBigDecimal("amount"));
+                    timeline.add(item);
+                    if (aId > 0) actorsMap.put(aId, aName);
+                }
+            }
+        }
+
+        // 3. Báo giá đã gửi (Quotes)
+        String quoteSql = """
+                SELECT
+                    q.id,
+                    'QUOTE' AS event_category,
+                    'quote' AS event_type,
+                    CONCAT('[Báo giá] ', q.quote_number, ' - ', q.title) AS title,
+                    CONCAT('Tổng tiền báo giá: ', FORMAT(q.total_amount, 0), ' VNĐ (Chiết khấu: ', COALESCE(q.discount_percent, 0), '%)') AS description,
+                    CONCAT('Trạng thái: ', q.status) AS outcome,
+                    q.status,
+                    'HIGH' AS priority,
+                    q.created_at,
+                    u.id AS actor_id,
+                    COALESCE(u.full_name, 'Hệ thống') AS actor_name,
+                    o.name AS opportunity_name,
+                    q.quote_number,
+                    q.total_amount
+                FROM quotes q
+                LEFT JOIN users u ON u.id = q.owner_user_id
+                LEFT JOIN opportunities o ON o.id = q.opportunity_id
+                WHERE q.customer_id = ? AND q.is_deleted = 0
+                ORDER BY q.created_at DESC
+                LIMIT ?
+                """;
+
+        try (PreparedStatement stmt = conn.prepareStatement(quoteSql)) {
+            stmt.setLong(1, customerId);
+            stmt.setInt(2, limit);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("id", 2000000L + rs.getLong("id"));
+                    item.put("eventCategory", rs.getString("event_category"));
+                    item.put("eventType", rs.getString("event_type"));
+                    item.put("type", "quote");
+                    item.put("title", rs.getString("title"));
+                    item.put("subject", rs.getString("title"));
+                    item.put("description", rs.getString("description"));
+                    item.put("outcome", rs.getString("outcome"));
+                    item.put("status", rs.getString("status"));
+                    item.put("priority", rs.getString("priority"));
+                    item.put("dueDate", rs.getTimestamp("created_at"));
+                    item.put("createdAt", rs.getTimestamp("created_at"));
+                    item.put("timestamp", rs.getTimestamp("created_at"));
+                    long aId = rs.getLong("actor_id");
+                    String aName = rs.getString("actor_name");
+                    item.put("actorId", aId > 0 ? aId : null);
+                    item.put("actorName", aName);
+                    item.put("ownerName", aName);
+                    item.put("opportunityName", rs.getString("opportunity_name"));
+                    item.put("quoteNumber", rs.getString("quote_number"));
+                    item.put("totalAmount", rs.getBigDecimal("total_amount"));
+                    timeline.add(item);
+                    if (aId > 0) actorsMap.put(aId, aName);
+                }
+            }
+        }
+
+        // Sắp xếp thống nhất theo thứ tự thời gian giảm dần (Chronological descending)
+        timeline.sort((a, b) -> {
+            Timestamp tA = (Timestamp) a.get("createdAt");
+            Timestamp tB = (Timestamp) b.get("createdAt");
+            if (tA == null && tB == null) return 0;
+            if (tA == null) return 1;
+            if (tB == null) return -1;
+            return tB.compareTo(tA);
+        });
+
+        // Lọc theo loại hoặc theo người thực hiện nếu được chỉ định
+        List<Map<String, Object>> filtered = timeline;
+        if (typeFilter != null && !typeFilter.isBlank() && !typeFilter.equalsIgnoreCase("all")) {
+            String tf = typeFilter.trim().toLowerCase();
+            filtered = filtered.stream().filter(item -> {
+                String et = String.valueOf(item.get("eventType")).toLowerCase();
+                String ec = String.valueOf(item.get("eventCategory")).toLowerCase();
+                if (tf.equals("call")) return et.contains("call");
+                if (tf.equals("meeting")) return et.contains("meeting");
+                if (tf.equals("email")) return et.contains("email");
+                if (tf.equals("note")) return et.contains("note");
+                if (tf.equals("task")) return et.contains("task");
+                if (tf.equals("quote")) return ec.contains("quote") || et.contains("quote");
+                if (tf.equals("opportunity")) return ec.contains("opportunity") || et.contains("opp");
+                return et.equals(tf) || ec.equals(tf);
+            }).toList();
+        }
+
+        if (actorId != null && actorId > 0) {
+            filtered = filtered.stream().filter(item -> {
+                Object aid = item.get("actorId");
+                return aid instanceof Number && ((Number) aid).longValue() == actorId;
+            }).toList();
+        }
+
+        List<Map<String, Object>> actorsList = new ArrayList<>();
+        actorsMap.forEach((id, name) -> {
+            Map<String, Object> a = new LinkedHashMap<>();
+            a.put("id", id);
+            a.put("name", name);
+            actorsList.add(a);
+        });
+
+        Map<String, Object> res = new LinkedHashMap<>();
+        res.put("timeline", filtered);
+        res.put("actors", actorsList);
+        res.put("totalCount", filtered.size());
+        return res;
     }
 
     public List<Map<String, Object>> getAttachments(Connection conn, long customerId) throws SQLException {

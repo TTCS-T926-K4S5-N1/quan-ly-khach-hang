@@ -12,9 +12,9 @@ let currentCustomer = null;
 let customerContacts = [];
 let customerOpportunities = { all: [], open: [], closed: [] };
 let customerAttachments = [];
-let allCustomersCache = [];
 let currentOppFilter = "all";
 let currentActFilter = "all";
+let currentActorFilter = "";
 
 const timelineList = document.getElementById("timelineList");
 const timelineEmpty = document.getElementById("timelineEmpty");
@@ -172,19 +172,37 @@ async function initCustomer360() {
             if (tabAtt) tabAtt.textContent = customerAttachments.length;
             renderAttachments();
 
-            // 6. 500 ACTIVITIES TIMELINE
+            // 6. UNIFIED TIMELINE (Activities + Opportunity Stage changes + Quotes)
             timeline = [];
-            if (Array.isArray(data.activities)) {
-                data.activities.forEach(a => {
-                    timeline.push({
-                        id: a.id,
-                        type: (a.type || "note").toLowerCase(),
-                        text: a.description || a.subject || "",
-                        time: a.createdAt ? new Date(a.createdAt) : new Date(),
-                        user: a.userName || ""
-                    });
+            const rawTimeline = Array.isArray(data.timeline) ? data.timeline : (Array.isArray(data.activities) ? data.activities : []);
+            rawTimeline.forEach(a => {
+                timeline.push({
+                    id: a.id,
+                    sourceType: a.sourceType || "ACTIVITY",
+                    type: (a.type || "note").toLowerCase(),
+                    title: a.title || a.subject || "",
+                    text: a.description || a.subject || a.title || "",
+                    time: a.createdAt ? new Date(a.createdAt) : new Date(),
+                    actorId: a.actorId || a.ownerUserId || null,
+                    actorName: a.actorName || a.userName || a.ownerName || "",
+                    user: a.actorName || a.userName || a.ownerName || "",
+                    status: a.status || "",
+                    priority: a.priority || "",
+                    postponeReason: a.postponeReason || "",
+                    dueDate: a.dueDate || null,
+                    assignedByName: a.assignedByName || "",
+                    quoteNumber: a.quoteNumber || "",
+                    quoteStatus: a.quoteStatus || "",
+                    totalAmount: a.totalAmount || 0,
+                    discountAmount: a.discountAmount || 0,
+                    opportunityId: a.opportunityId || null,
+                    opportunityName: a.opportunityName || "",
+                    opportunityAmount: a.opportunityAmount || 0,
+                    oldValue: a.oldValue || "",
+                    newValue: a.newValue || ""
                 });
-            }
+            });
+            populateTimelineActors(data.timelineActors || []);
             updateTimelineCounters();
             renderTimeline();
         }
@@ -748,12 +766,43 @@ document.querySelectorAll(".right-tab").forEach(tab => {
 /* =========================================================
    TIMELINE & ACTIVITY FILTERING
 ========================================================= */
+function populateTimelineActors(actors) {
+    const select = document.getElementById("timelineActorFilter");
+    if (!select) return;
+    select.innerHTML = '<option value="">👥 Tất cả người thực hiện</option>';
+
+    let actorList = [];
+    if (Array.isArray(actors) && actors.length > 0) {
+        actorList = actors;
+    } else {
+        const map = new Map();
+        timeline.forEach(item => {
+            const id = item.actorId ? String(item.actorId) : (item.actorName || item.user);
+            const name = item.actorName || item.user;
+            if (id && name && !map.has(id)) {
+                map.set(id, { id: item.actorId || name, name: name });
+            }
+        });
+        actorList = Array.from(map.values());
+    }
+
+    actorList.forEach(act => {
+        const opt = document.createElement("option");
+        opt.value = act.id != null ? act.id : act.name;
+        opt.textContent = act.name;
+        select.appendChild(opt);
+    });
+}
+
 function updateTimelineCounters() {
     const cAll = document.getElementById("countActAll");
     const cCall = document.getElementById("countActCall");
     const cEmail = document.getElementById("countActEmail");
     const cMeeting = document.getElementById("countActMeeting");
     const cNote = document.getElementById("countActNote");
+    const cTask = document.getElementById("countActTask");
+    const cOpp = document.getElementById("countActOpportunity");
+    const cQuote = document.getElementById("countActQuote");
     const badge = document.getElementById("timelineCounterBadge");
 
     const total = timeline.length;
@@ -761,27 +810,93 @@ function updateTimelineCounters() {
     const emails = timeline.filter(a => a.type === "email").length;
     const meetings = timeline.filter(a => a.type === "meeting").length;
     const notes = timeline.filter(a => a.type === "note").length;
+    const tasks = timeline.filter(a => a.type === "task").length;
+    const opps = timeline.filter(a => a.type === "opportunity").length;
+    const quotes = timeline.filter(a => a.type === "quote").length;
 
     if (cAll) cAll.textContent = total;
     if (cCall) cCall.textContent = calls;
     if (cEmail) cEmail.textContent = emails;
     if (cMeeting) cMeeting.textContent = meetings;
     if (cNote) cNote.textContent = notes;
-    if (badge) badge.textContent = `${total} hoạt động`;
+    if (cTask) cTask.textContent = tasks;
+    if (cOpp) cOpp.textContent = opps;
+    if (cQuote) cQuote.textContent = quotes;
+    if (badge) badge.textContent = `${total} hoạt động & sự kiện`;
 }
 
 function renderTimeline() {
     timelineList.querySelectorAll(".timeline-item").forEach(item => item.remove());
 
-    const filtered = currentActFilter === "all"
-        ? timeline
-        : timeline.filter(a => a.type === currentActFilter);
+    const filtered = timeline.filter(a => {
+        const matchesType = (currentActFilter === "all" || a.type === currentActFilter);
+        const matchesActor = (!currentActorFilter || String(a.actorId) === String(currentActorFilter) || a.actorName === currentActorFilter || a.user === currentActorFilter);
+        return matchesType && matchesActor;
+    });
 
     timelineEmpty.style.display = filtered.length ? "none" : "block";
 
     for (const item of filtered) {
         const article = document.createElement("article");
-        article.className = "timeline-item";
+        article.className = `timeline-item timeline-${item.type}`;
+
+        let detailContent = "";
+        if (item.type === "quote") {
+            detailContent = `
+                <div style="margin-top:6px; padding:10px 12px; border-radius:8px; background:#f0fdf4; border:1px solid #bbf7d0;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                        <div>
+                            <strong style="color:#166534; font-size:13px;">${escapeHtml(item.title)}</strong>
+                            ${item.quoteNumber ? `<span style="font-size:11px; color:#15803d; margin-left:6px; background:#dcfce7; padding:2px 6px; border-radius:4px; font-weight:600;">#${escapeHtml(item.quoteNumber)}</span>` : ""}
+                        </div>
+                        <span class="opp-stage-badge ${item.quoteStatus === 'ACCEPTED' ? 'stage-won' : item.quoteStatus === 'REJECTED' ? 'stage-lost' : 'stage-open'}">${escapeHtml(item.quoteStatus || 'ĐÃ GỬI')}</span>
+                    </div>
+                    <div style="margin-top:6px; font-size:12.5px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                        <span>Tổng giá trị: <strong style="color:#15803d; font-size:13.5px;">${formatMoney(item.totalAmount || 0)}</strong></span>
+                        ${Number(item.discountAmount) > 0 ? `<span style="color:#64748b; font-size:11.5px;">(Chiết khấu: ${formatMoney(item.discountAmount)})</span>` : ""}
+                        ${item.opportunityName ? `<span style="font-size:11.5px; color:#475569;">Gắn cơ hội: <em>${escapeHtml(item.opportunityName)}</em></span>` : ""}
+                    </div>
+                    ${item.text ? `<div style="font-size:12px; color:#334155; margin-top:6px; font-style:italic;">${escapeHtml(item.text)}</div>` : ""}
+                </div>
+            `;
+        } else if (item.type === "opportunity") {
+            detailContent = `
+                <div style="margin-top:6px; padding:10px 12px; border-radius:8px; background:#faf5ff; border:1px solid #e9d5ff;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                        <strong style="color:#6b21a8; font-size:13px;">💼 ${escapeHtml(item.opportunityName || item.title)}</strong>
+                        ${item.opportunityAmount ? `<span style="font-weight:700; color:#059669; font-size:13px;">${formatMoney(item.opportunityAmount)}</span>` : ""}
+                    </div>
+                    <div style="margin-top:6px; font-size:12px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <span style="color:#6b21a8; font-weight:600;">Chuyển giai đoạn:</span>
+                        <span class="opp-stage-badge stage-lost">${escapeHtml(item.oldValue || '—')}</span>
+                        <span>➔</span>
+                        <span class="opp-stage-badge stage-won">${escapeHtml(item.newValue || '—')}</span>
+                    </div>
+                    ${item.text ? `<div style="font-size:12px; color:#475569; margin-top:6px;">${escapeHtml(item.text)}</div>` : ""}
+                </div>
+            `;
+        } else if (item.type === "task") {
+            const priorityColor = item.priority === 'URGENT' ? '#ef4444' : item.priority === 'HIGH' ? '#f59e0b' : item.priority === 'LOW' ? '#64748b' : '#3b82f6';
+            detailContent = `
+                <div style="margin-top:6px; padding:10px 12px; border-radius:8px; background:#fffbeb; border:1px solid #fde68a;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <strong style="color:#92400e; font-size:13px;">📋 ${escapeHtml(item.title || item.text)}</strong>
+                            <span style="font-size:10.5px; font-weight:700; color:#fff; background:${priorityColor}; padding:1px 6px; border-radius:4px;">${escapeHtml(item.priority || 'MEDIUM')}</span>
+                        </div>
+                        <span class="opp-stage-badge ${item.status === 'COMPLETED' ? 'stage-won' : item.status === 'POSTPONED' ? 'stage-lost' : 'stage-open'}">${item.status === 'COMPLETED' ? 'ĐÃ HOÀN THÀNH' : item.status === 'POSTPONED' ? 'ĐÃ HOÃN' : 'ĐANG XỬ LÝ'}</span>
+                    </div>
+                    ${item.dueDate ? `<div style="font-size:11.5px; color:#b45309; margin-top:4px;">⏱️ Hạn hoàn thành: <strong>${new Date(item.dueDate).toLocaleString('vi-VN')}</strong></div>` : ""}
+                    ${item.postponeReason ? `<div style="font-size:11.5px; color:#b91c1c; background:#fee2e2; padding:3px 8px; border-radius:4px; margin-top:5px;"><strong>Lý do hoãn:</strong> ${escapeHtml(item.postponeReason)}</div>` : ""}
+                    ${item.text && item.text !== item.title ? `<div class="timeline-text" style="margin-top:5px;">${escapeHtml(item.text)}</div>` : ""}
+                </div>
+            `;
+        } else {
+            detailContent = `
+                <div class="timeline-text">${escapeHtml(item.text || item.title)}</div>
+            `;
+        }
+
         article.innerHTML = `
             <div class="timeline-item-head">
                 <span class="timeline-type">${typeLabel(item.type)}</span>
@@ -789,8 +904,11 @@ function renderTimeline() {
                     ${item.time.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} - ${item.time.toLocaleDateString("vi-VN")}
                 </time>
             </div>
-            <div class="timeline-text">${escapeHtml(item.text)}</div>
-            ${item.user ? `<div style="font-size:11px;color:#94a3b8;margin-top:3px;">Người thực hiện: ${escapeHtml(item.user)}</div>` : ""}
+            ${detailContent}
+            <div style="font-size:11px;color:#94a3b8;margin-top:5px;display:flex;align-items:center;gap:6px;">
+                <span>👤 Thực hiện: <strong>${escapeHtml(item.actorName || item.user || "Chưa rõ")}</strong></span>
+                ${item.assignedByName ? `<span> · Giao bởi: <em>${escapeHtml(item.assignedByName)}</em></span>` : ""}
+            </div>
         `;
         timelineList.appendChild(article);
     }
@@ -803,6 +921,11 @@ document.querySelectorAll("[data-act-filter]").forEach(btn => {
         currentActFilter = btn.dataset.actFilter;
         renderTimeline();
     });
+});
+
+document.getElementById("timelineActorFilter")?.addEventListener("change", (e) => {
+    currentActorFilter = e.target.value;
+    renderTimeline();
 });
 
 composer?.addEventListener("submit", async event => {
@@ -925,10 +1048,13 @@ function closeCompanyModal() {
 
 function typeLabel(type) {
     switch (type) {
-        case "call": return "☎ Cuộc gọi";
-        case "email": return "✉ Email";
-        case "meeting": return "▣ Cuộc gặp";
-        default: return "✎ Ghi chú";
+        case "call": return "📞 Cuộc gọi";
+        case "email": return "✉️ Email";
+        case "meeting": return "🤝 Cuộc gặp";
+        case "task": return "📋 Công việc";
+        case "opportunity": return "💼 Thay đổi cơ hội";
+        case "quote": return "📄 Báo giá gửi khách";
+        default: return "📝 Ghi chú";
     }
 }
 

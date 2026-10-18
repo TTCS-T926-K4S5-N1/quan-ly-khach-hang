@@ -280,6 +280,36 @@
     box-shadow: 0 0 0 4px var(--crm-primary-soft);
 }
 
+.timeline-item.timeline-quote::before {
+    background: #10b981;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+}
+
+.timeline-item.timeline-opportunity::before {
+    background: #8b5cf6;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
+}
+
+.timeline-item.timeline-task::before {
+    background: #f59e0b;
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2);
+}
+
+.timeline-item.timeline-call::before {
+    background: #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+}
+
+.timeline-item.timeline-meeting::before {
+    background: #06b6d4;
+    box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.2);
+}
+
+.timeline-item.timeline-email::before {
+    background: #ec4899;
+    box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.2);
+}
+
 .timeline-item-head {
     display: flex;
 

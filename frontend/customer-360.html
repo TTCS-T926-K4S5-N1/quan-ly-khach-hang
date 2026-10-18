@@ -328,13 +328,17 @@
 
         <section class="crm-card timeline-panel">
 
-            <div class="panel-header">
-
-                <h2>
-                    Activity Timeline
-                </h2>
-                <span id="timelineCounterBadge" style="font-size:12px; color:var(--crm-muted); font-weight:600;">500 hoạt động</span>
-
+            <div class="panel-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <h2>Dòng thời gian tương tác (Timeline 360°)</h2>
+                    <span id="timelineCounterBadge" style="font-size:12px; color:var(--crm-muted); font-weight:600;">0 hoạt động</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <label for="timelineActorFilter" style="font-size:12px; color:var(--crm-muted); font-weight:550; white-space:nowrap;">👤 Người thực hiện:</label>
+                    <select id="timelineActorFilter" class="crm-input" style="font-size:12px; padding:4px 8px; border-radius:6px; min-width:170px; height:32px;">
+                        <option value="">Tất cả người thực hiện</option>
+                    </select>
+                </div>
             </div>
 
             <div class="activity-filter-bar">
@@ -343,6 +347,9 @@
                 <button type="button" class="activity-filter-btn" data-act-filter="email">✉️ Email (<span id="countActEmail">0</span>)</button>
                 <button type="button" class="activity-filter-btn" data-act-filter="meeting">🤝 Cuộc gặp (<span id="countActMeeting">0</span>)</button>
                 <button type="button" class="activity-filter-btn" data-act-filter="note">📝 Ghi chú (<span id="countActNote">0</span>)</button>
+                <button type="button" class="activity-filter-btn" data-act-filter="task">📋 Công việc (<span id="countActTask">0</span>)</button>
+                <button type="button" class="activity-filter-btn" data-act-filter="opportunity">💼 Đổi cơ hội (<span id="countActOpportunity">0</span>)</button>
+                <button type="button" class="activity-filter-btn" data-act-filter="quote">📄 Báo giá (<span id="countActQuote">0</span>)</button>
             </div>
 
             <form
@@ -352,7 +359,7 @@
 
                 <textarea
                     id="activityNote"
-                    placeholder="Ghi chú / Log cuộc gọi"
+                    placeholder="Ghi chú / Log cuộc gọi / Công việc..."
                 ></textarea>
 
                 <div class="composer-actions">
@@ -375,6 +382,10 @@
 
                         <option value="meeting">
                             Cuộc gặp
+                        </option>
+
+                        <option value="task">
+                            Công việc
                         </option>
                     </select>
 
