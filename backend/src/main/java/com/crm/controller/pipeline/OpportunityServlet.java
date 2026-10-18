@@ -42,13 +42,17 @@ public class OpportunityServlet extends HttpServlet {
                 String closeDateFrom = req.getParameter("closeDateFrom");
                 String closeDateTo = req.getParameter("closeDateTo");
                 String leadSource = req.getParameter("leadSource");
+                java.math.BigDecimal minAmount = bigDecimalParam(req, "minAmount");
+                java.math.BigDecimal maxAmount = bigDecimalParam(req, "maxAmount");
+                Long productId = longParam(req, "productId");
+                String productKeyword = req.getParameter("productKeyword");
                 String customFieldKey = req.getParameter("customFieldKey");
                 String customFieldValue = req.getParameter("customFieldValue");
                 Boolean stagnantOnly = "true".equalsIgnoreCase(req.getParameter("stagnantOnly")) ? Boolean.TRUE : null;
                 int page = intParam(req, "page", 1);
                 int size = intParam(req, "size", 100);
 
-                var items = opportunityService.search(currentUserId, stageId, status, keyword, ownerId, teamId, closeDateFrom, closeDateTo, leadSource, customFieldKey, customFieldValue, stagnantOnly, page, size);
+                var items = opportunityService.search(currentUserId, stageId, status, keyword, ownerId, teamId, closeDateFrom, closeDateTo, leadSource, minAmount, maxAmount, productId, productKeyword, customFieldKey, customFieldValue, stagnantOnly, page, size);
                 ResponseUtil.json(resp, 200, ApiResponse.success("Lấy danh sách cơ hội thành công", items));
                 return;
             }
@@ -67,11 +71,15 @@ public class OpportunityServlet extends HttpServlet {
                 String closeDateFrom = req.getParameter("closeDateFrom");
                 String closeDateTo = req.getParameter("closeDateTo");
                 String leadSource = req.getParameter("leadSource");
+                java.math.BigDecimal minAmount = bigDecimalParam(req, "minAmount");
+                java.math.BigDecimal maxAmount = bigDecimalParam(req, "maxAmount");
+                Long productId = longParam(req, "productId");
+                String productKeyword = req.getParameter("productKeyword");
                 String customFieldKey = req.getParameter("customFieldKey");
                 String customFieldValue = req.getParameter("customFieldValue");
                 Boolean stagnantOnly = "true".equalsIgnoreCase(req.getParameter("stagnantOnly")) ? Boolean.TRUE : null;
 
-                var items = opportunityService.search(currentUserId, stageId, status, keyword, ownerId, teamId, closeDateFrom, closeDateTo, leadSource, customFieldKey, customFieldValue, stagnantOnly, 1, 10000);
+                var items = opportunityService.search(currentUserId, stageId, status, keyword, ownerId, teamId, closeDateFrom, closeDateTo, leadSource, minAmount, maxAmount, productId, productKeyword, customFieldKey, customFieldValue, stagnantOnly, 1, 10000);
 
                 com.crm.dao.customfields.CustomFieldValueDAO cfDao = new com.crm.dao.customfields.CustomFieldValueDAO();
                 List<Map<String, Object>> activeFields = cfDao.getActiveFields("OPPORTUNITY");
@@ -104,6 +112,28 @@ public class OpportunityServlet extends HttpServlet {
                 long targetId = Long.parseLong(getSegments[0]);
                 var history = opportunityService.getAssignmentHistory(currentUserId, targetId);
                 ResponseUtil.json(resp, 200, ApiResponse.success("Lấy lịch sử phân bổ cơ hội thành công", history));
+                return;
+            }
+
+            if (getSegments.length == 2 && ("history".equals(getSegments[1]) || "field-history".equals(getSegments[1]))) {
+                long targetId = Long.parseLong(getSegments[0]);
+                var history = opportunityService.getFieldHistory(currentUserId, targetId);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Lấy lịch sử thay đổi cơ hội thành công", history));
+                return;
+            }
+
+            if (getSegments.length == 2 && "members".equals(getSegments[1])) {
+                long targetId = Long.parseLong(getSegments[0]);
+                var members = opportunityService.getMembers(currentUserId, targetId);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Lấy danh sách thành viên tham gia cơ hội thành công", members));
+                return;
+            }
+
+            if (getSegments.length == 2 && "activities".equals(getSegments[1])) {
+                long targetId = Long.parseLong(getSegments[0]);
+                com.crm.service.activities.ActivityService actService = new com.crm.service.activities.ActivityService();
+                var activities = actService.search(currentUserId, null, targetId, null, null);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Lấy danh sách hoạt động cơ hội thành công", activities));
                 return;
             }
 
@@ -243,6 +273,42 @@ public class OpportunityServlet extends HttpServlet {
                     ResponseUtil.json(resp, 200, ApiResponse.success("Mở lại cơ hội thành công", reopened));
                     return;
                 }
+
+                if ("members".equals(action)) {
+                    Map<String, Object> body = JsonUtil.getGson().fromJson(req.getReader(), com.crm.util.JsonUtil.OBJECT_MAP_TYPE);
+                    if (body == null || body.get("userId") == null) {
+                        throw new IllegalArgumentException("Vui lòng chọn nhân sự để thêm vào cơ hội.");
+                    }
+                    long memberUserId = ((Number) body.get("userId")).longValue();
+                    String roleInOpp = body.get("roleInOpportunity") != null ? String.valueOf(body.get("roleInOpportunity")).trim() : "COLLABORATOR";
+                    opportunityService.addMember(currentUserId, targetId, memberUserId, roleInOpp);
+                    ResponseUtil.json(resp, 200, ApiResponse.success("Thêm thành viên cùng tham gia cơ hội thành công", null));
+                    return;
+                }
+
+                if ("activities".equals(action)) {
+                    Map<String, Object> body = JsonUtil.getGson().fromJson(req.getReader(), com.crm.util.JsonUtil.OBJECT_MAP_TYPE);
+                    if (body == null) {
+                        throw new IllegalArgumentException("Dữ liệu hoạt động không hợp lệ.");
+                    }
+                    String subject = body.get("subject") != null ? String.valueOf(body.get("subject")) : "Ghi chú hoạt động";
+                    String type = body.get("activityType") != null ? String.valueOf(body.get("activityType")) : "NOTE";
+                    String description = body.get("description") != null ? String.valueOf(body.get("description")) : "";
+                    java.sql.Timestamp dueDate = new java.sql.Timestamp(System.currentTimeMillis());
+                    if (body.get("dueDate") != null && !String.valueOf(body.get("dueDate")).isBlank()) {
+                        try {
+                            String dStr = String.valueOf(body.get("dueDate")).trim();
+                            if (dStr.length() == 10) dStr += " 00:00:00";
+                            dueDate = java.sql.Timestamp.valueOf(dStr);
+                        } catch (Exception ignored) {
+                            dueDate = new java.sql.Timestamp(System.currentTimeMillis());
+                        }
+                    }
+
+                    var act = opportunityService.logActivity(currentUserId, targetId, subject, type, description, dueDate);
+                    ResponseUtil.json(resp, 201, ApiResponse.success("Ghi nhận hoạt động cơ hội thành công", act));
+                    return;
+                }
             }
 
             ResponseUtil.json(resp, 404, ApiResponse.error("Endpoint không tồn tại", null));
@@ -304,6 +370,14 @@ public class OpportunityServlet extends HttpServlet {
                 return;
             }
 
+            if (segments.length == 3 && "members".equals(segments[1])) {
+                long targetId = Long.parseLong(segments[0]);
+                long memberUserId = Long.parseLong(segments[2]);
+                opportunityService.removeMember(currentUserId, targetId, memberUserId);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Đã xóa thành viên khỏi cơ hội", null));
+                return;
+            }
+
             long id = parseId(path);
 
             opportunityService.delete(currentUserId, id);
@@ -349,6 +423,16 @@ public class OpportunityServlet extends HttpServlet {
         try {
             return Long.parseLong(val.trim());
         } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private java.math.BigDecimal bigDecimalParam(HttpServletRequest req, String name) {
+        String val = req.getParameter(name);
+        if (val == null || val.isBlank()) return null;
+        try {
+            return new java.math.BigDecimal(val.trim());
+        } catch (Exception e) {
             return null;
         }
     }

@@ -24,13 +24,28 @@ const opportunityDrawer = document.getElementById("opportunityDrawer");
 const opportunityOverlay = document.getElementById("opportunityOverlay");
 const opportunityForm = document.getElementById("opportunityForm");
 const searchInput = document.getElementById("pipelineSearch");
+const stageFilter = document.getElementById("stageFilter");
 const ownerFilter = document.getElementById("ownerFilter");
+const productFilter = document.getElementById("productFilter");
+const amountMin = document.getElementById("amountMin");
+const amountMax = document.getElementById("amountMax");
 const teamFilter = document.getElementById("teamFilter");
 const closeDatePreset = document.getElementById("closeDatePreset");
 const customDateRangeWrap = document.getElementById("customDateRangeWrap");
 const closeDateFrom = document.getElementById("closeDateFrom");
 const closeDateTo = document.getElementById("closeDateTo");
 const leadSourceFilter = document.getElementById("leadSourceFilter");
+
+// Saved Filters state & elements (User Story 2)
+let savedFiltersList = [];
+const savedFiltersSelect = document.getElementById("savedFiltersSelect");
+const btnSaveFilterModal = document.getElementById("btnSaveFilterModal");
+const btnDeleteSavedFilter = document.getElementById("btnDeleteSavedFilter");
+const saveFilterModal = document.getElementById("saveFilterModal");
+const saveFilterOverlay = document.getElementById("saveFilterOverlay");
+const saveFilterForm = document.getElementById("saveFilterForm");
+const savedFilterNameInput = document.getElementById("savedFilterNameInput");
+const saveFilterError = document.getElementById("saveFilterError");
 
 // Custom Fields state & elements for Opportunity
 let oppCustomFields = [];
@@ -134,10 +149,14 @@ async function initPipeline() {
             loadTeams(),
             loadUsersForFilter(),
             loadOppCustomFields(),
-            loadProductCatalog()
+            loadProductCatalog(),
+            loadSavedFilters()
         ]);
+        populateStageFilter();
+        populateProductFilter();
         setupOppProductEventListeners();
         setupStoryEventListeners();
+        setupCollaborationAndFilterListeners();
         await loadOpportunities();
     } catch (err) {
         console.error("Initialization error:", err);
@@ -344,12 +363,24 @@ async function loadOpportunities() {
         const kw = (searchInput?.value || "").trim();
         if (kw) params.append("keyword", kw);
 
+        const stageVal = stageFilter?.value || "";
+        if (stageVal) params.append("stageId", stageVal);
+
         const ownerVal = ownerFilter?.value || "";
         if (ownerVal === "MINE" || ownerVal === "Tôi") {
             params.append("ownerFilter", "MINE");
         } else if (ownerVal && !isNaN(ownerVal)) {
             params.append("ownerId", ownerVal);
         }
+
+        const prodVal = productFilter?.value || "";
+        if (prodVal) params.append("productId", prodVal);
+
+        const minAmt = amountMin?.value || "";
+        if (minAmt) params.append("minAmount", minAmt);
+
+        const maxAmt = amountMax?.value || "";
+        if (maxAmt) params.append("maxAmount", maxAmt);
 
         const teamVal = teamFilter?.value || "";
         if (teamVal) params.append("teamId", teamVal);
@@ -770,6 +801,12 @@ btnExportOppExcel?.addEventListener("click", () => {
 
 document.getElementById("resetPipelineFilter")?.addEventListener("click", () => {
     if (searchInput) searchInput.value = "";
+    if (stageFilter) stageFilter.value = "";
+    if (productFilter) productFilter.value = "";
+    if (amountMin) amountMin.value = "";
+    if (amountMax) amountMax.value = "";
+    if (savedFiltersSelect) savedFiltersSelect.value = "";
+    if (btnDeleteSavedFilter) btnDeleteSavedFilter.disabled = true;
     if (ownerFilter) {
         const scope = currentUser?.dataScope || "";
         ownerFilter.value = (scope === "SELF" || (!scope.includes("ALL") && !scope.includes("TEAM"))) ? "MINE" : "";
@@ -1457,6 +1494,8 @@ async function openOpportunityDrawer(id = null) {
             if (btnDrawerReassignOpp) btnDrawerReassignOpp.style.display = canReassign ? "inline-block" : "none";
             if (btnQuickReassignInDrawer) btnQuickReassignInDrawer.style.display = canReassign ? "inline-block" : "none";
             loadAndRenderAssignmentHistory(id);
+            loadAndRenderFieldHistory(id);
+            loadAndRenderOpportunityTeam(id);
         }
     } else {
         if (titleEl) titleEl.textContent = "Thêm cơ hội";
@@ -1468,6 +1507,10 @@ async function openOpportunityDrawer(id = null) {
         if (btnQuickReassignInDrawer) btnQuickReassignInDrawer.style.display = "none";
         const histSection = document.getElementById("opportunityAssignmentHistorySection");
         if (histSection) histSection.style.display = "none";
+        const fieldHistSection = document.getElementById("opportunityFieldHistorySection");
+        if (fieldHistSection) fieldHistSection.style.display = "none";
+        const teamSection = document.getElementById("opportunityTeamSection");
+        if (teamSection) teamSection.style.display = "none";
 
         opportunityForm.reset();
         currentOpportunityItems = [];
@@ -2747,6 +2790,510 @@ async function loadAndRenderAssignmentHistory(oppId) {
     }
 }
 
+/* =========================================================
+   USER STORY 1: AUDIT & FIELD CHANGE HISTORY
+========================================================= */
+async function loadAndRenderFieldHistory(oppId) {
+    const section = document.getElementById("opportunityFieldHistorySection");
+    const tableBody = document.getElementById("oppFieldHistoryTableBody");
+    const countBadge = document.getElementById("oppFieldHistoryCountBadge");
+    if (!tableBody) return;
+    if (section) section.style.display = "block";
+
+    try {
+        const history = await api(`/api/opportunities/${oppId}/history`);
+        if (Array.isArray(history) && history.length > 0) {
+            if (countBadge) countBadge.textContent = `${history.length} thay đổi`;
+            tableBody.innerHTML = history.map(item => {
+                const timeStr = item.createdAt ? new Date(item.createdAt).toLocaleString("vi-VN", {
+                    day: "2-digit", month: "2-digit", year: "numeric",
+                    hour: "2-digit", minute: "2-digit"
+                }) : "—";
+
+                let label = item.fieldLabel || item.fieldName;
+                if (item.fieldName === "STAGE") label = "Giai đoạn";
+                else if (item.fieldName === "AMOUNT") label = "Giá trị cơ hội";
+                else if (item.fieldName === "EXPECTED_CLOSE_DATE") label = "Ngày dự kiến chốt";
+                else if (item.fieldName === "OWNER") label = "Người sở hữu";
+
+                return `
+                    <tr>
+                        <td style="color: #64748b; font-size: 11.5px; white-space: nowrap;">${timeStr}</td>
+                        <td style="font-weight: 600; color: #1e293b;">${escapeHtml(item.changedByName || 'Hệ thống')}</td>
+                        <td><span class="field-name-badge">${escapeHtml(label)}</span></td>
+                        <td>
+                            <span class="diff-badge-old">${escapeHtml(item.oldValue || '—')}</span>
+                            <span class="diff-badge-arrow">➔</span>
+                            <span class="diff-badge-new">${escapeHtml(item.newValue || '—')}</span>
+                        </td>
+                        <td style="color: #475569; font-size: 11.5px;">${escapeHtml(item.reason || '—')}</td>
+                    </tr>
+                `;
+            }).join("");
+        } else {
+            if (countBadge) countBadge.textContent = "0 thay đổi";
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #94a3b8; padding: 16px; font-style: italic;">
+                        Chưa có lịch sử thay đổi trường thông tin nào cho cơ hội này.
+                    </td>
+                </tr>
+            `;
+        }
+    } catch (err) {
+        console.warn("Could not load field history:", err);
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="5" style="text-align: center; color: #ef4444; padding: 12px;">
+                    Không thể tải lịch sử thay đổi.
+                </td>
+            </tr>
+        `;
+    }
+}
+
+/* =========================================================
+   USER STORY 2: SAVED FILTERS & MULTI-CRITERIA FILTERING
+========================================================= */
+function populateStageFilter() {
+    if (!stageFilter) return;
+    const cur = stageFilter.value;
+    stageFilter.innerHTML = '<option value="">🎯 Tất cả giai đoạn</option>';
+    stages.forEach(s => {
+        const opt = document.createElement("option");
+        opt.value = s.id;
+        opt.textContent = s.name;
+        if (String(s.id) === String(cur)) opt.selected = true;
+        stageFilter.appendChild(opt);
+    });
+}
+
+function populateProductFilter() {
+    if (!productFilter) return;
+    const cur = productFilter.value;
+    productFilter.innerHTML = '<option value="">📦 Tất cả sản phẩm</option>';
+    productCatalog.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        const price = p.listPrice || p.price || 0;
+        opt.textContent = `${p.name}${price > 0 ? ' (' + formatMoney(price) + ')' : ''}`;
+        if (String(p.id) === String(cur)) opt.selected = true;
+        productFilter.appendChild(opt);
+    });
+}
+
+async function loadSavedFilters() {
+    if (!savedFiltersSelect) return;
+    try {
+        const data = await api("/api/saved-filters?module=OPPORTUNITY");
+        savedFiltersList = Array.isArray(data) ? data : [];
+        savedFiltersSelect.innerHTML = '<option value="">⭐ Bộ lọc đã lưu...</option>';
+        savedFiltersList.forEach(f => {
+            const opt = document.createElement("option");
+            opt.value = f.id;
+            opt.textContent = (f.isPreset ? "📌 " : "💾 ") + f.name;
+            savedFiltersSelect.appendChild(opt);
+        });
+        if (btnDeleteSavedFilter) btnDeleteSavedFilter.disabled = true;
+    } catch (e) {
+        console.warn("Could not load saved filters:", e);
+    }
+}
+
+function handleSelectSavedFilter() {
+    const selectedId = savedFiltersSelect?.value;
+    if (!selectedId) {
+        if (btnDeleteSavedFilter) btnDeleteSavedFilter.disabled = true;
+        return;
+    }
+
+    const filterObj = savedFiltersList.find(f => String(f.id) === String(selectedId));
+    if (!filterObj) return;
+
+    if (btnDeleteSavedFilter) {
+        btnDeleteSavedFilter.disabled = !!filterObj.isPreset;
+    }
+
+    let criteria = {};
+    try {
+        criteria = typeof filterObj.filterCriteria === "string" 
+            ? JSON.parse(filterObj.filterCriteria) 
+            : (filterObj.filterCriteria || {});
+    } catch (e) {
+        criteria = {};
+    }
+
+    if (criteria.stageId && stageFilter) stageFilter.value = criteria.stageId;
+    else if (stageFilter) stageFilter.value = "";
+
+    if (criteria.ownerFilter && ownerFilter) ownerFilter.value = criteria.ownerFilter;
+    else if (criteria.ownerId && ownerFilter) ownerFilter.value = criteria.ownerId;
+    else if (ownerFilter) ownerFilter.value = "";
+
+    if (criteria.productId && productFilter) productFilter.value = criteria.productId;
+    else if (productFilter) productFilter.value = "";
+
+    if (criteria.minAmount !== undefined && criteria.minAmount !== null && amountMin) amountMin.value = criteria.minAmount;
+    else if (amountMin) amountMin.value = "";
+
+    if (criteria.maxAmount !== undefined && criteria.maxAmount !== null && amountMax) amountMax.value = criteria.maxAmount;
+    else if (amountMax) amountMax.value = "";
+
+    if (criteria.closeDatePreset && closeDatePreset) {
+        closeDatePreset.value = criteria.closeDatePreset;
+        if (customDateRangeWrap) {
+            customDateRangeWrap.style.display = criteria.closeDatePreset === "CUSTOM" ? "flex" : "none";
+        }
+    } else if (closeDatePreset) {
+        closeDatePreset.value = "";
+        if (customDateRangeWrap) customDateRangeWrap.style.display = "none";
+    }
+
+    if (criteria.closeDateFrom && closeDateFrom) closeDateFrom.value = criteria.closeDateFrom;
+    else if (closeDateFrom) closeDateFrom.value = "";
+
+    if (criteria.closeDateTo && closeDateTo) closeDateTo.value = criteria.closeDateTo;
+    else if (closeDateTo) closeDateTo.value = "";
+
+    if (criteria.keyword && searchInput) searchInput.value = criteria.keyword;
+    else if (criteria.productKeyword && searchInput) searchInput.value = criteria.productKeyword;
+
+    if (criteria.minAmount || criteria.maxAmount || criteria.closeDatePreset === "CUSTOM") {
+        const advPanel = document.getElementById("pipelineAdvancedPanel");
+        if (advPanel) advPanel.style.display = "block";
+        document.getElementById("btnTogglePipelineAdvanced")?.classList.add("open");
+    }
+
+    loadOpportunities();
+}
+
+function openSaveFilterModal() {
+    if (saveFilterModal) saveFilterModal.style.display = "block";
+    if (saveFilterOverlay) saveFilterOverlay.style.display = "block";
+    if (savedFilterNameInput) {
+        savedFilterNameInput.value = "";
+        savedFilterNameInput.focus();
+    }
+    if (saveFilterError) saveFilterError.textContent = "";
+}
+
+function closeSaveFilterModal() {
+    if (saveFilterModal) saveFilterModal.style.display = "none";
+    if (saveFilterOverlay) saveFilterOverlay.style.display = "none";
+    if (saveFilterError) saveFilterError.textContent = "";
+}
+
+async function handleSaveFilter(e) {
+    if (e) e.preventDefault();
+    const name = savedFilterNameInput?.value.trim();
+    if (!name) {
+        if (saveFilterError) saveFilterError.textContent = "Vui lòng nhập tên bộ lọc.";
+        return;
+    }
+
+    const criteria = {};
+    if (searchInput?.value.trim()) criteria.keyword = searchInput.value.trim();
+    if (stageFilter?.value) criteria.stageId = stageFilter.value;
+    if (ownerFilter?.value) criteria.ownerFilter = ownerFilter.value;
+    if (productFilter?.value) criteria.productId = productFilter.value;
+    if (amountMin?.value) criteria.minAmount = amountMin.value;
+    if (amountMax?.value) criteria.maxAmount = amountMax.value;
+    if (closeDatePreset?.value) criteria.closeDatePreset = closeDatePreset.value;
+    if (closeDateFrom?.value) criteria.closeDateFrom = closeDateFrom.value;
+    if (closeDateTo?.value) criteria.closeDateTo = closeDateTo.value;
+
+    try {
+        await api("/api/saved-filters", {
+            method: "POST",
+            body: JSON.stringify({
+                name: name,
+                module: "OPPORTUNITY",
+                filterCriteria: criteria
+            })
+        });
+        closeSaveFilterModal();
+        await loadSavedFilters();
+        const found = savedFiltersList.find(f => f.name === name);
+        if (found && savedFiltersSelect) {
+            savedFiltersSelect.value = found.id;
+            if (btnDeleteSavedFilter) btnDeleteSavedFilter.disabled = false;
+        }
+        alert("Đã lưu bộ lọc thành công!");
+    } catch (err) {
+        if (saveFilterError) saveFilterError.textContent = err.message || "Lỗi lưu bộ lọc.";
+    }
+}
+
+async function handleDeleteSavedFilter() {
+    const selectedId = savedFiltersSelect?.value;
+    if (!selectedId) return;
+    const filterObj = savedFiltersList.find(f => String(f.id) === String(selectedId));
+    if (!filterObj || filterObj.isPreset) return;
+
+    if (!confirm(`Bạn có chắc chắn muốn xóa bộ lọc "${filterObj.name}" không?`)) return;
+
+    try {
+        await api(`/api/saved-filters/${selectedId}`, { method: "DELETE" });
+        await loadSavedFilters();
+        if (savedFiltersSelect) savedFiltersSelect.value = "";
+        if (btnDeleteSavedFilter) btnDeleteSavedFilter.disabled = true;
+        alert("Đã xóa bộ lọc thành công!");
+    } catch (err) {
+        alert("Không thể xóa bộ lọc: " + err.message);
+    }
+}
+
+/* =========================================================
+   USER STORY 3: OPPORTUNITY TEAM & COLLABORATION
+========================================================= */
+let currentOppDetail = null;
+
+async function loadAndRenderOpportunityTeam(oppId) {
+    const section = document.getElementById("opportunityTeamSection");
+    const membersListEl = document.getElementById("opportunityMembersList");
+    const countBadge = document.getElementById("oppMemberCountBadge");
+    const noticeEl = document.getElementById("collaboratorRoleNotice");
+    const newMemberUserSelect = document.getElementById("newMemberUserSelect");
+    const addMemberFormWrap = document.getElementById("oppAddMemberFormWrap");
+
+    if (!membersListEl) return;
+    if (section) section.style.display = "block";
+
+    try {
+        const [detail, members, activities] = await Promise.all([
+            api(`/api/opportunities/${oppId}`),
+            api(`/api/opportunities/${oppId}/members`),
+            api(`/api/opportunities/${oppId}/activities`)
+        ]);
+
+        currentOppDetail = detail;
+        const ownerId = detail?.ownerUserId;
+        const isOwner = currentUser && ownerId === currentUser.id;
+        const isCollaborator = Array.isArray(members) && members.some(m => m.userId === currentUser?.id);
+        const canManage = isTeamLeadOrAbove() || isOwner;
+
+        if (isCollaborator && !canManage) {
+            if (noticeEl) noticeEl.style.display = "block";
+            const ownerInput = document.getElementById("opportunityOwner");
+            if (ownerInput) ownerInput.disabled = true;
+            if (btnQuickReassignInDrawer) btnQuickReassignInDrawer.style.display = "none";
+            if (btnDrawerReassignOpp) btnDrawerReassignOpp.style.display = "none";
+            if (addMemberFormWrap) addMemberFormWrap.style.display = "none";
+        } else {
+            if (noticeEl) noticeEl.style.display = "none";
+            if (addMemberFormWrap) addMemberFormWrap.style.display = "flex";
+        }
+
+        const totalCount = 1 + (Array.isArray(members) ? members.length : 0);
+        if (countBadge) countBadge.textContent = `${totalCount} thành viên`;
+
+        let html = `
+            <div class="opp-member-card is-owner">
+                <div class="opp-member-info">
+                    <div class="opp-member-avatar" style="background: #a855f7;">
+                        ${(detail?.ownerName || 'U').charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                        <div class="opp-member-name">${escapeHtml(detail?.ownerName || 'Chủ sở hữu')}</div>
+                        <div style="font-size: 11px; color: #64748b;">${escapeHtml(detail?.ownerEmail || '')}</div>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span class="opp-member-role-tag owner">⭐ Người phụ trách chính</span>
+                </div>
+            </div>
+        `;
+
+        if (Array.isArray(members) && members.length > 0) {
+            members.forEach(m => {
+                const canRemove = canManage || (currentUser && m.userId === currentUser.id);
+                html += `
+                    <div class="opp-member-card">
+                        <div class="opp-member-info">
+                            <div class="opp-member-avatar" style="background: #0284c7;">
+                                ${(m.userName || 'U').charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <div class="opp-member-name">${escapeHtml(m.userName || 'Thành viên')}</div>
+                                <div style="font-size: 11px; color: #64748b;">${escapeHtml(m.userEmail || '')}</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="opp-member-role-tag collaborator">🤝 ${escapeHtml(m.roleInOpportunity || 'Thành viên phối hợp')}</span>
+                            ${canRemove ? `
+                                <button type="button" class="btn-remove-member" title="Xóa thành viên khỏi cơ hội" onclick="handleRemoveMember(${m.userId}, '${escapeHtml(m.userName || '')}')">
+                                    ✕
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        membersListEl.innerHTML = html;
+
+        if (newMemberUserSelect) {
+            if (!assignableUsersList) {
+                try {
+                    const uRes = await api("/api/users?size=100");
+                    assignableUsersList = uRes?.items || (Array.isArray(uRes) ? uRes : []);
+                } catch (_) {
+                    assignableUsersList = [];
+                }
+            }
+
+            const existingUserIds = new Set([ownerId]);
+            if (Array.isArray(members)) {
+                members.forEach(m => existingUserIds.add(m.userId));
+            }
+
+            newMemberUserSelect.innerHTML = '<option value="">-- Chọn nhân sự --</option>';
+            assignableUsersList.forEach(u => {
+                if (!existingUserIds.has(u.id)) {
+                    const opt = document.createElement("option");
+                    opt.value = u.id;
+                    opt.textContent = `${u.fullName || u.email} (${u.role || 'Sales'})`;
+                    newMemberUserSelect.appendChild(opt);
+                }
+            });
+        }
+
+        renderOpportunityActivities(activities);
+    } catch (e) {
+        console.warn("Could not load opportunity team:", e);
+    }
+}
+
+function renderOpportunityActivities(activities) {
+    const actListEl = document.getElementById("opportunityActivitiesList");
+    if (!actListEl) return;
+
+    if (Array.isArray(activities) && activities.length > 0) {
+        actListEl.innerHTML = activities.slice(0, 10).map(act => {
+            const timeStr = act.createdAt ? new Date(act.createdAt).toLocaleString("vi-VN", {
+                day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"
+            }) : "—";
+            const typeEmoji = act.type === "CALL" ? "📞" : act.type === "MEETING" ? "🤝" : act.type === "TASK" ? "✅" : "📝";
+            return `
+                <div class="opp-activity-item">
+                    <div class="opp-activity-header">
+                        <strong>${typeEmoji} ${escapeHtml(act.subject || 'Hoạt động')}</strong>
+                        <span style="font-size: 11px; color: #94a3b8;">${timeStr}</span>
+                    </div>
+                    ${act.description ? `<div style="color: #475569; margin-top: 2px;">${escapeHtml(act.description)}</div>` : ''}
+                    <div style="font-size: 10.5px; color: #64748b; margin-top: 3px;">
+                        Người ghi: <strong>${escapeHtml(act.createdByName || act.ownerName || 'Thành viên')}</strong>
+                    </div>
+                </div>
+            `;
+        }).join("");
+    } else {
+        actListEl.innerHTML = '<div style="font-size: 11.5px; color: #94a3b8; font-style: italic; padding: 4px 0;">Chưa có hoạt động nào được ghi nhận cho cơ hội này.</div>';
+    }
+}
+
+async function handleAddMember() {
+    if (!editingOppId) return;
+    const userSelect = document.getElementById("newMemberUserSelect");
+    const roleSelect = document.getElementById("newMemberRoleSelect");
+    const userId = userSelect?.value;
+    const role = roleSelect?.value || "Thành viên phối hợp";
+
+    if (!userId) {
+        alert("Vui lòng chọn nhân sự để thêm vào cơ hội.");
+        return;
+    }
+
+    try {
+        await api(`/api/opportunities/${editingOppId}/members`, {
+            method: "POST",
+            body: JSON.stringify({
+                userId: Number(userId),
+                roleInOpportunity: role
+            })
+        });
+        await loadAndRenderOpportunityTeam(editingOppId);
+        await loadAndRenderFieldHistory(editingOppId);
+    } catch (err) {
+        alert("Lỗi khi thêm thành viên: " + err.message);
+    }
+}
+
+async function handleRemoveMember(userId, userName) {
+    if (!editingOppId) return;
+    if (!confirm(`Bạn có chắc chắn muốn xóa thành viên "${userName}" khỏi cơ hội này?`)) return;
+
+    try {
+        await api(`/api/opportunities/${editingOppId}/members/${userId}`, {
+            method: "DELETE"
+        });
+        await loadAndRenderOpportunityTeam(editingOppId);
+        await loadAndRenderFieldHistory(editingOppId);
+    } catch (err) {
+        alert("Lỗi khi xóa thành viên: " + err.message);
+    }
+}
+
+async function handleLogOpportunityActivity() {
+    if (!editingOppId) return;
+    const type = document.getElementById("quickActivityType")?.value || "NOTE";
+    const subject = document.getElementById("quickActivitySubject")?.value.trim();
+    const desc = document.getElementById("quickActivityDescription")?.value.trim();
+    const msgEl = document.getElementById("quickActivityMsg");
+
+    if (!subject) {
+        alert("Vui lòng nhập tiêu đề hoạt động.");
+        return;
+    }
+
+    try {
+        await api(`/api/opportunities/${editingOppId}/activities`, {
+            method: "POST",
+            body: JSON.stringify({
+                activityType: type,
+                subject: subject,
+                description: desc
+            })
+        });
+
+        const subInput = document.getElementById("quickActivitySubject");
+        const descInput = document.getElementById("quickActivityDescription");
+        if (subInput) subInput.value = "";
+        if (descInput) descInput.value = "";
+
+        if (msgEl) {
+            msgEl.style.display = "inline";
+            setTimeout(() => { msgEl.style.display = "none"; }, 3000);
+        }
+
+        const activities = await api(`/api/opportunities/${editingOppId}/activities`);
+        renderOpportunityActivities(activities);
+    } catch (err) {
+        alert("Lỗi khi ghi hoạt động: " + err.message);
+    }
+}
+
+function setupCollaborationAndFilterListeners() {
+    stageFilter?.addEventListener("change", loadOpportunities);
+    productFilter?.addEventListener("change", loadOpportunities);
+    amountMin?.addEventListener("input", debounce(loadOpportunities, 400));
+    amountMax?.addEventListener("input", debounce(loadOpportunities, 400));
+
+    savedFiltersSelect?.addEventListener("change", handleSelectSavedFilter);
+    btnSaveFilterModal?.addEventListener("click", openSaveFilterModal);
+    btnDeleteSavedFilter?.addEventListener("click", handleDeleteSavedFilter);
+
+    document.getElementById("closeSaveFilterModalX")?.addEventListener("click", closeSaveFilterModal);
+    document.getElementById("cancelSaveFilterModalBtn")?.addEventListener("click", closeSaveFilterModal);
+    saveFilterOverlay?.addEventListener("click", closeSaveFilterModal);
+    saveFilterForm?.addEventListener("submit", handleSaveFilter);
+
+    document.getElementById("btnAddMemberBtn")?.addEventListener("click", handleAddMember);
+    document.getElementById("btnLogOpportunityActivity")?.addEventListener("click", handleLogOpportunityActivity);
+}
+
+window.handleRemoveMember = handleRemoveMember;
 window.openReassignModal = openReassignModal;
 window.closeReassignModal = closeReassignModal;
 window.updateBulkActionBar = updateBulkActionBar;

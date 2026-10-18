@@ -83,8 +83,31 @@ public class OpportunityService {
             int page,
             int size
     ) throws Exception {
+        return search(currentUserId, stageId, status, keyword, ownerUserId, teamId, closeDateFrom, closeDateTo, leadSource, null, null, null, null, customFieldKey, customFieldValue, stagnantOnly, page, size);
+    }
+
+    public List<Map<String, Object>> search(
+            long currentUserId,
+            Long stageId,
+            String status,
+            String keyword,
+            Long ownerUserId,
+            Long teamId,
+            String closeDateFrom,
+            String closeDateTo,
+            String leadSource,
+            java.math.BigDecimal minAmount,
+            java.math.BigDecimal maxAmount,
+            Long productId,
+            String productKeyword,
+            String customFieldKey,
+            String customFieldValue,
+            Boolean stagnantOnly,
+            int page,
+            int size
+    ) throws Exception {
         DataScopeContext scope = dataScopeService.resolve(currentUserId, "opportunity", "read");
-        return opportunityDAO.search(scope, stageId, status, keyword, ownerUserId, teamId, closeDateFrom, closeDateTo, leadSource, customFieldKey, customFieldValue, stagnantOnly, page, size);
+        return opportunityDAO.search(scope, stageId, status, keyword, ownerUserId, teamId, closeDateFrom, closeDateTo, leadSource, minAmount, maxAmount, productId, productKeyword, customFieldKey, customFieldValue, stagnantOnly, page, size);
     }
 
     public Map<String, Object> getById(long currentUserId, long id) throws Exception {
@@ -95,7 +118,8 @@ public class OpportunityService {
         }
 
         long ownerId = (Long) opp.get("ownerUserId");
-        if (!scope.canAccessOwner(ownerId)) {
+        boolean isCollaborator = opportunityDAO.isMember(id, currentUserId);
+        if (!scope.canAccessOwner(ownerId) && !isCollaborator) {
             throw new SecurityException("Bạn không có quyền truy cập dữ liệu này do giới hạn phạm vi sở hữu.");
         }
 
@@ -188,8 +212,19 @@ public class OpportunityService {
         }
 
         long ownerId = (Long) existing.get("ownerUserId");
-        if (!scope.canAccessOwner(ownerId)) {
+        boolean isCollaborator = opportunityDAO.isMember(id, currentUserId);
+        boolean canManage = permissionDAO.hasRole(currentUserId, "ADMIN")
+                || permissionDAO.hasRole(currentUserId, "DIRECTOR")
+                || permissionDAO.hasRole(currentUserId, "TEAM_LEAD")
+                || ownerId == currentUserId;
+
+        if (!scope.canAccessOwner(ownerId) && !isCollaborator) {
             throw new SecurityException("Bạn không có quyền truy cập dữ liệu này do giới hạn phạm vi sở hữu.");
+        }
+
+        // Story 3: Thành viên được chia sẻ không thể đổi được người sở hữu
+        if (req.getOwnerUserId() != null && req.getOwnerUserId() != ownerId && !canManage) {
+            throw new SecurityException("Thành viên được chia sẻ không có quyền chuyển quyền sở hữu cơ hội.");
         }
 
         // Story 1: Cơ hội đã đóng (Thắng/Thua) thì khóa chỉnh sửa, chỉ Trưởng nhóm trở lên mới có quyền mở lại
@@ -205,7 +240,7 @@ public class OpportunityService {
             req.setAmount((java.math.BigDecimal) totals.get("totalAmount"));
         }
 
-        opportunityDAO.update(id, req);
+        opportunityDAO.update(id, req, currentUserId);
 
         if (req.getCustomFields() != null && !req.getCustomFields().isEmpty()) {
             customFieldValueDAO.saveValues("OPPORTUNITY", id, req.getCustomFields());
@@ -624,5 +659,82 @@ public class OpportunityService {
         }
 
         opportunityDAO.softDelete(id);
+    }
+
+    public List<Map<String, Object>> getFieldHistory(long currentUserId, long oppId) throws Exception {
+        getById(currentUserId, oppId); // check permissions
+        return opportunityDAO.getFieldHistory(oppId);
+    }
+
+    public List<Map<String, Object>> getMembers(long currentUserId, long oppId) throws Exception {
+        getById(currentUserId, oppId); // check permissions
+        return opportunityDAO.getMembers(oppId);
+    }
+
+    public void addMember(long currentUserId, long oppId, long targetUserId, String roleInOpportunity) throws Exception {
+        Map<String, Object> opp = opportunityDAO.findById(oppId);
+        if (opp == null) throw new NoSuchElementException("Không tìm thấy cơ hội ID: " + oppId);
+
+        long ownerId = (Long) opp.get("ownerUserId");
+        boolean canManage = permissionDAO.hasRole(currentUserId, "ADMIN")
+                || permissionDAO.hasRole(currentUserId, "DIRECTOR")
+                || permissionDAO.hasRole(currentUserId, "TEAM_LEAD")
+                || ownerId == currentUserId;
+
+        if (!canManage) {
+            throw new SecurityException("Chỉ người sở hữu chính hoặc Trưởng nhóm mới có quyền thêm thành viên cùng tham gia.");
+        }
+
+        if (targetUserId == ownerId) {
+            throw new IllegalArgumentException("Người này đã là người sở hữu chính của cơ hội.");
+        }
+
+        opportunityDAO.addMember(oppId, targetUserId, roleInOpportunity, currentUserId);
+
+        auditLogService.log(currentUserId, "OPPORTUNITY", String.valueOf(oppId), "ADD_MEMBER",
+                "Thêm thành viên ID " + targetUserId + " vào cơ hội với vai trò: " + roleInOpportunity);
+    }
+
+    public void removeMember(long currentUserId, long oppId, long targetUserId) throws Exception {
+        Map<String, Object> opp = opportunityDAO.findById(oppId);
+        if (opp == null) throw new NoSuchElementException("Không tìm thấy cơ hội ID: " + oppId);
+
+        long ownerId = (Long) opp.get("ownerUserId");
+        boolean canManage = permissionDAO.hasRole(currentUserId, "ADMIN")
+                || permissionDAO.hasRole(currentUserId, "DIRECTOR")
+                || permissionDAO.hasRole(currentUserId, "TEAM_LEAD")
+                || ownerId == currentUserId
+                || targetUserId == currentUserId; // Cho phép tự rời khỏi cơ hội
+
+        if (!canManage) {
+            throw new SecurityException("Bạn không có quyền xóa thành viên này khỏi cơ hội.");
+        }
+
+        opportunityDAO.removeMember(oppId, targetUserId);
+
+        auditLogService.log(currentUserId, "OPPORTUNITY", String.valueOf(oppId), "REMOVE_MEMBER",
+                "Xóa thành viên ID " + targetUserId + " khỏi đội ngũ cơ hội");
+    }
+
+    public Map<String, Object> logActivity(long currentUserId, long oppId, String subject, String type, String description, java.sql.Timestamp dueDate) throws Exception {
+        Map<String, Object> opp = opportunityDAO.findById(oppId);
+        if (opp == null) throw new NoSuchElementException("Không tìm thấy cơ hội ID: " + oppId);
+
+        long ownerId = (Long) opp.get("ownerUserId");
+        boolean isMember = opportunityDAO.isMember(oppId, currentUserId);
+        boolean canManage = permissionDAO.hasRole(currentUserId, "ADMIN")
+                || permissionDAO.hasRole(currentUserId, "DIRECTOR")
+                || permissionDAO.hasRole(currentUserId, "TEAM_LEAD")
+                || ownerId == currentUserId
+                || isMember;
+
+        if (!canManage) {
+            throw new SecurityException("Bạn không có quyền ghi hoạt động cho cơ hội này.");
+        }
+
+        Long customerId = opp.get("customerId") != null ? ((Number) opp.get("customerId")).longValue() : null;
+        com.crm.service.activities.ActivityService actService = new com.crm.service.activities.ActivityService();
+        return actService.create(currentUserId, subject, type != null ? type : "NOTE", description, "COMPLETED",
+                dueDate != null ? dueDate : new java.sql.Timestamp(System.currentTimeMillis()), customerId, oppId);
     }
 }

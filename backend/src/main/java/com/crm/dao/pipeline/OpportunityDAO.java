@@ -3,8 +3,13 @@ package com.crm.dao.pipeline;
 import com.crm.config.DatabaseConfig;
 import com.crm.dto.pipeline.OpportunityWriteRequest;
 import com.crm.service.permissions.DataScopeContext;
+import com.crm.service.permissions.ScopeType;
 
+import java.math.BigDecimal;
 import java.sql.*;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class OpportunityDAO {
@@ -17,7 +22,7 @@ public class OpportunityDAO {
             int page,
             int size
     ) throws SQLException {
-        return search(scope, stageId, status, keyword, null, null, null, null, null, null, null, page, size);
+        return search(scope, stageId, status, keyword, null, null, null, null, null, null, null, null, null, null, null, null, page, size);
     }
 
     public List<Map<String, Object>> search(
@@ -30,7 +35,7 @@ public class OpportunityDAO {
             int page,
             int size
     ) throws SQLException {
-        return search(scope, stageId, status, keyword, null, null, null, null, null, customFieldKey, customFieldValue, page, size);
+        return search(scope, stageId, status, keyword, null, null, null, null, null, null, null, null, null, customFieldKey, customFieldValue, null, page, size);
     }
 
     public List<Map<String, Object>> search(
@@ -48,7 +53,7 @@ public class OpportunityDAO {
             int page,
             int size
     ) throws SQLException {
-        return search(scope, stageId, status, keyword, ownerUserId, teamId, closeDateFrom, closeDateTo, leadSource, customFieldKey, customFieldValue, null, page, size);
+        return search(scope, stageId, status, keyword, ownerUserId, teamId, closeDateFrom, closeDateTo, leadSource, null, null, null, null, customFieldKey, customFieldValue, null, page, size);
     }
 
     public List<Map<String, Object>> search(
@@ -61,6 +66,29 @@ public class OpportunityDAO {
             String closeDateFrom,
             String closeDateTo,
             String leadSource,
+            String customFieldKey,
+            String customFieldValue,
+            Boolean stagnantOnly,
+            int page,
+            int size
+    ) throws SQLException {
+        return search(scope, stageId, status, keyword, ownerUserId, teamId, closeDateFrom, closeDateTo, leadSource, null, null, null, null, customFieldKey, customFieldValue, stagnantOnly, page, size);
+    }
+
+    public List<Map<String, Object>> search(
+            DataScopeContext scope,
+            Long stageId,
+            String status,
+            String keyword,
+            Long ownerUserId,
+            Long teamId,
+            String closeDateFrom,
+            String closeDateTo,
+            String leadSource,
+            BigDecimal minAmount,
+            BigDecimal maxAmount,
+            Long productId,
+            String productKeyword,
             String customFieldKey,
             String customFieldValue,
             Boolean stagnantOnly,
@@ -124,7 +152,22 @@ public class OpportunityDAO {
 
         List<Object> params = new ArrayList<>();
         if (scope != null) {
-            scope.appendOwnerPredicate("o.owner_user_id", sql, params);
+            if (scope.scopeType() == ScopeType.ALL) {
+                // Toàn quyền xem
+            } else if (scope.allowedOwnerIds().isEmpty()) {
+                sql.append(" AND EXISTS (SELECT 1 FROM opportunity_members om WHERE om.opportunity_id = o.id AND om.user_id = ?)");
+                params.add(scope.currentUserId());
+            } else {
+                sql.append(" AND (o.owner_user_id IN (");
+                int sIdx = 0;
+                for (Long id : scope.allowedOwnerIds()) {
+                    if (sIdx++ > 0) sql.append(',');
+                    sql.append('?');
+                    params.add(id);
+                }
+                sql.append(") OR EXISTS (SELECT 1 FROM opportunity_members om WHERE om.opportunity_id = o.id AND om.user_id = ?))");
+                params.add(scope.currentUserId());
+            }
         }
 
         if (ownerUserId != null && ownerUserId > 0) {
@@ -149,6 +192,26 @@ public class OpportunityDAO {
         if (closeDateTo != null && !closeDateTo.isBlank()) {
             sql.append(" AND o.expected_close_date <= ?");
             params.add(java.sql.Date.valueOf(closeDateTo.trim()));
+        }
+
+        if (minAmount != null) {
+            sql.append(" AND o.amount >= ?");
+            params.add(minAmount);
+        }
+
+        if (maxAmount != null) {
+            sql.append(" AND o.amount <= ?");
+            params.add(maxAmount);
+        }
+
+        if (productId != null && productId > 0) {
+            sql.append(" AND EXISTS (SELECT 1 FROM opportunity_items oi WHERE oi.opportunity_id = o.id AND oi.product_id = ?)");
+            params.add(productId);
+        }
+
+        if (productKeyword != null && !productKeyword.isBlank()) {
+            sql.append(" AND EXISTS (SELECT 1 FROM opportunity_items oi WHERE oi.opportunity_id = o.id AND LOWER(oi.product_name) LIKE ?)");
+            params.add("%" + productKeyword.trim().toLowerCase() + "%");
         }
 
         if (leadSource != null && !leadSource.isBlank()) {
@@ -271,16 +334,22 @@ public class OpportunityDAO {
                 WHERE o.id = ? AND o.is_deleted = 0
                 """;
 
+        Map<String, Object> opp = null;
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, id);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    return mapOpportunity(rs);
+                    opp = mapOpportunity(rs);
                 }
             }
         }
-        return null;
+        if (opp != null) {
+            List<Map<String, Object>> members = getMembers(id);
+            opp.put("members", members);
+            opp.put("memberCount", members.size());
+        }
+        return opp;
     }
 
     public void closeDeal(long id, String status, Long winReasonId, Long lossReasonId, Long competitorId, String lostReason) throws SQLException {
@@ -315,6 +384,11 @@ public class OpportunityDAO {
             stmt.setLong(8, id);
             stmt.executeUpdate();
         }
+
+        try {
+            recordFieldHistory(id, "STATUS", "Trạng thái", "Đang mở (OPEN)", "WON".equalsIgnoreCase(status) ? "Thành công (WON)" : "Thất bại (LOST)", 1L,
+                    "WON".equalsIgnoreCase(status) ? ("Ký hợp đồng: " + formatMoney(actualAmount) + ", ngày chốt: " + actualCloseDate) : ("Lý do thua: " + (lostReason != null ? lostReason : "")));
+        } catch (Exception ignored) {}
     }
 
     public void reopenDeal(long id, String reopenReason, long reopenedBy) throws SQLException {
@@ -334,6 +408,10 @@ public class OpportunityDAO {
             stmt.setLong(3, id);
             stmt.executeUpdate();
         }
+
+        try {
+            recordFieldHistory(id, "STATUS", "Trạng thái", "Đã đóng", "Mở lại (OPEN)", reopenedBy, reopenReason);
+        } catch (Exception ignored) {}
     }
 
     public int scanAndFlagStagnantOpportunities() throws SQLException {
@@ -521,6 +599,12 @@ public class OpportunityDAO {
     }
 
     public void update(long id, OpportunityWriteRequest req) throws SQLException {
+        update(id, req, null);
+    }
+
+    public void update(long id, OpportunityWriteRequest req, Long changedByUserId) throws SQLException {
+        Map<String, Object> oldOpp = findById(id);
+
         String sql = """
                 UPDATE opportunities SET
                     name = ?, customer_id = ?, contact_id = ?, contact_name = ?, amount = ?, stage_id = ?,
@@ -551,6 +635,34 @@ public class OpportunityDAO {
 
             stmt.executeUpdate();
         }
+
+        if (oldOpp != null && changedByUserId != null) {
+            try {
+                // 1. Amount
+                BigDecimal oldAmt = (BigDecimal) oldOpp.get("amount");
+                BigDecimal newAmt = req.getAmount();
+                if (newAmt != null && (oldAmt == null || oldAmt.compareTo(newAmt) != 0)) {
+                    recordFieldHistory(id, "AMOUNT", "Giá trị cơ hội", formatMoney(oldAmt), formatMoney(newAmt), changedByUserId, "Cập nhật thông tin cơ hội");
+                }
+
+                // 2. Expected close date
+                Object oldDateObj = oldOpp.get("expectedCloseDate");
+                String oldDateStr = oldDateObj != null ? oldDateObj.toString() : null;
+                String newDateStr = req.getExpectedCloseDate() != null && !req.getExpectedCloseDate().isBlank() ? req.getExpectedCloseDate().trim() : null;
+                if (newDateStr != null && !Objects.equals(oldDateStr, newDateStr)) {
+                    recordFieldHistory(id, "EXPECTED_CLOSE_DATE", "Ngày dự kiến chốt", formatDate(oldDateObj), formatDate(newDateStr), changedByUserId, "Điều chỉnh thời hạn chốt");
+                }
+
+                // 3. Stage
+                Long oldStageId = oldOpp.get("stageId") != null ? ((Number) oldOpp.get("stageId")).longValue() : null;
+                Long newStageId = req.getStageId();
+                if (newStageId != null && !Objects.equals(oldStageId, newStageId)) {
+                    String oldStageName = (String) oldOpp.get("stageName");
+                    String newStageName = getStageName(newStageId);
+                    recordFieldHistory(id, "STAGE", "Giai đoạn", oldStageName, newStageName, changedByUserId, "Chuyển giai đoạn cơ hội");
+                }
+            } catch (Exception ignored) {}
+        }
     }
 
     public void updateStage(long id, long targetStageId, int probability) throws SQLException {
@@ -558,6 +670,10 @@ public class OpportunityDAO {
     }
 
     public void updateStage(long id, long targetStageId, int probability, String overrideReason, Long overriddenBy) throws SQLException {
+        Map<String, Object> oldOpp = findById(id);
+        String oldStageName = oldOpp != null ? (String) oldOpp.get("stageName") : "Giai đoạn trước";
+        String newStageName = getStageName(targetStageId);
+
         String sql = """
                 UPDATE opportunities 
                 SET stage_id = ?, probability = ?, stage_updated_at = NOW(),
@@ -576,6 +692,11 @@ public class OpportunityDAO {
             stmt.setLong(6, id);
             stmt.executeUpdate();
         }
+
+        Long actorId = overriddenBy != null ? overriddenBy : 1L;
+        try {
+            recordFieldHistory(id, "STAGE", "Giai đoạn", oldStageName, newStageName, actorId, overrideReason != null && !overrideReason.isBlank() ? "Ghi đè: " + overrideReason : "Chuyển giai đoạn quy trình");
+        } catch (Exception ignored) {}
     }
 
     public int reassign(long oppId, long toUserId, long assignedByUserId, String reason, String notes) throws SQLException {
@@ -651,6 +772,11 @@ public class OpportunityDAO {
                     stmt.setString(6, notes);
                     stmt.executeUpdate();
                 }
+
+                // 5b. Ghi nhật ký vào opportunity_field_history
+                try {
+                    recordFieldHistory(conn, oppId, "OWNER", "Người sở hữu", fromUserName, toUserName, assignedByUserId, reason);
+                } catch (Exception ignored) {}
 
                 // 6. Ghi hoạt động vào bảng activities để hiển thị dòng thời gian cơ hội
                 try (PreparedStatement stmt = conn.prepareStatement(insertActivitySql)) {
@@ -793,6 +919,186 @@ public class OpportunityDAO {
             }
         }
         return list;
+    }
+
+    public String getStageName(long stageId) {
+        String sql = "SELECT name FROM pipeline_stages WHERE id = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, stageId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) return rs.getString("name");
+            }
+        } catch (Exception ignored) {}
+        return "Giai đoạn #" + stageId;
+    }
+
+    public String formatMoney(BigDecimal amount) {
+        if (amount == null) return "0 ₫";
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols(new Locale("vi", "VN"));
+        symbols.setGroupingSeparator(',');
+        DecimalFormat df = new DecimalFormat("#,##0 ₫", symbols);
+        return df.format(amount);
+    }
+
+    public String formatDate(Object dateObj) {
+        if (dateObj == null) return "Chưa đặt";
+        if (dateObj instanceof java.sql.Date d) {
+            return new SimpleDateFormat("dd/MM/yyyy").format(d);
+        }
+        return String.valueOf(dateObj);
+    }
+
+    public void recordFieldHistory(long oppId, String fieldName, String fieldLabel, String oldValue, String newValue, long changedByUserId, String reason) throws SQLException {
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            recordFieldHistory(conn, oppId, fieldName, fieldLabel, oldValue, newValue, changedByUserId, reason);
+        }
+    }
+
+    public void recordFieldHistory(Connection conn, long oppId, String fieldName, String fieldLabel, String oldValue, String newValue, long changedByUserId, String reason) throws SQLException {
+        if (Objects.equals(oldValue, newValue)) return;
+        String sql = """
+                INSERT INTO opportunity_field_history (opportunity_id, field_name, field_label, old_value, new_value, changed_by_user_id, reason, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+                """;
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, oppId);
+            stmt.setString(2, fieldName);
+            stmt.setString(3, fieldLabel);
+            stmt.setString(4, oldValue);
+            stmt.setString(5, newValue);
+            stmt.setLong(6, changedByUserId);
+            stmt.setString(7, reason);
+            stmt.executeUpdate();
+        }
+    }
+
+    public List<Map<String, Object>> getFieldHistory(long oppId) throws SQLException {
+        String sql = """
+                SELECT 
+                    h.id,
+                    h.opportunity_id,
+                    h.field_name,
+                    h.field_label,
+                    h.old_value,
+                    h.new_value,
+                    h.changed_by_user_id,
+                    COALESCE(u.full_name, 'Hệ thống') AS changed_by_name,
+                    h.reason,
+                    h.created_at
+                FROM opportunity_field_history h
+                LEFT JOIN users u ON u.id = h.changed_by_user_id
+                WHERE h.opportunity_id = ?
+                ORDER BY h.created_at DESC, h.id DESC
+                """;
+        List<Map<String, Object>> list = new ArrayList<>();
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, oppId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> map = new LinkedHashMap<>();
+                    map.put("id", rs.getLong("id"));
+                    map.put("opportunityId", rs.getLong("opportunity_id"));
+                    map.put("fieldName", rs.getString("field_name"));
+                    map.put("fieldLabel", rs.getString("field_label"));
+                    map.put("oldValue", rs.getString("old_value"));
+                    map.put("newValue", rs.getString("new_value"));
+                    map.put("changedByUserId", rs.getLong("changed_by_user_id"));
+                    map.put("changedByName", rs.getString("changed_by_name"));
+                    map.put("reason", rs.getString("reason"));
+                    map.put("createdAt", rs.getTimestamp("created_at"));
+                    list.add(map);
+                }
+            }
+        }
+        return list;
+    }
+
+    public List<Map<String, Object>> getMembers(long oppId) throws SQLException {
+        String sql = """
+                SELECT 
+                    m.id,
+                    m.opportunity_id,
+                    m.user_id,
+                    u.full_name AS user_name,
+                    u.email AS user_email,
+                    t.name AS team_name,
+                    m.role_in_opportunity,
+                    m.can_log_activity,
+                    m.can_change_owner,
+                    m.added_by_user_id,
+                    COALESCE(u_by.full_name, 'Quản trị viên') AS added_by_name,
+                    m.created_at
+                FROM opportunity_members m
+                JOIN users u ON u.id = m.user_id
+                LEFT JOIN teams t ON t.id = u.team_id
+                LEFT JOIN users u_by ON u_by.id = m.added_by_user_id
+                WHERE m.opportunity_id = ?
+                ORDER BY m.created_at ASC, m.id ASC
+                """;
+        List<Map<String, Object>> list = new ArrayList<>();
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, oppId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> map = new LinkedHashMap<>();
+                    map.put("id", rs.getLong("id"));
+                    map.put("opportunityId", rs.getLong("opportunity_id"));
+                    map.put("userId", rs.getLong("user_id"));
+                    map.put("userName", rs.getString("user_name"));
+                    map.put("userEmail", rs.getString("user_email"));
+                    map.put("teamName", rs.getString("team_name"));
+                    map.put("roleInOpportunity", rs.getString("role_in_opportunity"));
+                    map.put("canLogActivity", rs.getInt("can_log_activity") == 1);
+                    map.put("canChangeOwner", rs.getInt("can_change_owner") == 1);
+                    map.put("addedByUserId", rs.getLong("added_by_user_id"));
+                    map.put("addedByName", rs.getString("added_by_name"));
+                    map.put("createdAt", rs.getTimestamp("created_at"));
+                    list.add(map);
+                }
+            }
+        }
+        return list;
+    }
+
+    public boolean isMember(long oppId, long userId) throws SQLException {
+        String sql = "SELECT 1 FROM opportunity_members WHERE opportunity_id = ? AND user_id = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, oppId);
+            stmt.setLong(2, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    public void addMember(long oppId, long userId, String roleInOpportunity, long addedByUserId) throws SQLException {
+        String sql = """
+                INSERT INTO opportunity_members (opportunity_id, user_id, role_in_opportunity, can_log_activity, can_change_owner, added_by_user_id, created_at)
+                VALUES (?, ?, ?, 1, 0, ?, NOW())
+                ON DUPLICATE KEY UPDATE role_in_opportunity = VALUES(role_in_opportunity)
+                """;
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, oppId);
+            stmt.setLong(2, userId);
+            stmt.setString(3, roleInOpportunity != null && !roleInOpportunity.isBlank() ? roleInOpportunity.trim() : "Thành viên tham gia");
+            stmt.setLong(4, addedByUserId);
+            stmt.executeUpdate();
+        }
+    }
+
+    public boolean removeMember(long oppId, long userId) throws SQLException {
+        String sql = "DELETE FROM opportunity_members WHERE opportunity_id = ? AND user_id = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, oppId);
+            stmt.setLong(2, userId);
+            return stmt.executeUpdate() > 0;
+        }
     }
 }
 

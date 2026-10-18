@@ -1420,3 +1420,284 @@
     cursor: pointer;
     accent-color: #0284c7;
 }
+
+/* =========================================================
+   USER STORY 1: AUDIT & FIELD CHANGE HISTORY
+========================================================= */
+.opp-history-section {
+    margin-top: 18px;
+    border-top: 1px dashed var(--crm-border, #cbd5e1);
+    padding-top: 16px;
+}
+.opp-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.opp-history-title {
+    font-weight: 700;
+    font-size: 13.5px;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.opp-history-badge {
+    background: #e0f2fe;
+    color: #0369a1;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 700;
+}
+.opp-history-table-wrap {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow-x: auto;
+}
+.opp-history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+.opp-history-table th {
+    background: #f1f5f9;
+    padding: 8px 10px;
+    text-align: left;
+    color: #475569;
+    font-weight: 700;
+    border-bottom: 1px solid #e2e8f0;
+    white-space: nowrap;
+}
+.opp-history-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #e2e8f0;
+    color: #1e293b;
+    vertical-align: top;
+}
+.opp-history-table tr:last-child td {
+    border-bottom: none;
+}
+.diff-badge-old {
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-decoration: line-through;
+    margin-right: 4px;
+    display: inline-block;
+}
+.diff-badge-arrow {
+    color: #64748b;
+    font-weight: 800;
+    margin-right: 4px;
+}
+.diff-badge-new {
+    background: #dcfce7;
+    color: #166534;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    display: inline-block;
+}
+.field-name-badge {
+    background: #e2e8f0;
+    color: #334155;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* =========================================================
+   USER STORY 3: OPPORTUNITY TEAM MEMBERS & COLLABORATION
+========================================================= */
+.opp-team-section {
+    margin-top: 18px;
+    border-top: 1px dashed var(--crm-border, #cbd5e1);
+    padding-top: 16px;
+}
+.opp-team-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.opp-collaborator-banner {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.45;
+    margin-bottom: 12px;
+}
+.opp-members-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+.opp-member-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    gap: 10px;
+}
+.opp-member-card.is-owner {
+    background: #fdf4ff;
+    border-color: #f0abfc;
+}
+.opp-member-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+.opp-member-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #3b82f6;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+.opp-member-name {
+    font-weight: 600;
+    font-size: 13px;
+    color: #0f172a;
+    line-height: 1.3;
+}
+.opp-member-role-tag {
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-weight: 600;
+    display: inline-block;
+}
+.opp-member-role-tag.owner {
+    background: #fae8ff;
+    color: #86198f;
+}
+.opp-member-role-tag.collaborator {
+    background: #f1f5f9;
+    color: #475569;
+}
+.btn-remove-member {
+    background: none;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.15s;
+}
+.btn-remove-member:hover {
+    background: #fee2e2;
+}
+
+.opp-add-member-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+/* Quick Activity Log Box */
+.opp-quick-activity-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 12px;
+}
+.opp-activities-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+.opp-activity-item {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 12px;
+}
+.opp-activity-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3px;
+}
+
+/* =========================================================
+   USER STORY 2: SAVED FILTERS & MULTI-CRITERIA CONTROLS
+========================================================= */
+.saved-filters-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.btn-save-filter-pill {
+    background: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.btn-save-filter-pill:hover {
+    background: #d1fae5;
+}
+.btn-delete-filter-pill {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.btn-delete-filter-pill:hover:not(:disabled) {
+    background: #fee2e2;
+}
+.btn-delete-filter-pill:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Filter Price Range */
+.amount-range-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.amount-range-input {
+    width: 100%;
+}
