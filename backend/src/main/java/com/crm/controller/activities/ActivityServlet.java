@@ -39,6 +39,41 @@ public class ActivityServlet extends HttpServlet {
                 return;
             }
 
+            if ("/reminders".equals(path)) {
+                int windowMinutes = intParam(req, "windowMinutes", 60);
+                int limit = intParam(req, "limit", 20);
+                var upcoming = activityService.getUpcomingTasks(currentUserId, windowMinutes, limit);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Lấy danh sách nhắc việc sắp đến hạn thành công", upcoming));
+                return;
+            }
+
+            if ("/overdue".equals(path)) {
+                Long teamId = longParam(req, "teamId");
+                int limit = intParam(req, "limit", 20);
+                var overdue = activityService.getOverdueTasks(currentUserId, teamId, limit);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Lấy danh sách công việc quá hạn thành công", overdue));
+                return;
+            }
+
+            if ("/team-overdue-summary".equals(path)) {
+                Long teamId = longParam(req, "teamId");
+                var summary = activityService.getTeamOverdueSummary(currentUserId, teamId);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Lấy tổng hợp công việc quá hạn theo thành viên thành công", summary));
+                return;
+            }
+
+            if ("/team-stats".equals(path)) {
+                Timestamp fromDate = parseTimestamp(req.getParameter("fromDate"));
+                Timestamp toDate = parseTimestamp(req.getParameter("toDate"));
+                Long teamId = longParam(req, "teamId");
+                String type = req.getParameter("type");
+                Long memberUserId = longParam(req, "memberUserId");
+
+                var stats = activityService.getTeamActivityStats(currentUserId, fromDate, toDate, teamId, type, memberUserId);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Lấy thống kê hoạt động theo thành viên thành công", stats));
+                return;
+            }
+
             if (path == null || path.equals("/")) {
                 Long customerId = longParam(req, "customerId");
                 Long contactId = longParam(req, "contactId");
@@ -110,6 +145,28 @@ public class ActivityServlet extends HttpServlet {
 
                 var postponed = activityService.postpone(currentUserId, id, reason, newDue);
                 ResponseUtil.json(resp, 200, ApiResponse.success("Đã cập nhật trạng thái hoãn công việc", postponed));
+                return;
+            }
+
+            // Action: /api/activities/quick-call
+            if ("/quick-call".equals(path)) {
+                Map<String, Object> body = JsonUtil.getGson().fromJson(req.getReader(), com.crm.util.JsonUtil.OBJECT_MAP_TYPE);
+                if (body == null) {
+                    throw new IllegalArgumentException("Thiếu dữ liệu body");
+                }
+                Long customerId = parseLongSafe(body.get("customerId"));
+                if (customerId == null || customerId <= 0) {
+                    throw new IllegalArgumentException("Vui lòng chọn khách hàng để ghi nhận cuộc gọi.");
+                }
+                Long contactId = parseLongSafe(body.get("contactId"));
+                String outcome = body.get("outcome") != null ? String.valueOf(body.get("outcome")).trim() : "Nghe máy - Quan tâm";
+                String notes = body.get("notes") != null ? String.valueOf(body.get("notes")).trim() : "";
+
+                String callbackAtStr = body.get("callbackAt") != null ? String.valueOf(body.get("callbackAt")) : null;
+                Timestamp callbackAt = parseTimestamp(callbackAtStr);
+
+                var quickResult = activityService.quickLogCall(currentUserId, customerId, contactId, outcome, notes, callbackAt);
+                ResponseUtil.json(resp, 201, ApiResponse.success("Đã ghi nhanh kết quả cuộc gọi thành công", quickResult));
                 return;
             }
 
@@ -264,6 +321,16 @@ public class ActivityServlet extends HttpServlet {
         }
     }
 
+    private int intParam(HttpServletRequest req, String name, int defaultVal) {
+        String val = req.getParameter(name);
+        if (val == null || val.isBlank()) return defaultVal;
+        try {
+            return Integer.parseInt(val.trim());
+        } catch (NumberFormatException e) {
+            return defaultVal;
+        }
+    }
+
     private long parseId(String path) {
         if (path == null || path.equals("/")) throw new IllegalArgumentException("Thiếu ID");
         String clean = path.startsWith("/") ? path.substring(1) : path;
@@ -294,6 +361,18 @@ public class ActivityServlet extends HttpServlet {
             } catch (Exception ignored) {
                 return null;
             }
+        }
+    }
+
+    private Long parseLongSafe(Object val) {
+        if (val == null) return null;
+        if (val instanceof Number n) return n.longValue();
+        String str = String.valueOf(val).trim();
+        if (str.isBlank()) return null;
+        try {
+            return (long) Double.parseDouble(str);
+        } catch (Exception e) {
+            return null;
         }
     }
 

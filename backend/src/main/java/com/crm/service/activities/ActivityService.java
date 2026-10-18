@@ -244,4 +244,64 @@ public class ActivityService {
 
         activityDAO.softDelete(id);
     }
+
+    public List<Map<String, Object>> getOverdueTasks(long currentUserId, Long teamId, int limit) throws Exception {
+        DataScopeContext scope = dataScopeService.resolve(currentUserId, "activity", "read");
+        Long targetTeamId = teamId;
+        Long targetUserId = null;
+        if (scope.scopeType() == ScopeType.SELF) {
+            targetUserId = currentUserId;
+        } else if (scope.scopeType() == ScopeType.TEAM && targetTeamId == null) {
+            targetTeamId = scope.teamId();
+        }
+        return activityDAO.getOverdueTasks(scope, targetUserId, targetTeamId, limit);
+    }
+
+    public List<Map<String, Object>> getUpcomingTasks(long currentUserId, int windowMinutes, int limit) throws Exception {
+        DataScopeContext scope = dataScopeService.resolve(currentUserId, "activity", "read");
+        Long targetUserId = (scope.scopeType() == ScopeType.SELF) ? currentUserId : null;
+        return activityDAO.getUpcomingTasks(scope, targetUserId, windowMinutes, limit);
+    }
+
+    public List<Map<String, Object>> getTeamOverdueSummary(long currentUserId, Long teamId) throws Exception {
+        DataScopeContext scope = dataScopeService.resolve(currentUserId, "activity", "read");
+        Long targetTeamId = teamId;
+        if (targetTeamId == null && scope.teamId() != null) {
+            targetTeamId = scope.teamId();
+        }
+        return activityDAO.getTeamOverdueSummary(scope, targetTeamId);
+    }
+
+    public Map<String, Object> quickLogCall(
+            long currentUserId,
+            long customerId,
+            Long contactId,
+            String outcome,
+            String notes,
+            Timestamp callbackAt
+    ) throws Exception {
+        if (customerId <= 0) {
+            throw new IllegalArgumentException("Khách hàng là bắt buộc để ghi nhận cuộc gọi.");
+        }
+        if (outcome == null || outcome.isBlank()) {
+            outcome = "Nghe máy - Quan tâm";
+        }
+        return activityDAO.quickLogCall(currentUserId, customerId, contactId, outcome, notes, callbackAt);
+    }
+
+    public Map<String, Object> getTeamActivityStats(
+            long currentUserId,
+            Timestamp fromDate,
+            Timestamp toDate,
+            Long teamId,
+            String type,
+            Long memberUserId
+    ) throws Exception {
+        DataScopeContext scope = dataScopeService.resolve(currentUserId, "activity", "read");
+        Long targetTeamId = teamId;
+        if (targetTeamId == null && scope.teamId() != null) {
+            targetTeamId = scope.teamId();
+        }
+        return activityDAO.getTeamActivityStats(scope, fromDate, toDate, targetTeamId, type, memberUserId);
+    }
 }

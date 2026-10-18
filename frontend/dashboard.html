@@ -233,15 +233,29 @@
 
     <div class="crm-top-actions">
 
-        <button
-            class="crm-icon-btn"
-            type="button"
-            title="Thông báo"
-        >
-            <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
-
-            <span class="crm-notification-dot"></span>
-        </button>
+        <div style="position:relative;">
+            <button
+                id="btnRemindersBell"
+                class="crm-icon-btn"
+                type="button"
+                title="Nhắc việc & Quá hạn"
+            >
+                <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
+                <span id="bellBadge" class="crm-notification-dot" style="display:none; background:#ef4444;"></span>
+            </button>
+            <div id="remindersDropdown" class="crm-card" style="display:none; position:absolute; right:0; top:42px; width:340px; z-index:1000; padding:12px; box-shadow:0 10px 25px rgba(0,0,0,0.15); border-radius:10px; background:#fff;">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--crm-border); padding-bottom:8px; margin-bottom:8px;">
+                    <strong style="font-size:13px; color:var(--crm-text);">🔔 Nhắc việc & Quá hạn</strong>
+                    <span id="remindersCountBadge" style="font-size:11px; font-weight:700; color:#dc2626;">0 việc</span>
+                </div>
+                <div id="remindersDropdownList" style="max-height:260px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;">
+                    <div style="font-size:12px; color:var(--crm-muted); text-align:center; padding:12px 0;">Đang kiểm tra nhắc việc...</div>
+                </div>
+                <div style="border-top:1px solid var(--crm-border); margin-top:8px; padding-top:8px; text-align:center;">
+                    <a href="tasks" style="font-size:12px; color:var(--crm-primary); text-decoration:none; font-weight:600;">Xem toàn bộ công việc →</a>
+                </div>
+            </div>
+        </div>
 
 
         <div class="crm-user">
@@ -366,9 +380,55 @@
 
     </section>
 
+    <!-- ⚠️ OVERDUE TASKS PROMINENT ALERT BANNER (Story 1) -->
+    <section id="overdueAlertBanner" class="overdue-banner" style="display:none; margin-bottom: 22px;">
+        <div class="overdue-banner-head">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <span class="overdue-pulse-badge">⚠️ QUÁ HẠN</span>
+                <div>
+                    <h3 id="overdueBannerTitle" style="margin:0; font-size:15px; font-weight:700; color:#991b1b;">
+                        Bạn có công việc quá hạn cần xử lý ngay!
+                    </h3>
+                    <p style="margin:3px 0 0; font-size:12.5px; color:#b91c1c;">
+                        Đừng để công việc bị trôi vì bận chạy thương vụ khác. Hãy hoàn thành hoặc hoãn lại kèm lý do cụ thể.
+                    </p>
+                </div>
+            </div>
+            <a href="tasks" class="crm-btn crm-btn-secondary" style="font-size:12px; padding:6px 14px; background:#fff; color:#991b1b; border:1px solid #f87171; text-decoration:none;">
+                Xem tất cả việc quá hạn →
+            </a>
+        </div>
+        <div id="overdueTasksList" class="overdue-cards-grid"></div>
+    </section>
+
+    <!-- 🔔 UPCOMING TASKS IN-APP REMINDER BANNER (Story 1) -->
+    <section id="upcomingAlertBanner" class="upcoming-banner" style="display:none; margin-bottom: 22px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:22px;">🔔</span>
+                <div>
+                    <h4 id="upcomingBannerTitle" style="margin:0; font-size:14px; font-weight:700; color:#854d0e;">
+                        Nhắc việc sắp đến hạn: Có công việc cần hoàn thành sớm!
+                    </h4>
+                    <p id="upcomingBannerSubtitle" style="margin:2px 0 0; font-size:12px; color:#a16207;">
+                        Mốc nhắc hiện tại: Trong 60 phút tới.
+                    </p>
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <label for="reminderThresholdSelect" style="font-size:12px; color:#854d0e; font-weight:600;">Mốc cấu hình nhắc:</label>
+                <select id="reminderThresholdSelect" class="crm-input" style="font-size:12px; padding:4px 8px; border-radius:6px; height:32px; background:#fff;">
+                    <option value="15">Trước 15 phút</option>
+                    <option value="60" selected>Trước 1 giờ</option>
+                    <option value="1440">Trước 1 ngày (24h)</option>
+                    <option value="2880">Trước 2 ngày (48h)</option>
+                </select>
+            </div>
+        </div>
+        <div id="upcomingTasksList" class="upcoming-chips-row" style="margin-top:12px; display:flex; flex-wrap:wrap; gap:8px;"></div>
+    </section>
 
     <!-- KPI -->
-
     <section class="dashboard-kpis">
 
 
@@ -636,7 +696,24 @@
 
         </article>
 
+    </section>
 
+    <!-- 👥 TRƯỞNG NHÓM: THEO DÕI VIỆC QUÁ HẠN CỦA TỪNG THÀNH VIÊN (Story 1) -->
+    <section id="teamOverdueSection" class="crm-card dashboard-panel" style="display:none; margin-bottom:24px; padding:18px;">
+        <header class="panel-head" style="margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div>
+                <h2 style="font-size:16px; font-weight:700; display:flex; align-items:center; gap:8px; margin:0;">
+                    <span>👥 Theo dõi công việc quá hạn của từng thành viên</span>
+                    <span class="count-badge-overdue" id="badgeTeamOverdueTotal" style="font-size:12px;">0 việc quá hạn</span>
+                </h2>
+                <p style="font-size:12.5px; color:var(--crm-muted); margin:3px 0 0;">
+                    Dành riêng cho Trưởng nhóm kinh doanh để nắm tổng số việc tồn đọng và đôn đốc kịp thời.
+                </p>
+            </div>
+            <a href="activities" class="panel-link">Xem báo cáo hoạt động nhóm →</a>
+        </header>
+
+        <div class="team-overdue-grid" id="teamOverdueList"></div>
     </section>
 
 
@@ -917,6 +994,132 @@
 
 
 
+
+    <!-- 📞 FLOATING ACTION BUTTON (FAB) GHI NHANH CUỘC GỌI <= 3 CHẠM (Story 2) -->
+    <button type="button" id="fabQuickCall" class="quick-call-fab" title="Ghi nhanh cuộc gọi trên điện thoại">
+        <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true" style="width:20px;height:20px;fill:currentColor;"><path d="M5 3h4l2 5-3 2c2 3 3 4 6 6l2-3 5 2v4c0 2-2 3-4 2C9 19 5 15 3 7 2 5 3 3 5 3Z"/></svg>
+        <span>Ghi nhanh cuộc gọi</span>
+    </button>
+
+    <!-- MODAL GHI NHANH CUỘC GỌI (TỐI ƯU <= 3 CHẠM TRÊN ĐIỆN THOẠI) (Story 2) -->
+    <div id="quickCallOverlay" class="crm-modal-backdrop" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:9998; backdrop-filter:blur(2px);"></div>
+    <div id="quickCallModal" class="crm-modal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:90%; max-width:480px; z-index:9999; background:#fff; border-radius:16px; box-shadow:0 20px 40px rgba(0,0,0,0.2); overflow:hidden;">
+        <div style="background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:#fff; padding:16px 20px; display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:20px;">📞</span>
+                <strong style="font-size:16px;">Ghi nhanh cuộc gọi (3 chạm)</strong>
+            </div>
+            <button type="button" id="closeQuickCallModal" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer; line-height:1;">&times;</button>
+        </div>
+
+        <form id="quickCallForm" style="padding:18px 20px; display:flex; flex-direction:column; gap:14px; max-height:80vh; overflow-y:auto;">
+            <!-- CHẠM 1: CHỌN KHÁCH HÀNG -->
+            <div>
+                <label style="font-size:12.5px; font-weight:700; color:#334155; display:block; margin-bottom:6px;">
+                    1. Khách hàng <span style="color:#ef4444;">*</span>
+                </label>
+                <select id="quickCallCustomerSelect" class="crm-input" style="width:100%; height:40px; font-size:13.5px; border-radius:8px;" required>
+                    <option value="">-- Chọn khách hàng vừa gọi --</option>
+                </select>
+                <div id="quickCallLinkedOppNotice" style="display:none; font-size:12px; color:#15803d; background:#dcfce7; padding:6px 10px; border-radius:6px; margin-top:6px; border:1px solid #bbf7d0;">
+                    🔗 Tự động gắn vào cơ hội mở gần nhất: <strong id="quickCallOppName">—</strong>
+                </div>
+            </div>
+
+            <!-- CHẠM 2: KẾT QUẢ CUỘC GỌI -->
+            <div>
+                <label style="font-size:12.5px; font-weight:700; color:#334155; display:block; margin-bottom:6px;">
+                    2. Kết quả cuộc gọi (Chạm 1 nút) <span style="color:#ef4444;">*</span>
+                </label>
+                <div class="quick-call-touch-grid">
+                    <button type="button" class="touch-btn active" data-outcome="Nghe máy - Quan tâm">
+                        <span style="font-size:18px;">👍</span>
+                        <span>Quan tâm</span>
+                    </button>
+                    <button type="button" class="touch-btn outcome-call-back" data-outcome="Hẹn gọi lại">
+                        <span style="font-size:18px;">📅</span>
+                        <span>Hẹn gọi lại</span>
+                    </button>
+                    <button type="button" class="touch-btn" data-outcome="Không nghe máy">
+                        <span style="font-size:18px;">📵</span>
+                        <span>Không nghe</span>
+                    </button>
+                    <button type="button" class="touch-btn" data-outcome="Máy bận">
+                        <span style="font-size:18px;">⏳</span>
+                        <span>Máy bận</span>
+                    </button>
+                    <button type="button" class="touch-btn outcome-reject" data-outcome="Từ chối">
+                        <span style="font-size:18px;">❌</span>
+                        <span>Từ chối</span>
+                    </button>
+                </div>
+                <input type="hidden" id="quickCallOutcome" value="Nghe máy - Quan tâm">
+            </div>
+
+            <!-- GHI CHÚ NHANH -->
+            <div>
+                <label style="font-size:12.5px; font-weight:700; color:#334155; display:block; margin-bottom:6px;">
+                    Ghi chú ngắn
+                </label>
+                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
+                    <button type="button" class="quick-tag-chip" data-tag="Đã gửi báo giá">Đã gửi báo giá</button>
+                    <button type="button" class="quick-tag-chip" data-tag="Khách hẹn tuần sau">Khách hẹn tuần sau</button>
+                    <button type="button" class="quick-tag-chip" data-tag="Cần tư vấn thêm">Cần tư vấn thêm</button>
+                    <button type="button" class="quick-tag-chip" data-tag="Hỏi chiết khấu">Hỏi chiết khấu</button>
+                </div>
+                <input type="text" id="quickCallNotes" class="crm-input" placeholder="Nhập ghi chú nhanh..." style="width:100%; height:38px; border-radius:8px; font-size:13px;">
+            </div>
+
+            <!-- CHẠM 3: ĐẶT LỊCH GỌI LẠI -->
+            <div>
+                <label style="font-size:12.5px; font-weight:700; color:#334155; display:block; margin-bottom:6px;">
+                    3. Đặt lịch gọi lại (Tự động tạo task nhắc nhở)
+                </label>
+                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
+                    <button type="button" class="quick-tag-chip callback-chip" data-cb="none">Không hẹn</button>
+                    <button type="button" class="quick-tag-chip callback-chip" data-cb="2h">+2 giờ nữa</button>
+                    <button type="button" class="quick-tag-chip callback-chip active" data-cb="tomorrow">Sáng mai 09:00</button>
+                    <button type="button" class="quick-tag-chip callback-chip" data-cb="next_monday">Thứ Hai tới</button>
+                </div>
+                <input type="hidden" id="quickCallCallback" value="tomorrow">
+            </div>
+
+            <!-- SUBMIT BUTTON -->
+            <button type="submit" id="btnSubmitQuickCall" class="crm-btn crm-btn-primary" style="margin-top:6px; height:46px; font-size:14.5px; font-weight:700; background:linear-gradient(135deg, #10b981 0%, #059669 100%); border:none; border-radius:10px; box-shadow:0 4px 12px rgba(16,185,129,0.3); display:flex; align-items:center; justify-content:center; gap:8px;">
+                <span>⚡ LƯU NHANH CUỘC GỌI</span>
+            </button>
+        </form>
+    </div>
+
+    <!-- MODAL HOÃN CÔNG VIỆC NHANH (POSTPONE) TRÊN DASHBOARD (Story 1) -->
+    <div id="postponeOverlay" class="crm-modal-backdrop" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:9998; backdrop-filter:blur(2px);"></div>
+    <div id="postponeModal" class="crm-modal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:90%; max-width:440px; z-index:9999; background:#fff; border-radius:14px; box-shadow:0 20px 40px rgba(0,0,0,0.2); overflow:hidden;">
+        <div style="background:#fef2f2; border-bottom:1px solid #fee2e2; padding:14px 18px; display:flex; justify-content:space-between; align-items:center;">
+            <strong style="font-size:15px; color:#991b1b;">⏰ Hoãn công việc kèm lý do</strong>
+            <button type="button" id="closePostponeModal" style="background:none; border:none; font-size:22px; cursor:pointer; color:#991b1b;">&times;</button>
+        </div>
+        <form id="postponeForm" style="padding:18px; display:flex; flex-direction:column; gap:12px;">
+            <input type="hidden" id="postponeTaskId">
+            <div style="font-size:13px; color:#334155; font-weight:600;" id="postponeTaskTitle">—</div>
+            <div>
+                <label style="font-size:12px; font-weight:600; color:#475569; display:block; margin-bottom:4px;">Lý do hoãn công việc <span style="color:#ef4444;">*</span></label>
+                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
+                    <button type="button" class="quick-tag-chip postpone-chip" data-reason="Khách hàng bận họp đột xuất">Khách bận họp</button>
+                    <button type="button" class="quick-tag-chip postpone-chip" data-reason="Chờ phản hồi kỹ thuật">Chờ kỹ thuật</button>
+                    <button type="button" class="quick-tag-chip postpone-chip" data-reason="Khách yêu cầu dời sang tuần sau">Dời sang tuần sau</button>
+                </div>
+                <textarea id="postponeReasonInput" class="crm-input" rows="2" style="width:100%; border-radius:6px; font-size:13px;" placeholder="Nhập lý do hoãn..." required></textarea>
+            </div>
+            <div>
+                <label style="font-size:12px; font-weight:600; color:#475569; display:block; margin-bottom:4px;">Hạn hoàn thành mới</label>
+                <input type="datetime-local" id="postponeNewDueDate" class="crm-input" style="width:100%; height:36px; border-radius:6px;">
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
+                <button type="button" id="cancelPostponeBtn" class="crm-btn crm-btn-secondary" style="font-size:12.5px;">Hủy</button>
+                <button type="submit" class="crm-btn crm-btn-primary" style="background:#dc2626; border-color:#dc2626; font-size:12.5px;">Xác nhận hoãn</button>
+            </div>
+        </form>
+    </div>
 
 <script src="js/pages/dashboard.js?v=20261012"></script>
 
