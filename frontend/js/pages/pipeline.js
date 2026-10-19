@@ -157,6 +157,7 @@ async function initPipeline() {
         setupOppProductEventListeners();
         setupStoryEventListeners();
         setupCollaborationAndFilterListeners();
+        setupPipelinePaginationListeners();
         await loadOpportunities();
     } catch (err) {
         console.error("Initialization error:", err);
@@ -850,6 +851,10 @@ document.getElementById("resetPipelineFilter")?.addEventListener("click", () => 
     document.getElementById("btnTogglePipelineAdvanced")?.classList.remove("open");
     const advBadge = document.getElementById("pipelineAdvancedBadge");
     if (advBadge) advBadge.style.display = "none";
+    Object.keys(columnPages).forEach(k => delete columnPages[k]);
+    const colPageSizeSelect = document.getElementById("colPageSizeSelect");
+    if (colPageSizeSelect) colPageSizeSelect.value = "4";
+    columnPageSize = 4;
     loadOpportunities();
 });
 
@@ -1201,6 +1206,75 @@ async function moveStageTo(oppId, targetStageId) {
 }
 
 /* =========================================================
+   KANBAN PER-COLUMN PAGINATION STATE & HELPERS
+========================================================= */
+const columnPages = {}; // Store { [stageId]: pageNumber }
+let columnPageSize = 4; // Default 4 cards per column
+
+function renderPagePills(stageId, current, total) {
+    if (total <= 5) {
+        let html = "";
+        for (let i = 1; i <= total; i++) {
+            html += `<button type="button" class="col-page-btn col-page-pill ${i === current ? 'active' : ''}" data-stage-page="${stageId}" data-target-page="${i}" title="Chuyển đến trang ${i}">${i}</button>`;
+        }
+        return html;
+    }
+    const pages = [];
+    pages.push(1);
+    if (current > 3) pages.push("...");
+    for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) {
+        pages.push(i);
+    }
+    if (current < total - 2) pages.push("...");
+    pages.push(total);
+
+    return pages.map(p => {
+        if (p === "...") {
+            return `<span class="col-page-dots" aria-hidden="true">…</span>`;
+        }
+        return `<button type="button" class="col-page-btn col-page-pill ${p === current ? 'active' : ''}" data-stage-page="${stageId}" data-target-page="${p}" title="Chuyển đến trang ${p}">${p}</button>`;
+    }).join("");
+}
+
+function setupPipelinePaginationListeners() {
+    if (!pipelineBoard) return;
+
+    pipelineBoard.addEventListener("click", event => {
+        const btn = event.target.closest("[data-stage-page]");
+        if (!btn || btn.disabled) return;
+
+        const stageId = Number(btn.dataset.stagePage);
+        const action = btn.dataset.action;
+        const targetPage = btn.dataset.targetPage;
+
+        const stageOpps = opportunities.filter(o => o.stageId === stageId);
+        const totalPages = Math.max(1, Math.ceil(stageOpps.length / columnPageSize));
+        let cur = columnPages[stageId] || 1;
+
+        if (action === "prev") {
+            cur = Math.max(1, cur - 1);
+        } else if (action === "next") {
+            cur = Math.min(totalPages, cur + 1);
+        } else if (targetPage) {
+            cur = Math.min(totalPages, Math.max(1, Number(targetPage)));
+        }
+
+        columnPages[stageId] = cur;
+        render();
+    });
+
+    const pageSizeSelect = document.getElementById("colPageSizeSelect");
+    if (pageSizeSelect) {
+        pageSizeSelect.addEventListener("change", () => {
+            const val = pageSizeSelect.value;
+            columnPageSize = val === "all" ? 999999 : (Number(val) || 4);
+            Object.keys(columnPages).forEach(k => { columnPages[k] = 1; });
+            render();
+        });
+    }
+}
+
+/* =========================================================
    RENDER BOARD & CARDS (Kanban Pipeline & Stagnation Alerts)
 ========================================================= */
 const STAGE_THEME_COLORS = ["#14b8a6", "#3b82f6", "#f59e0b", "#8b5cf6", "#10b981", "#ef4444"];
@@ -1219,19 +1293,78 @@ function render() {
         const stageOpps = opportunities.filter(o => o.stageId === st.id);
         const stageTotal = stageOpps.reduce((sum, o) => sum + Number(o.amount || 0), 0);
 
+        // Per-column pagination calculation
+        const totalCount = stageOpps.length;
+        const totalPages = Math.max(1, Math.ceil(totalCount / columnPageSize));
+        let currentPage = columnPages[st.id] || 1;
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+        columnPages[st.id] = currentPage;
+
+        const startIdx = (currentPage - 1) * columnPageSize;
+        const endIdx = Math.min(startIdx + columnPageSize, totalCount);
+        const pagedOpps = stageOpps.slice(startIdx, endIdx);
+
         col.innerHTML = `
             <header class="column-head" style="border-top-color: ${themeColor}">
-                <div>
-                    <strong>${escapeHtml(st.name)}</strong>
-                    <span class="column-count">${stageOpps.length} cơ hội</span>
+                <div class="column-head-info">
+                    <strong title="${escapeHtml(st.name)}">${escapeHtml(st.name)}</strong>
+                    <div class="column-meta-sub">
+                        <span class="column-count">${totalCount} cơ hội</span>
+                        ${totalPages > 1 ? `<span class="column-page-badge" title="Đang xem trang ${currentPage} trên tổng số ${totalPages} trang">Trang ${currentPage}/${totalPages}</span>` : ""}
+                    </div>
                 </div>
-                <b class="column-total">${formatMoney(stageTotal)}</b>
+                <div class="column-head-right">
+                    <b class="column-total">${formatMoney(stageTotal)}</b>
+                    ${totalPages > 1 ? `
+                        <div class="column-mini-pager" role="navigation" aria-label="Phân trang nhanh cột ${escapeHtml(st.name)}">
+                            <button type="button" class="col-page-btn col-mini-btn" data-stage-page="${st.id}" data-action="prev" ${currentPage <= 1 ? "disabled" : ""} title="Trang trước">‹</button>
+                            <span class="col-mini-indicator">${currentPage}/${totalPages}</span>
+                            <button type="button" class="col-page-btn col-mini-btn" data-stage-page="${st.id}" data-action="next" ${currentPage >= totalPages ? "disabled" : ""} title="Trang sau">›</button>
+                        </div>
+                    ` : ""}
+                </div>
             </header>
-            <div class="column-body" data-drop-zone="${st.id}"></div>
+            <div class="column-body" data-drop-zone="${st.id}">
+                ${totalCount === 0 ? `
+                    <div class="column-empty-state">
+                        <div class="empty-icon">📂</div>
+                        <div class="empty-text">Chưa có cơ hội</div>
+                        <div class="empty-hint">Kéo thả cơ hội vào giai đoạn này</div>
+                    </div>
+                ` : ""}
+            </div>
+            <footer class="column-footer">
+                ${totalPages > 1 ? `
+                    <div class="col-footer-info">
+                        <span>Hiển thị <b>${startIdx + 1}–${endIdx}</b> / <b>${totalCount}</b></span>
+                        <span class="col-footer-total-pages">${totalPages} trang</span>
+                    </div>
+                    <div class="col-footer-pagination">
+                        <button type="button" class="col-page-btn col-footer-btn" data-stage-page="${st.id}" data-action="prev" ${currentPage <= 1 ? "disabled" : ""} title="Trang trước">
+                            ‹ Trước
+                        </button>
+                        <div class="col-page-pills">
+                            ${renderPagePills(st.id, currentPage, totalPages)}
+                        </div>
+                        <button type="button" class="col-page-btn col-footer-btn" data-stage-page="${st.id}" data-action="next" ${currentPage >= totalPages ? "disabled" : ""} title="Trang sau">
+                            Sau ›
+                        </button>
+                    </div>
+                ` : totalCount > 0 ? `
+                    <div class="col-footer-info text-center text-muted">
+                        <span>Hiển thị toàn bộ <b>${totalCount}</b> cơ hội</span>
+                    </div>
+                ` : `
+                    <div class="col-footer-info text-center text-muted">
+                        <span>0 cơ hội</span>
+                    </div>
+                `}
+            </footer>
         `;
 
         const body = col.querySelector(".column-body");
-        stageOpps.forEach(opp => {
+        pagedOpps.forEach(opp => {
             body.appendChild(createCard(opp));
         });
 

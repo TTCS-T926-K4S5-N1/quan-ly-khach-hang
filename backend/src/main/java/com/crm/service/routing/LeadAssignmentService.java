@@ -51,6 +51,9 @@ public class LeadAssignmentService {
             throw new IllegalArgumentException("Vui lòng chọn nhân viên kinh doanh nhận lead");
         }
         assignmentDAO.manualAssignLead(leadId, targetUserId, byUserId, notes);
+
+        // Bắn thông báo nhận lead bất đồng bộ cho nhân viên
+        com.crm.service.notifications.NotificationService.getInstance().notifyLeadAssigned(targetUserId, leadId, "Lead #" + leadId);
     }
 
     public List<UnassignedLeadDTO> getUnassignedLeads() {

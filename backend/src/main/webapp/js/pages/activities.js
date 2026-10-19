@@ -505,6 +505,8 @@ function initViewTabs() {
 
 function initDatePresets() {
     const presets = document.querySelectorAll("#quickDatePresets .filter-chip-btn");
+    const customWrap = document.getElementById("customDateRangeWrap");
+
     presets.forEach(btn => {
         btn.addEventListener("click", () => {
             presets.forEach(b => b.classList.remove("active"));
@@ -514,6 +516,15 @@ function initDatePresets() {
             const fromInput = document.getElementById("activityFromDate");
             const toInput = document.getElementById("activityToDate");
             const today = new Date();
+
+            if (preset === "custom") {
+                if (customWrap) customWrap.style.display = "inline-flex";
+                if (fromInput) fromInput.focus();
+                text("filterResultNotice", "Khoảng ngày tùy chọn");
+                return;
+            }
+
+            if (customWrap) customWrap.style.display = "none";
 
             if (preset === "all") {
                 if (fromInput) fromInput.value = "";
@@ -547,6 +558,7 @@ function initDatePresets() {
         setValue("activityMemberFilter", "");
         setValue("activityFromDate", "");
         setValue("activityToDate", "");
+        if (customWrap) customWrap.style.display = "none";
         presets.forEach(b => b.classList.remove("active"));
         document.querySelector("#quickDatePresets [data-preset='all']")?.classList.add("active");
         text("filterResultNotice", "Đang hiển thị toàn bộ hoạt động");

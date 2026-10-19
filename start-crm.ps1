@@ -1,4 +1,4 @@
-﻿# Script khởi động toàn bộ dự án Quản Lý Khách Hàng - CRM (Frontend + Backend gộp chung trên Tomcat)
+# Script khởi động toàn bộ dự án Quản Lý Khách Hàng - CRM (Frontend + Backend gộp chung trên Tomcat)
 $ErrorActionPreference = "Stop"
 
 # Thiết lập bảng mã UTF-8 cho console để hiển thị tiếng Việt chính xác
@@ -28,6 +28,19 @@ if (-not $mysqlRunning) {
         docker run -d --name crm-mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=123456 -e MYSQL_DATABASE=crm_db mysql:8.0 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci | Out-Null
     }
     Start-Sleep -Seconds 3
+}
+
+# Kiểm tra đảm bảo crm-mysql đã bind cổng 3306 ra host
+$portMapped = docker port crm-mysql 3306 2>$null
+if (-not $portMapped) {
+    $conflict = docker ps --filter "publish=3306" --format "{{.Names}}" | Where-Object { $_ -ne "crm-mysql" }
+    if ($conflict) {
+        Write-Host "  Tạm dừng container đang chiếm cổng 3306 ($conflict)..." -ForegroundColor DarkYellow
+        docker stop $conflict | Out-Null
+    }
+    docker network connect bridge crm-mysql 2>$null
+    docker restart crm-mysql | Out-Null
+    Start-Sleep -Seconds 2
 }
 Write-Host "MySQL đang chạy tại localhost:3306 (db: crm_db)" -ForegroundColor Green
 

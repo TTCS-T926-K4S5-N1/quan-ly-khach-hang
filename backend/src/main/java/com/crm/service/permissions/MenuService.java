@@ -67,6 +67,16 @@ public class MenuService {
                             "campaign"
                     )
             );
+
+            menu.add(
+                    item(
+                            "EMAIL_MARKETING",
+                            "Mẫu & Gửi Email",
+                            "email-marketing",
+                            "workspace",
+                            "mail"
+                    )
+            );
         }
 
         if (permissions.contains("report.lead_source") || permissions.contains("campaign.read") || permissions.contains("lead.read") || permissions.contains("customer.read")) {
@@ -77,6 +87,30 @@ public class MenuService {
                             "lead-reports",
                             "workspace",
                             "campaign"
+                    )
+            );
+        }
+
+        if (permissions.contains("opportunity.read") || permissions.contains("report.read") || permissions.contains("forecast.read")) {
+            menu.add(
+                    item(
+                            "FORECAST_REPORT",
+                            "Dự báo & Chỉ tiêu",
+                            "forecast-report",
+                            "workspace",
+                            "report"
+                    )
+            );
+        }
+
+        if (permissions.contains("activity.read") || permissions.contains("report.read") || permissions.contains("team.read")) {
+            menu.add(
+                    item(
+                            "TEAM_ACTIVITY_REPORT",
+                            "Năng suất Nhóm",
+                            "team-activity-report",
+                            "workspace",
+                            "pie-chart"
                     )
             );
         }
@@ -293,6 +327,21 @@ public class MenuService {
             );
         }
 
+        if (
+                permissions.contains("system.admin")
+                || permissions.contains("pipeline.manage")
+                || permissions.contains("opportunity.read")
+        ) {
+            menu.add(
+                    item(
+                            "AUTOMATION_RULES",
+                            "Tự động hoá Khi – Thì",
+                            "automation-rules",
+                            "admin",
+                            "activity"
+                    )
+            );
+        }
 
         return menu;
     }

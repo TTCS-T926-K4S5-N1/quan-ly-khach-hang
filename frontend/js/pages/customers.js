@@ -1604,17 +1604,29 @@ function renderDesktopRow(record, index) {
                 ${(function() {
                     // 1. Nếu đã chuyển đổi thành công
                     if (record.status === "CONVERTED") {
-                        return `<span class="action-status-badge converted" title="Lead đã chuyển đổi thành Khách hàng & Cơ hội">🔒 Đã chuyển đổi</span>`;
+                        return `
+                            <a href="customer-360?id=${record.id}" class="action-btn action-btn-360" title="Xem hồ sơ 360 độ của khách hàng">
+                                <span class="btn-icon">🔍</span> Hồ sơ 360
+                            </a>
+                            <span class="action-status-badge converted" title="Lead đã chuyển đổi thành Khách hàng & Cơ hội">🔒 Đã chuyển đổi</span>
+                        `;
                     }
                     // 2. Nếu đã là Khách hàng chính thức
                     if (record.status === "KHACH_HANG" || record.status === "CHINH_THUC") {
-                        return `<span class="action-status-badge customer" title="Khách hàng doanh nghiệp">🏢 Khách hàng</span>`;
+                        return `
+                            <a href="customer-360?id=${record.id}" class="action-btn action-btn-360" title="Xem hồ sơ 360 toàn diện: Lịch sử, cơ hội, đơn hàng">
+                                <span class="btn-icon">🔍</span> Hồ sơ 360
+                            </a>
+                            <button type="button" class="action-btn action-btn-edit" data-edit="${index}" title="Sửa thông tin khách hàng">
+                                <span class="btn-icon">✏️</span> Sửa
+                            </button>
+                        `;
                     }
 
                     // 3. Nếu là Lead (Mới, Tiềm năng, Đang chăm sóc)
                     let btns = "";
 
-                    // Nút Nhận: Hiển thị khi lead chưa được nhận vào chăm sóc
+                    // Nếu lead chưa được nhận: Nút Nhận
                     if (record.assignmentStatus !== "ACCEPTED" && record.status !== "DANG_CHAM_SOC") {
                         btns += `
                             <button type="button" class="action-btn action-btn-accept" data-accept-id="${record.id}" title="Tiếp nhận Lead này vào danh sách chăm sóc của bạn">
@@ -1622,24 +1634,25 @@ function renderDesktopRow(record, index) {
                             </button>
                         `;
                     } else {
+                        // Đã nhận chăm sóc: Nút Xem 360 trực tiếp
                         btns += `
-                            <span class="action-status-badge caring" title="Lead đang trong quá trình chăm sóc liên tục">
-                                📞 Đang chăm sóc
-                            </span>
+                            <a href="customer-360?id=${record.id}" class="action-btn action-btn-360" title="Xem chi tiết hồ sơ chăm sóc lead">
+                                <span class="btn-icon">🔍</span> Xem 360
+                            </a>
                         `;
                     }
-
-                    // Nút Từ chối: Cho phép từ chối với lý do ghi vào nhật ký SLA
-                    btns += `
-                        <button type="button" class="action-btn action-btn-reject" data-reject-id="${record.id}" data-reject-name="${escapeHtml(record.companyName || record.name)}" title="Từ chối tiếp nhận Lead (yêu cầu chọn/nhập lý do)">
-                            <span class="btn-icon">✕</span> Từ chối
-                        </button>
-                    `;
 
                     // Nút Chuyển đổi: Cho phép chuyển đổi lead thành Khách hàng & Cơ hội bán hàng
                     btns += `
                         <button type="button" class="action-btn action-btn-convert" data-convert-id="${record.id}" title="Chuyển đổi Lead thành Khách hàng doanh nghiệp, Người liên hệ và Cơ hội bán hàng">
                             <span class="btn-icon">⚡</span> Chuyển đổi
+                        </button>
+                    `;
+
+                    // Nút Từ chối: Cho phép từ chối với lý do ghi vào nhật ký SLA
+                    btns += `
+                        <button type="button" class="action-btn action-btn-reject" data-reject-id="${record.id}" data-reject-name="${escapeHtml(record.companyName || record.name)}" title="Từ chối tiếp nhận Lead (yêu cầu chọn/nhập lý do)">
+                            <span class="btn-icon">✕</span> Từ chối
                         </button>
                     `;
 
@@ -1666,7 +1679,7 @@ function renderDesktopRow(record, index) {
                                 ✏️ Sửa thông tin
                             </button>
                             <button type="button" class="danger" data-delete="${index}">
-                                🗑️ Xóa
+                                🗑️ Xóa ${record.status === "KHACH_HANG" || record.status === "CHINH_THUC" ? "khách hàng" : "lead"}
                             </button>
                         `}
                     </div>
@@ -1717,24 +1730,33 @@ function renderMobileCard(record, index) {
         <div style="display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;">
             ${(function() {
                 if (record.status === "CONVERTED") {
-                    return `<span class="action-status-badge converted">🔒 Lead đã chuyển đổi (Đã khóa)</span>`;
+                    return `
+                        <a href="customer-360?id=${record.id}" class="action-btn action-btn-360" style="flex:1; justify-content:center; text-decoration:none;">🔍 Xem hồ sơ 360</a>
+                        <span class="action-status-badge converted" style="flex:1; justify-content:center;">🔒 Đã chuyển đổi</span>
+                    `;
                 }
                 if (record.status === "KHACH_HANG" || record.status === "CHINH_THUC") {
-                    return `<span class="action-status-badge customer">🏢 Khách hàng</span>`;
+                    return `
+                        <a href="customer-360?id=${record.id}" class="action-btn action-btn-360" style="flex:2; justify-content:center; text-decoration:none;">🔍 Xem hồ sơ 360</a>
+                        <button type="button" class="action-btn action-btn-edit" style="flex:1; justify-content:center;" data-edit="${index}">✏️ Sửa</button>
+                        <button type="button" class="action-btn action-btn-delete" style="padding:6px 10px;" data-delete="${index}" title="Xóa">🗑️</button>
+                    `;
                 }
 
                 let btns = "";
                 if (record.assignmentStatus !== "ACCEPTED" && record.status !== "DANG_CHAM_SOC") {
                     btns += `
-                        <button type="button" class="action-btn action-btn-accept" style="flex:1;" data-accept-id="${record.id}"><span class="btn-icon">✓</span> Nhận lead</button>
+                        <button type="button" class="action-btn action-btn-accept" style="flex:1; justify-content:center;" data-accept-id="${record.id}"><span class="btn-icon">✓</span> Nhận lead</button>
                     `;
                 } else {
-                    btns += `<span class="action-status-badge caring" style="flex:1;">📞 Đang chăm sóc</span>`;
+                    btns += `
+                        <a href="customer-360?id=${record.id}" class="action-btn action-btn-360" style="flex:1; justify-content:center; text-decoration:none;"><span class="btn-icon">🔍</span> Xem 360</a>
+                    `;
                 }
 
                 btns += `
-                    <button type="button" class="action-btn action-btn-reject" style="flex:1;" data-reject-id="${record.id}" data-reject-name="${escapeHtml(record.companyName || record.name)}"><span class="btn-icon">✕</span> Từ chối</button>
-                    <button type="button" class="action-btn action-btn-convert" style="flex:1;" data-convert-id="${record.id}"><span class="btn-icon">⚡</span> Chuyển đổi</button>
+                    <button type="button" class="action-btn action-btn-convert" style="flex:1; justify-content:center;" data-convert-id="${record.id}"><span class="btn-icon">⚡</span> Chuyển đổi</button>
+                    <button type="button" class="action-btn action-btn-reject" style="flex:1; justify-content:center;" data-reject-id="${record.id}" data-reject-name="${escapeHtml(record.companyName || record.name)}"><span class="btn-icon">✕</span> Từ chối</button>
                 `;
                 return btns;
             })()}
@@ -1746,7 +1768,7 @@ function renderMobileCard(record, index) {
                 </a>
             ` : ""}
             <a href="customer-360?id=${record.id}" class="crm-btn crm-btn-secondary" style="flex:1; text-align:center; text-decoration:none;">
-                Xem 360
+                🔍 Xem 360
             </a>
         </div>
     `;
@@ -1807,6 +1829,9 @@ document.addEventListener("click", async event => {
     // 5. Edit Button
     const editButton = event.target.closest("[data-edit]");
     if (editButton) {
+        document.querySelectorAll(".row-action-menu").forEach(menu => {
+            menu.classList.remove("open");
+        });
         const idx = Number(editButton.dataset.edit);
         const record = records[idx];
         if (record && record.status === "CONVERTED") {
@@ -1820,6 +1845,9 @@ document.addEventListener("click", async event => {
     // 6. Delete Button
     const deleteButton = event.target.closest("[data-delete]");
     if (deleteButton) {
+        document.querySelectorAll(".row-action-menu").forEach(menu => {
+            menu.classList.remove("open");
+        });
         const index = Number(deleteButton.dataset.delete);
         const record = records[index];
         if (record && record.status === "CONVERTED") {
@@ -2230,6 +2258,16 @@ async function handleManualLeadSubmit(e) {
    SLA MANAGEMENT & LEAD CONVERSION (STORY 3 & 4)
 ========================================================= */
 
+function setFieldValue(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.value = (val !== null && val !== undefined) ? String(val) : "";
+}
+
+function getFieldValue(id) {
+    const el = document.getElementById(id);
+    return el ? el.value.trim() : "";
+}
+
 function openRejectModal(id, leadName) {
     const overlay = document.getElementById("rejectLeadModalOverlay");
     const idInput = document.getElementById("rejectLeadId");
@@ -2239,9 +2277,12 @@ function openRejectModal(id, leadName) {
     const err = document.getElementById("rejectReasonError");
 
     if (idInput) idInput.value = id;
-    if (subTitle) subTitle.textContent = `Lead: "${leadName}" (Mã: #${id}) - Sẽ trả về hàng chờ phân bổ`;
-    if (reasonSelect) reasonSelect.value = "";
-    if (reasonText) reasonText.value = "";
+    if (subTitle) subTitle.textContent = `Lead: "${leadName || ('#' + id)}" - Sẽ hoàn trả về hàng chờ phân bổ chung`;
+    
+    // Đặt sẵn lý do phổ biến đầu tiên để nhân viên có thể xác nhận nhanh 1-chạm
+    const defaultReason = "Sai địa bàn / Khu vực phụ trách";
+    if (reasonSelect) reasonSelect.value = defaultReason;
+    if (reasonText) reasonText.value = defaultReason;
     if (err) { err.textContent = ""; err.style.display = "none"; }
     if (overlay) overlay.style.display = "flex";
 }
@@ -2256,48 +2297,92 @@ async function openConvertModal(id) {
     if (form) form.reset();
     if (convertIdInput) convertIdInput.value = id;
 
+    // 1. Điền thông tin tức thì từ bộ nhớ đệm records (0ms độ trễ)
+    const localRecord = (typeof records !== "undefined" && Array.isArray(records))
+        ? records.find(r => Number(r.id) === Number(id))
+        : null;
+
+    const leadName = localRecord ? (localRecord.companyName || localRecord.name || "") : "";
+    const leadPhone = localRecord ? (localRecord.phone || localRecord.primaryContactPhone || "") : "";
+    const leadEmail = localRecord ? (localRecord.email || localRecord.primaryContactEmail || "") : "";
+    const leadContact = localRecord ? (localRecord.primaryContactName || localRecord.contactName || localRecord.name || "") : "";
+
+    if (subTitle) {
+        subTitle.textContent = `Lead: "${leadName || ('#' + id)}" ${leadPhone ? `(SĐT: ${leadPhone})` : ''}`;
+    }
+    if (activitiesBadge) {
+        activitiesBadge.textContent = "Toàn bộ thông tin lead và lịch sử tương tác chăm sóc trước đó sẽ được tự động chuyển sang Khách hàng & Cơ hội mới. Lead gốc sẽ khóa chỉnh sửa để bảo đảm lịch sử.";
+    }
+
+    setFieldValue("cvCustName", leadName);
+    setFieldValue("cvCustTaxCode", localRecord?.taxCode || "");
+    setFieldValue("cvCustPhone", leadPhone);
+    setFieldValue("cvCustEmail", leadEmail);
+    setFieldValue("cvCustWebsite", localRecord?.website || "");
+
+    setFieldValue("cvContactName", leadContact);
+    setFieldValue("cvContactTitle", localRecord?.contactTitle || "Đại diện");
+    setFieldValue("cvContactPhone", leadPhone);
+    setFieldValue("cvContactEmail", leadEmail);
+
+    setFieldValue("cvOppName", leadName ? `Cơ hội - ${leadName}` : `Cơ hội kinh doanh #${id}`);
+    setFieldValue("cvOppAmount", "10000000");
+
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    setFieldValue("cvExpectedCloseDate", d.toISOString().substring(0, 10));
+
+    const custModeNew = document.getElementById("custModeNew");
+    if (custModeNew) custModeNew.checked = true;
+    const wrapCustNew = document.getElementById("wrapCustNew");
+    const wrapCustExist = document.getElementById("wrapCustExist");
+    if (wrapCustNew) wrapCustNew.style.display = "block";
+    if (wrapCustExist) wrapCustExist.style.display = "none";
+
+    const cvCreateOpp = document.getElementById("cvCreateOpportunity");
+    if (cvCreateOpp) cvCreateOpp.checked = true;
+    const wrapOpp = document.getElementById("wrapOppFields");
+    if (wrapOpp) wrapOpp.style.display = "block";
+
+    // 2. Mở Modal NGAY LẬP TỨC (không bị nghẽn mạng chờ API)
+    if (overlay) overlay.style.display = "flex";
+
+    // 3. Tải bổ sung thông tin từ convert-preview nếu có
     try {
         const preview = await api(`/api/leads/${id}/convert-preview`);
-        if (subTitle) subTitle.textContent = `Lead: "${preview.leadName || ''}" (SĐT: ${preview.leadPhone || '—'})`;
-        if (activitiesBadge) {
-            activitiesBadge.textContent = `Toàn bộ thông tin lead và ${preview.activitiesCount || 0} hoạt động tương tác trước đó sẽ được tự động chuyển sang Khách hàng & Cơ hội mới. Lead gốc sẽ khóa chỉnh sửa để bảo đảm lịch sử.`;
+        if (preview) {
+            if (preview.leadName && subTitle) {
+                subTitle.textContent = `Lead: "${preview.leadName}" (SĐT: ${preview.leadPhone || '—'})`;
+            }
+            if (activitiesBadge && preview.activitiesCount !== undefined) {
+                activitiesBadge.textContent = `Toàn bộ thông tin lead và ${preview.activitiesCount} hoạt động tương tác trước đó sẽ được tự động chuyển sang Khách hàng & Cơ hội mới. Lead gốc sẽ khóa chỉnh sửa để bảo đảm lịch sử.`;
+            }
+            if (preview.suggestedCompanyName || preview.leadName) {
+                setFieldValue("cvCustName", preview.suggestedCompanyName || preview.leadName);
+            }
+            if (preview.leadTaxCode) setFieldValue("cvCustTaxCode", preview.leadTaxCode);
+            if (preview.leadPhone) {
+                setFieldValue("cvCustPhone", preview.leadPhone);
+                setFieldValue("cvContactPhone", preview.leadPhone);
+            }
+            if (preview.leadEmail) {
+                setFieldValue("cvCustEmail", preview.leadEmail);
+                setFieldValue("cvContactEmail", preview.leadEmail);
+            }
+            if (preview.leadWebsite) setFieldValue("cvCustWebsite", preview.leadWebsite);
+            if (preview.leadContactName) setFieldValue("cvContactName", preview.leadContactName);
+            if (preview.leadContactTitle) setFieldValue("cvContactTitle", preview.leadContactTitle);
+            if (preview.suggestedOpportunityName) setFieldValue("cvOppName", preview.suggestedOpportunityName);
+            if (preview.suggestedDealAmount) setFieldValue("cvOppAmount", String(preview.suggestedDealAmount));
         }
-
-        setValue("cvCustName", preview.suggestedCompanyName || preview.leadName);
-        setValue("cvCustTaxCode", preview.leadTaxCode || "");
-        setValue("cvCustPhone", preview.leadPhone || "");
-        setValue("cvCustEmail", preview.leadEmail || "");
-        setValue("cvCustWebsite", preview.leadWebsite || "");
-
-        setValue("cvContactName", preview.leadContactName || preview.leadName);
-        setValue("cvContactTitle", preview.leadContactTitle || "Đại diện");
-        setValue("cvContactPhone", preview.leadPhone || "");
-        setValue("cvContactEmail", preview.leadEmail || "");
-
-        setValue("cvOppName", preview.suggestedOpportunityName || `Cơ hội - ${preview.suggestedCompanyName || preview.leadName}`);
-        setValue("cvOppAmount", preview.suggestedDealAmount ? String(preview.suggestedDealAmount) : "10000000");
-
-        const d = new Date();
-        d.setDate(d.getDate() + 30);
-        setValue("cvExpectedCloseDate", d.toISOString().substring(0, 10));
-
-        const custModeNew = document.getElementById("custModeNew");
-        if (custModeNew) custModeNew.checked = true;
-        const wrapCustNew = document.getElementById("wrapCustNew");
-        const wrapCustExist = document.getElementById("wrapCustExist");
-        if (wrapCustNew) wrapCustNew.style.display = "block";
-        if (wrapCustExist) wrapCustExist.style.display = "none";
-
-        const cvCreateOpp = document.getElementById("cvCreateOpportunity");
-        if (cvCreateOpp) cvCreateOpp.checked = true;
-        const wrapOpp = document.getElementById("wrapOppFields");
-        if (wrapOpp) wrapOpp.style.display = "block";
-
-        if (overlay) overlay.style.display = "flex";
     } catch (err) {
-        alert("Lỗi khi chuẩn bị chuyển đổi lead: " + err.message);
+        console.warn("Could not enrich convert modal with preview:", err);
     }
 }
+
+// Xuất các hàm ra phạm vi toàn cục để tương thích mọi sự kiện
+window.openRejectModal = openRejectModal;
+window.openConvertModal = openConvertModal;
 
 async function loadExistingCustomersForSelect() {
     const sel = document.getElementById("cvExistingCustomerId");
@@ -2433,30 +2518,30 @@ function initSlaAndConversion() {
         const payload = {
             createNewCustomer: isNew,
             customerMode: isNew ? "NEW" : "EXISTING",
-            customerName: isNew ? value("cvCustName") : null,
-            companyName: isNew ? value("cvCustName") : null,
-            existingCustomerId: !isNew && value("cvExistingCustomerId") ? Number(value("cvExistingCustomerId")) : null,
-            customerTaxCode: value("cvCustTaxCode"),
-            taxCode: value("cvCustTaxCode"),
-            customerPhone: value("cvCustPhone"),
-            companyPhone: value("cvCustPhone"),
-            customerEmail: value("cvCustEmail"),
-            companyEmail: value("cvCustEmail"),
-            customerWebsite: value("cvCustWebsite"),
-            companyWebsite: value("cvCustWebsite"),
+            customerName: isNew ? getFieldValue("cvCustName") : null,
+            companyName: isNew ? getFieldValue("cvCustName") : null,
+            existingCustomerId: !isNew && getFieldValue("cvExistingCustomerId") ? Number(getFieldValue("cvExistingCustomerId")) : null,
+            customerTaxCode: getFieldValue("cvCustTaxCode"),
+            taxCode: getFieldValue("cvCustTaxCode"),
+            customerPhone: getFieldValue("cvCustPhone"),
+            companyPhone: getFieldValue("cvCustPhone"),
+            customerEmail: getFieldValue("cvCustEmail"),
+            companyEmail: getFieldValue("cvCustEmail"),
+            customerWebsite: getFieldValue("cvCustWebsite"),
+            companyWebsite: getFieldValue("cvCustWebsite"),
 
-            contactName: value("cvContactName"),
-            contactTitle: value("cvContactTitle"),
-            contactPhone: value("cvContactPhone"),
-            contactEmail: value("cvContactEmail"),
-            contactBuyingRole: value("cvBuyingRole") || "INFLUENCER",
-            buyingRole: value("cvBuyingRole") || "INFLUENCER",
+            contactName: getFieldValue("cvContactName"),
+            contactTitle: getFieldValue("cvContactTitle"),
+            contactPhone: getFieldValue("cvContactPhone"),
+            contactEmail: getFieldValue("cvContactEmail"),
+            contactBuyingRole: getFieldValue("cvBuyingRole") || "INFLUENCER",
+            buyingRole: getFieldValue("cvBuyingRole") || "INFLUENCER",
 
             createOpportunity: cvCreateOpportunity?.checked ?? true,
-            opportunityName: value("cvOppName"),
-            opportunityAmount: value("cvOppAmount") ? Number(value("cvOppAmount")) : 0,
-            pipelineStageId: value("cvStageId") ? Number(value("cvStageId")) : 1,
-            expectedCloseDate: value("cvExpectedCloseDate") || null
+            opportunityName: getFieldValue("cvOppName"),
+            opportunityAmount: getFieldValue("cvOppAmount") ? Number(getFieldValue("cvOppAmount")) : 0,
+            pipelineStageId: getFieldValue("cvStageId") ? Number(getFieldValue("cvStageId")) : 1,
+            expectedCloseDate: getFieldValue("cvExpectedCloseDate") || null
         };
 
         if (isNew && !payload.customerName) {

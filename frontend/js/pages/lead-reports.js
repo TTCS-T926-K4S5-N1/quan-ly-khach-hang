@@ -11,6 +11,7 @@ const API_BASE = "http://localhost:8080/crm";
 const btnRefresh = document.getElementById("btnRefresh");
 const btnExportExcel = document.getElementById("btnExportExcel");
 const btnApplyDateFilter = document.getElementById("btnApplyDateFilter");
+const btnClearDateFilter = document.getElementById("btnClearDateFilter");
 const inputFromDate = document.getElementById("inputFromDate");
 const inputToDate = document.getElementById("inputToDate");
 const presetButtons = document.querySelectorAll(".preset-chip");
@@ -149,6 +150,10 @@ function setDatePreset(preset) {
     presetButtons.forEach(btn => {
         btn.classList.toggle("active", btn.dataset.preset === preset);
     });
+
+    if (btnClearDateFilter) {
+        btnClearDateFilter.style.display = (preset === "ALL") ? "none" : "inline-flex";
+    }
 
     loadReportData();
 }
@@ -459,7 +464,14 @@ btnApplyDateFilter?.addEventListener("click", () => {
     currentFromDate = inputFromDate?.value.trim() || "";
     currentToDate = inputToDate?.value.trim() || "";
     presetButtons.forEach(btn => btn.classList.remove("active"));
+    if (btnClearDateFilter) {
+        btnClearDateFilter.style.display = (currentFromDate || currentToDate) ? "inline-flex" : "none";
+    }
     loadReportData();
+});
+
+btnClearDateFilter?.addEventListener("click", () => {
+    setDatePreset("ALL");
 });
 
 btnRefresh?.addEventListener("click", () => {

@@ -86,7 +86,8 @@ public class LeadConversionDAO {
 
         String updateCust = """
             UPDATE customers
-            SET owner_user_id = NULL,
+            SET status = 'MOI',
+                owner_user_id = NULL,
                 assignment_status = 'UNASSIGNED',
                 rejected_at = NOW(),
                 rejected_by_user_id = ?,

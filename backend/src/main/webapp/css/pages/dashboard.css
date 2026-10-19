@@ -857,3 +857,308 @@
     font-weight: 600;
 }
 
+/* =========================================================
+   ROLE-BASED DASHBOARD ENHANCEMENTS (SCRUM REQUIREMENTS)
+========================================================= */
+
+/* Top Role Switcher & Filter Bar */
+.role-dashboard-header {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 16px 20px;
+    margin-bottom: 22px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.role-dashboard-title h1 {
+    font-size: 20px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.role-dashboard-title p {
+    font-size: 13px;
+    color: #64748b;
+    margin: 4px 0 0;
+}
+
+.role-pills-group {
+    display: inline-flex;
+    background: #f1f5f9;
+    padding: 4px;
+    border-radius: 10px;
+    gap: 4px;
+}
+
+.role-pill-btn {
+    border: none;
+    background: transparent;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.role-pill-btn:hover {
+    color: #0f172a;
+}
+
+.role-pill-btn.active {
+    background: #ffffff;
+    color: #2563eb;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.dashboard-filter-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.dash-select {
+    padding: 6px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    background: #fff;
+    color: #1e293b;
+    cursor: pointer;
+    outline: none;
+}
+
+.dash-select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.perf-metric-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Sections & Cards */
+.role-view-section {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.dash-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.dash-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.dash-card-header h2 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dash-card-header .dash-card-sub {
+    font-size: 12.5px;
+    color: #64748b;
+    font-weight: normal;
+}
+
+/* 4-KPI Grid */
+.dash-kpis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.dash-kpi-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dash-kpi-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.dash-kpi-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.dash-kpi-value {
+    font-size: 22px;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+}
+
+.dash-kpi-sub {
+    font-size: 12px;
+    color: #64748b;
+}
+
+/* 2-Column Responsive Layout */
+.dash-two-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+@media (max-width: 992px) {
+    .dash-two-cols {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Modern Data Table */
+.dash-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.dash-table th {
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 700;
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 2px solid #e2e8f0;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.dash-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #1e293b;
+    vertical-align: middle;
+}
+
+.dash-table tr:hover td {
+    background: #f8fafc;
+}
+
+/* Member Leaderboard */
+.rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    font-weight: 800;
+    font-size: 13px;
+}
+
+.rank-1 { background: #fef3c7; color: #b45309; }
+.rank-2 { background: #e2e8f0; color: #475569; }
+.rank-3 { background: #ffedd5; color: #c2410c; }
+.rank-other { background: #f1f5f9; color: #64748b; font-size: 12px; }
+
+/* Progress Bar */
+.mini-prog-track {
+    width: 100%;
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.mini-prog-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.prog-green { background: #10b981; }
+.prog-blue { background: #3b82f6; }
+.prog-amber { background: #f59e0b; }
+.prog-red { background: #ef4444; }
+
+/* Badges */
+.dash-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+}
+
+.dash-tag-red { background: #fee2e2; color: #b91c1c; }
+.dash-tag-amber { background: #fef3c7; color: #b45309; }
+.dash-tag-green { background: #d1fae5; color: #065f46; }
+.dash-tag-blue { background: #dbeafe; color: #1e40af; }
+.dash-tag-gray { background: #f1f5f9; color: #475569; }
+
+/* Stagnant & Overdue Warnings */
+.stagnant-alert-box {
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    color: #9f1239;
+}
+
+

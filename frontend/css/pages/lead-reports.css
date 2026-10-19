@@ -36,67 +36,204 @@
     flex-wrap: wrap;
 }
 
-/* Date filter bar */
+/* =========================================================
+   DATE FILTER BAR (MODERN & SLEEK REDESIGN)
+========================================================= */
 .report-filter-bar {
     background: var(--crm-surface, #ffffff);
     border: 1px solid var(--crm-border, #e2e8f0);
     border-radius: 12px;
-    padding: 14px 18px;
-    margin-bottom: 20px;
+    padding: 10px 16px;
+    margin-bottom: 22px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 14px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    gap: 12px 18px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
 }
 
-.date-preset-group {
+.date-preset-section {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 10px;
     flex-wrap: wrap;
+}
+
+.filter-group-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--crm-text-secondary, #475569);
+    white-space: nowrap;
+}
+
+.filter-group-label svg {
+    color: var(--crm-primary, #0284c7);
+}
+
+/* iOS/macOS style segmented control */
+.preset-segmented-control {
+    display: inline-flex;
+    align-items: center;
+    background: #f1f5f9;
+    padding: 3px;
+    border-radius: 9px;
+    border: 1px solid #e2e8f0;
+    gap: 2px;
 }
 
 .preset-chip {
-    padding: 6px 14px;
+    padding: 5px 12px;
     font-size: 12.5px;
-    font-weight: 600;
-    border-radius: 20px;
-    border: 1px solid var(--crm-border, #cbd5e1);
-    background: var(--crm-surface, #ffffff);
-    color: var(--crm-text, #334155);
+    font-weight: 500;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    color: #475569;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    user-select: none;
 }
 
 .preset-chip:hover {
-    border-color: var(--crm-primary, #0284c7);
-    color: var(--crm-primary, #0284c7);
-    background: #f0f9ff;
+    color: #0f172a;
+    background: rgba(255, 255, 255, 0.6);
 }
 
 .preset-chip.active {
-    background: var(--crm-primary, #0284c7);
-    color: #ffffff;
-    border-color: var(--crm-primary, #0284c7);
-    box-shadow: 0 2px 4px rgba(2, 132, 199, 0.25);
+    background: #ffffff;
+    color: var(--crm-primary, #0284c7);
+    font-weight: 700;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
-.custom-date-group {
+/* Subtle vertical divider */
+.filter-divider {
+    width: 1px;
+    height: 28px;
+    background: #e2e8f0;
+    display: block;
+}
+
+@media (max-width: 900px) {
+    .filter-divider {
+        display: none;
+    }
+}
+
+/* Custom Date Section */
+.custom-date-section {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     flex-wrap: wrap;
 }
 
-.custom-date-group input[type="date"] {
-    padding: 6px 10px;
+.custom-date-box {
+    display: inline-flex;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+    padding: 3px 4px 3px 10px;
+    gap: 6px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.custom-date-box:focus-within {
+    border-color: var(--crm-primary, #0284c7);
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.14);
+}
+
+.date-input-prefix {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 600;
+    user-select: none;
+}
+
+.report-date-input {
+    width: 130px !important;
+    min-height: unset !important;
+    height: 30px !important;
+    padding: 2px 6px !important;
+    font-size: 12px !important;
+    font-family: inherit;
+    color: #1e293b;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    border-radius: 5px;
+    outline: none !important;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.report-date-input:hover {
+    background: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+}
+
+.report-date-input:focus {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+}
+
+.date-arrow-separator {
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 700;
+    user-select: none;
+}
+
+.btn-filter-apply {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 30px;
+    padding: 0 14px;
+    background: var(--crm-primary, #0284c7);
+    color: #ffffff;
     font-size: 12.5px;
-    border: 1px solid var(--crm-border, #cbd5e1);
+    font-weight: 600;
+    border: none;
     border-radius: 6px;
-    background: var(--crm-surface, #ffffff);
-    color: var(--crm-text);
+    cursor: pointer;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+}
+
+.btn-filter-apply:hover {
+    background: #0369a1;
+    transform: translateY(-0.5px);
+    box-shadow: 0 2px 5px rgba(2, 132, 199, 0.3);
+}
+
+.btn-filter-apply:active {
+    transform: translateY(0);
+}
+
+.btn-filter-clear {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: none;
+    background: #f1f5f9;
+    color: #64748b;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-filter-clear:hover {
+    background: #fee2e2;
+    color: #dc2626;
 }
 
 /* KPI Ribbon */

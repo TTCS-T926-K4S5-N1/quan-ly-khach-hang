@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<script>
+(function () {
+    try {
+        var theme = localStorage.getItem("crm_ui_theme");
+        document.documentElement.setAttribute("data-theme", theme === "dark" ? "dark" : "light");
+        document.documentElement.removeAttribute("data-crm-theme");
+    } catch (e) {
+        document.documentElement.setAttribute("data-theme", "light");
+    }
+})();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Báo cáo Hoạt động & Năng suất Nhóm | Corporate CRM</title>
+
+<link rel="stylesheet" href="css/design-system.css?v=20261019_2">
+<link rel="stylesheet" href="css/app-shell.css?v=20261019_2">
+<link rel="stylesheet" href="css/pages/team-activity-report.css?v=20261019_2">
+<link rel="stylesheet" href="css/animations.css?v=20261019_2">
+</head>
+
+<body class="crm-private">
+
+<aside class="crm-sidebar"></aside>
+
+<div class="crm-shell">
+    <header class="crm-topbar"></header>
+
+    <main class="crm-content">
+        <!-- Breadcrumbs -->
+        <div style="font-size: 13px; color: var(--crm-muted, #64748b); margin-bottom: 8px;">
+            <a href="dashboard" style="color: inherit; text-decoration: none;">Tổng quan</a>
+            <span style="margin: 0 6px;">/</span>
+            <span>Báo cáo kinh doanh</span>
+            <span style="margin: 0 6px;">/</span>
+            <span style="color: var(--crm-primary); font-weight: 600;">Hoạt động & Năng suất nhóm</span>
+        </div>
+
+        <!-- Page Header -->
+        <div class="productivity-header">
+            <div class="productivity-title-area">
+                <h1>
+                    <span>👥</span> Báo cáo Hoạt động & Năng suất của Nhóm
+                </h1>
+                <p>
+                    Dành cho Trưởng nhóm kinh doanh: Theo dõi số cuộc gọi, cuộc gặp, báo giá gửi đi theo từng thành viên và theo tuần; đo lường tỷ lệ lead được phản hồi trong SLA để kịp thời kèm cặp thành viên chứ không chỉ nhìn doanh số.
+                </p>
+            </div>
+            <div class="productivity-header-actions">
+                <a href="activities" class="crm-btn crm-btn-secondary" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                    📝 Danh sách Hoạt động
+                </a>
+                <a href="customers" class="crm-btn crm-btn-secondary" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                    🎯 Khách hàng & Lead
+                </a>
+                <button id="btnRefresh" class="crm-btn crm-btn-secondary" type="button" title="Tải lại dữ liệu" style="display:inline-flex; align-items:center; gap:6px;">
+                    🔄 Làm mới
+                </button>
+                <button id="btnExportExcel" class="crm-btn crm-btn-primary" type="button" style="display:inline-flex; align-items:center; gap:6px; background:#059669; border-color:#059669;">
+                    📥 Xuất Excel (.xlsx)
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="productivity-filter-bar">
+            <div class="filter-left-group">
+                <!-- Chọn kỳ -->
+                <div class="filter-group-label">
+                    <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true" width="16" height="16"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="12 6 12 12 16 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    <span>Kỳ báo cáo:</span>
+                </div>
+                <div class="preset-segmented-control" id="periodSegmented">
+                    <button type="button" class="preset-chip active" data-period="THIS_MONTH">Tháng này</button>
+                    <button type="button" class="preset-chip" data-period="LAST_MONTH">Tháng trước</button>
+                    <button type="button" class="preset-chip" data-period="THIS_QUARTER">Quý này</button>
+                </div>
+            </div>
+
+            <!-- Filter Right: Chọn nhóm -->
+            <div class="select-filter-box">
+                <span style="font-weight: 600;">Phòng / Nhóm kinh doanh:</span>
+                <select id="selectTeamFilter" title="Chọn nhóm">
+                    <option value="">-- Tất cả nhóm kinh doanh --</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Top 5 KPI Cards -->
+        <div class="productivity-kpi-grid">
+            <!-- Card 1: Total Calls -->
+            <div class="productivity-kpi-card card-theme-calls">
+                <div class="kpi-card-header">
+                    <span class="kpi-card-title">📞 1. Cuộc gọi</span>
+                    <span class="kpi-card-icon">📞</span>
+                </div>
+                <div class="kpi-card-value" id="kpiTotalCalls">0</div>
+                <div class="kpi-card-sub" id="kpiCallsSub">Tổng cuộc gọi điện thoại</div>
+            </div>
+
+            <!-- Card 2: Total Meetings -->
+            <div class="productivity-kpi-card card-theme-meetings">
+                <div class="kpi-card-header">
+                    <span class="kpi-card-title">🤝 2. Cuộc gặp</span>
+                    <span class="kpi-card-icon">🤝</span>
+                </div>
+                <div class="kpi-card-value" id="kpiTotalMeetings">0</div>
+                <div class="kpi-card-sub" id="kpiMeetingsSub">Tổng cuộc gặp khách hàng</div>
+            </div>
+
+            <!-- Card 3: Quotes Sent -->
+            <div class="productivity-kpi-card card-theme-quotes">
+                <div class="kpi-card-header">
+                    <span class="kpi-card-title">📄 3. Báo giá gửi đi</span>
+                    <span class="kpi-card-icon">📄</span>
+                </div>
+                <div class="kpi-card-value" id="kpiTotalQuotes">0</div>
+                <div class="kpi-card-sub" id="kpiQuotesSub">Báo giá đã phát hành</div>
+            </div>
+
+            <!-- Card 4: SLA Rate -->
+            <div class="productivity-kpi-card card-theme-sla">
+                <div class="kpi-card-header">
+                    <span class="kpi-card-title">⏱️ 4. Tỷ lệ đạt SLA</span>
+                    <span class="kpi-card-icon">⏱️</span>
+                </div>
+                <div class="kpi-card-value" id="kpiAvgSlaRate">0.0%</div>
+                <div class="kpi-card-sub" id="kpiSlaSub">Lead phản hồi trong thời hạn SLA</div>
+            </div>
+
+            <!-- Card 5: Coaching Alert -->
+            <div class="productivity-kpi-card card-theme-coaching">
+                <div class="kpi-card-header">
+                    <span class="kpi-card-title">⚠️ Cần kèm thêm</span>
+                    <span class="kpi-card-icon">⚠️</span>
+                </div>
+                <div class="kpi-card-value" id="kpiNeedsCoaching" style="color: #dc2626;">0</div>
+                <div class="kpi-card-sub" id="kpiCoachingSub">Thành viên có chỉ số thấp</div>
+            </div>
+        </div>
+
+        <!-- Section 1: Weekly Matrix Table -->
+        <div class="matrix-table-card">
+            <div class="matrix-header">
+                <div class="matrix-title">
+                    <span>📊</span> Bảng ma trận hoạt động theo tuần & Tỷ lệ SLA của từng thành viên
+                </div>
+                <div style="font-size: 13px; color: var(--crm-muted);">
+                    Kỳ: <strong id="matrixPeriodLabel" style="color:var(--crm-text);">...</strong> | 📞 Gọi | 🤝 Gặp | 📄 Báo giá
+                </div>
+            </div>
+
+            <div style="width: 100%; overflow-x: auto;">
+                <table class="crm-table" id="productivityTable">
+                    <thead id="productivityThead">
+                        <tr>
+                            <th rowspan="2" style="width: 45px; text-align: center;">STT</th>
+                            <th rowspan="2" style="min-width: 160px; text-align: left;">Thành viên</th>
+                            <th rowspan="2" style="min-width: 140px; text-align: left;">Nhóm</th>
+                            <th id="thWeeksGroup" colspan="1" style="background:#e0f2fe; color:#0369a1; border-left:1px solid #cbd5e1; border-right:1px solid #cbd5e1;">Hoạt động theo từng tuần</th>
+                            <th colspan="4" style="background:#fef3c7; color:#92400e;">Tổng hoạt động cả kỳ</th>
+                            <th colspan="4" style="background:#f3e8ff; color:#6b21a8;">Đo lường Lead & Phản hồi SLA</th>
+                            <th rowspan="2" style="min-width: 170px;">Đánh giá & Đề xuất kèm cặp</th>
+                        </tr>
+                        <tr id="trSubHeaders">
+                            <!-- Dynamic week sub-headers (Gọi / Gặp / BG) will be injected here -->
+                            <th>Gọi</th><th>Gặp</th><th>Báo giá</th><th>Tổng</th>
+                            <th>Lead giao</th><th>Trong SLA</th><th>Quá hạn</th><th>Tỷ lệ SLA</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productivityTbody">
+                        <tr>
+                            <td colspan="15" style="text-align: center; padding: 35px; color: var(--crm-muted);">
+                                Đang tổng hợp số liệu hoạt động và phản hồi SLA...
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot id="productivityTfoot"></tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- Section 2: Smart Coaching Recommendation Action Center -->
+        <div class="coaching-section">
+            <div class="coaching-section-title">
+                <span>🎯</span> Góc kèm cặp của Trưởng nhóm (Coaching Action Center)
+            </div>
+            <div class="coaching-section-subtitle">
+                Hệ thống tự động phát hiện thành viên có tỷ lệ phản hồi SLA dưới 80% hoặc số lượt tương tác gọi điện, gặp mặt thấp để Trưởng nhóm kịp thời hỗ trợ và kèm cặp:
+            </div>
+
+            <div class="coaching-cards-grid" id="coachingCardsGrid">
+                <!-- Coaching cards injected by JS -->
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<script src="js/shared-shell.js"></script>
+<script src="js/pages/team-activity-report.js?v=20261019_2"></script>
+<script src="js/page-transition.js"></script>
+
+</body>
+</html>

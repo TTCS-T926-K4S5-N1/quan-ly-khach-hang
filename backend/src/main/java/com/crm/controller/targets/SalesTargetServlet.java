@@ -57,6 +57,17 @@ public class SalesTargetServlet extends HttpServlet {
                 return;
             }
 
+            if ("/team-validation".equalsIgnoreCase(path)) {
+                Long teamId = parseLong(req.getParameter("teamId"));
+                int year = parseInteger(req.getParameter("year")) != null ? parseInteger(req.getParameter("year")) : 2026;
+                Integer month = parseInteger(req.getParameter("month"));
+                Integer quarter = parseInteger(req.getParameter("quarter"));
+
+                var val = targetService.getTeamValidation(currentUserId, teamId, year, month, quarter);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Kiểm tra chỉ tiêu nhóm thành công", val));
+                return;
+            }
+
             String[] parts = path.split("/");
             if (parts.length >= 2) {
                 if ("summary".equalsIgnoreCase(parts[1])) {
@@ -70,6 +81,16 @@ public class SalesTargetServlet extends HttpServlet {
                 if ("meta".equalsIgnoreCase(parts[1])) {
                     var meta = targetService.getFormMetadata(currentUserId);
                     ResponseUtil.json(resp, 200, ApiResponse.success("Lấy thông tin biểu mẫu thành công", meta));
+                    return;
+                }
+                if ("team-validation".equalsIgnoreCase(parts[1])) {
+                    Long teamId = parseLong(req.getParameter("teamId"));
+                    int year = parseInteger(req.getParameter("year")) != null ? parseInteger(req.getParameter("year")) : 2026;
+                    Integer month = parseInteger(req.getParameter("month"));
+                    Integer quarter = parseInteger(req.getParameter("quarter"));
+
+                    var val = targetService.getTeamValidation(currentUserId, teamId, year, month, quarter);
+                    ResponseUtil.json(resp, 200, ApiResponse.success("Kiểm tra chỉ tiêu nhóm thành công", val));
                     return;
                 }
 
@@ -119,6 +140,7 @@ public class SalesTargetServlet extends HttpServlet {
 
             int targetDeals = body.get("targetDeals") != null ? ((Number) body.get("targetDeals")).intValue() : 0;
             String notes = (String) body.get("notes");
+            String changeReason = (String) body.get("changeReason");
 
             var saved = targetService.upsert(
                     currentUserId,
@@ -130,7 +152,8 @@ public class SalesTargetServlet extends HttpServlet {
                     quarter,
                     targetAmount,
                     targetDeals,
-                    notes
+                    notes,
+                    changeReason
             );
 
             ResponseUtil.json(resp, id != null ? 200 : 201, ApiResponse.success(id != null ? "Cập nhật chỉ tiêu thành công" : "Khai báo chỉ tiêu thành công", saved));
@@ -181,6 +204,15 @@ public class SalesTargetServlet extends HttpServlet {
         if (str == null || str.trim().isEmpty()) return null;
         try {
             return Integer.parseInt(str.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private Long parseLong(String str) {
+        if (str == null || str.trim().isEmpty()) return null;
+        try {
+            return Long.parseLong(str.trim());
         } catch (NumberFormatException e) {
             return null;
         }

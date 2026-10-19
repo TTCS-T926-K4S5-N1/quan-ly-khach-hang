@@ -332,6 +332,11 @@ public class OpportunityService {
         int prob = targetStage.get("winProbability") != null ? ((Number) targetStage.get("winProbability")).intValue() : 0;
         opportunityDAO.updateStage(id, targetStageId, prob);
 
+        // Kích hoạt quy tắc tự động hoá Khi-Thì (When-Then Automations) bất đồng bộ
+        opp.put("stageId", targetStageId);
+        opp.put("probability", prob);
+        com.crm.service.automation.AutomationEngine.getInstance().triggerAsync("STAGE_CHANGED", "OPPORTUNITY", id, opp);
+
         return getById(currentUserId, id);
     }
 

@@ -21,12 +21,27 @@ public class ForecastServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        resp.setHeader("Cache-Control", "no-store");
         try {
             long currentUserId = requireUser(req);
+            String pathInfo = req.getPathInfo();
             String period = req.getParameter("period");
             String groupBy = req.getParameter("groupBy");
+            String teamIdStr = req.getParameter("teamId");
+            Long teamId = (teamIdStr != null && !teamIdStr.isBlank() && !teamIdStr.equals("0")) ? Long.parseLong(teamIdStr) : null;
 
-            var result = forecastService.getForecast(currentUserId, period, groupBy);
+            Integer year = parseInteger(req.getParameter("year"));
+            Integer month = parseInteger(req.getParameter("month"));
+            Integer quarter = parseInteger(req.getParameter("quarter"));
+
+            // 1. Xuất file Excel báo cáo dự báo doanh số & lý do thua
+            if (pathInfo != null && (pathInfo.equals("/export") || pathInfo.equals("/excel"))) {
+                forecastService.exportForecastToExcel(resp, currentUserId, period, groupBy, teamId, year, month, quarter);
+                return;
+            }
+
+            // 2. Lấy dữ liệu báo cáo JSON
+            var result = forecastService.getForecast(currentUserId, period, groupBy, teamId, year, month, quarter);
             ResponseUtil.json(resp, 200, ApiResponse.success("Lấy báo cáo dự báo doanh số thành công", result));
         } catch (SecurityException e) {
             ResponseUtil.json(resp, 403, ApiResponse.error(e.getMessage(), null));
@@ -35,6 +50,15 @@ public class ForecastServlet extends HttpServlet {
         } catch (Exception e) {
             e.printStackTrace();
             ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ khi tính dự báo doanh số: " + e.getMessage(), null));
+        }
+    }
+
+    private static Integer parseInteger(String val) {
+        if (val == null || val.isBlank()) return null;
+        try {
+            return Integer.parseInt(val.trim());
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 

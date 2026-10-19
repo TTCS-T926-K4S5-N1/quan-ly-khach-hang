@@ -840,13 +840,30 @@ public class QuoteDAO {
                     status = ?
                 WHERE id = ?
                 """;
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, newStatus);
-            stmt.setString(2, comment != null ? comment.trim() : null);
-            stmt.setString(3, newStatus);
-            stmt.setLong(4, quoteId);
-            stmt.executeUpdate();
+        Long ownerUserId = null;
+        String quoteNumber = null;
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setString(1, newStatus);
+                stmt.setString(2, comment != null ? comment.trim() : null);
+                stmt.setString(3, newStatus);
+                stmt.setLong(4, quoteId);
+                stmt.executeUpdate();
+            }
+            try (PreparedStatement ps = conn.prepareStatement("SELECT owner_user_id, quote_number FROM quotes WHERE id = ?")) {
+                ps.setLong(1, quoteId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        ownerUserId = (Long) rs.getObject("owner_user_id");
+                        quoteNumber = rs.getString("quote_number");
+                    }
+                }
+            }
+        }
+        if (ownerUserId != null && ownerUserId > 0) {
+            com.crm.service.notifications.NotificationService.getInstance().notifyQuoteResponse(
+                    ownerUserId, quoteId, quoteNumber, newStatus, comment
+            );
         }
     }
 

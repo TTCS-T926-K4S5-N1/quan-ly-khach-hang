@@ -140,9 +140,9 @@ function populateAssigneeSelects() {
     if (filterSelect) {
         filterSelect.innerHTML = `
             <option value="">Tất cả người thực hiện</option>
-            <option value="self">Chỉ của tôi</option>
+            <option value="self">👤 Chỉ của tôi (${escapeHtml(currentUser?.fullName || "Tôi")})</option>
             ${assignableUsers.map(u => `
-                <option value="${u.id}">${escapeHtml(u.fullName || u.email)}</option>
+                <option value="${u.id}">👤 ${escapeHtml(u.fullName || u.email)}</option>
             `).join("")}
         `;
     }
@@ -224,8 +224,21 @@ function setQuickFilter(stateValue) {
     const stateEl = document.getElementById("taskState");
     if (stateEl) {
         stateEl.value = stateValue;
-        render();
     }
+    updateActiveKpiCard(stateValue);
+    render();
+}
+
+function updateActiveKpiCard(stateValue) {
+    const filterVal = (stateValue || "").toLowerCase();
+    document.querySelectorAll(".task-kpi-card").forEach(c => {
+        const cardFilter = (c.getAttribute("data-filter") || "").toLowerCase();
+        if (cardFilter === filterVal) {
+            c.classList.add("is-active");
+        } else {
+            c.classList.remove("is-active");
+        }
+    });
 }
 
 function render() {
@@ -237,6 +250,8 @@ function render() {
     const stateFilter = (document.getElementById("taskState")?.value || "").toLowerCase();
     const priorityFilter = (document.getElementById("taskPriorityFilter")?.value || "").toLowerCase();
     const memberFilter = (document.getElementById("taskMemberFilter")?.value || "").toLowerCase();
+
+    updateActiveKpiCard(stateFilter);
 
     const todayStr = new Date().toISOString().slice(0, 10);
 
@@ -305,42 +320,54 @@ function render() {
 
         return `
             <div class="${cardClass}" id="task-card-${t.id}">
-                <input type="checkbox" ${isDone ? "checked" : ""} style="width: 18px; height: 18px; margin-top: 3px; cursor: pointer;" title="${isDone ? "Đánh dấu chưa xong" : "Đánh dấu hoàn thành"}" onclick="handleToggleComplete(${t.id})">
+                <div class="task-check-wrap">
+                    <button type="button" class="task-check-btn ${isDone ? 'is-checked' : ''}" 
+                            title="${isDone ? 'Đánh dấu chưa hoàn thành' : 'Đánh dấu đã hoàn thành'}" 
+                            onclick="handleToggleComplete(${t.id})">
+                        <svg class="task-check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                    </button>
+                </div>
                 
-                <div style="flex: 1; min-width: 0;">
-                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 4px;">
+                <div class="task-item-content">
+                    <div class="task-badges-row">
                         <span class="priority-chip ${priorityClass}">${priorityLabel}</span>
-                        ${isDone ? '<span style="font-size: 11px; font-weight: 600; color: #16a34a; background: #dcfce7; padding: 2px 8px; border-radius: 12px;">✅ Đã hoàn thành</span>' : ''}
-                        ${isPostponed ? '<span style="font-size: 11px; font-weight: 600; color: #b45309; background: #fef3c7; padding: 2px 8px; border-radius: 12px;">⏱️ Đã hoãn lại</span>' : ''}
-                        ${isLate ? '<span style="font-size: 11px; font-weight: 600; color: #dc2626; background: #fee2e2; padding: 2px 8px; border-radius: 12px;">⚠️ Quá hạn chót</span>' : ''}
+                        ${isDone ? '<span class="status-chip done">✅ Đã hoàn thành</span>' : ''}
+                        ${isPostponed ? '<span class="status-chip postponed">⏱️ Đã hoãn lại</span>' : ''}
+                        ${isLate ? '<span class="status-chip late">⚠️ Quá hạn chót</span>' : ''}
                     </div>
 
-                    <div class="task-main-title" style="font-size: 14.5px; font-weight: 600; color: var(--crm-text); margin-bottom: 4px;">
+                    <div class="task-main-title">
                         ${escapeHtml(t.subject || t.title)}
                     </div>
 
-                    ${t.description ? `<div style="font-size: 12.5px; color: var(--crm-muted); margin-bottom: 6px; line-height: 1.4;">${escapeHtml(t.description)}</div>` : ''}
+                    ${t.description ? `<div class="task-desc">${escapeHtml(t.description)}</div>` : ''}
 
-                    <div style="display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--crm-muted); align-items: center;">
-                        <span style="display: flex; align-items: center; gap: 4px; color: ${isLate ? '#dc2626' : 'inherit'}; font-weight: ${isLate ? '600' : 'normal'};">
-                            📅 <span>Hạn: <strong>${formattedDate}</strong></span>
+                    <div class="task-meta-row">
+                        <span class="task-meta-item ${isLate ? 'is-late' : ''}">
+                            <span>📅 Hạn:</span>
+                            <strong>${formattedDate}</strong>
                         </span>
                         
                         ${t.customerName ? `
-                            <span style="display: flex; align-items: center; gap: 4px;">
-                                🏢 <a href="customer-360?id=${t.customerId}" style="color: var(--crm-primary); text-decoration: none; font-weight: 500;">${escapeHtml(t.customerName)}</a>
+                            <span class="task-meta-item">
+                                <span>🏢</span>
+                                <a href="customer-360?id=${t.customerId}" class="task-meta-link">${escapeHtml(t.customerName)}</a>
                             </span>
                         ` : ''}
 
                         ${t.opportunityName ? `
-                            <span style="display: flex; align-items: center; gap: 4px;">
-                                🎯 <a href="pipeline" style="color: var(--crm-primary); text-decoration: none;">${escapeHtml(t.opportunityName)}</a>
+                            <span class="task-meta-item">
+                                <span>🎯</span>
+                                <a href="pipeline" class="task-meta-link">${escapeHtml(t.opportunityName)}</a>
                             </span>
                         ` : ''}
 
-                        <span style="display: flex; align-items: center; gap: 4px;">
-                            👤 <span>Thực hiện: <strong>${escapeHtml(t.ownerName || "Chưa giao")}</strong></span>
-                            ${t.assignedByName && t.assignedByName !== t.ownerName ? `<em style="color:#64748b;">(Giao bởi: ${escapeHtml(t.assignedByName)})</em>` : ''}
+                        <span class="task-meta-item">
+                            <span>👤 Thực hiện:</span>
+                            <strong>${escapeHtml(t.ownerName || "Chưa giao")}</strong>
+                            ${t.assignedByName && t.assignedByName !== t.ownerName ? `<em style="color:#64748b; font-style: normal; margin-left: 2px;">(Giao bởi: ${escapeHtml(t.assignedByName)})</em>` : ''}
                         </span>
                     </div>
 
@@ -351,16 +378,17 @@ function render() {
                     ` : ''}
                 </div>
 
-                <div style="display: flex; align-items: center; gap: 6px;">
+                <div class="task-actions-wrap">
                     ${!isDone ? `
-                        <button type="button" class="crm-btn crm-btn-secondary" style="padding: 4px 10px; font-size: 11.5px; white-space: nowrap; color: #b45309;" onclick="openPostponeModal(${t.id}, '${escapeHtml(t.subject || '')}', '${dueDateStr}')">
-                            ⏱️ Hoãn lại
+                        <button type="button" class="task-btn-postpone" title="Gia hạn thời gian hoàn thành" onclick="openPostponeModal(${t.id}, '${escapeHtml(t.subject || '').replace(/'/g, "\\'")}', '${dueDateStr}')">
+                            <span>⏱️</span>
+                            <span>Hoãn lại</span>
                         </button>
                     ` : ''}
-                    <button type="button" class="crm-btn crm-btn-secondary" style="padding: 4px 8px; font-size: 11.5px;" title="Chỉnh sửa công việc" onclick="openModal(${t.id})">
+                    <button type="button" class="task-btn-icon" title="Chỉnh sửa công việc" onclick="openModal(${t.id})">
                         ✏️
                     </button>
-                    <button type="button" class="crm-btn" style="padding: 4px 8px; font-size: 11px; color: #ef4444; border: 1px solid #fee2e2; background: #fff;" title="Xóa công việc" onclick="handleDeleteTask(${t.id})">
+                    <button type="button" class="task-btn-delete" title="Xóa công việc" onclick="handleDeleteTask(${t.id})">
                         🗑️
                     </button>
                 </div>
@@ -580,3 +608,15 @@ function escapeHtml(str) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;");
 }
+
+/* Expose global handlers for inline markup */
+window.setQuickFilter = setQuickFilter;
+window.handleToggleComplete = handleToggleComplete;
+window.openPostponeModal = openPostponeModal;
+window.closePostponeModal = closePostponeModal;
+window.setPostponeReason = setPostponeReason;
+window.openModal = openModal;
+window.closeModal = closeModal;
+window.setQuickDueDate = setQuickDueDate;
+window.setQuickDueThisFriday = setQuickDueThisFriday;
+window.handleDeleteTask = handleDeleteTask;

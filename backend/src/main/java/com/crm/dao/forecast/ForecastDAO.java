@@ -20,7 +20,7 @@ public class ForecastDAO {
         public LocalDate startDate;
         public LocalDate endDate;
         public int year;
-        public Integer month;     // null if quarter
+        public Integer month;     // null if quarter / year
         public int quarter;
 
         public String getStartDateStr() {
@@ -33,11 +33,26 @@ public class ForecastDAO {
     }
 
     public PeriodRange resolvePeriod(String periodCode) {
+        return resolvePeriod(periodCode, null, null, null);
+    }
+
+    public PeriodRange resolvePeriod(String periodCode, Integer customYear, Integer customMonth, Integer customQuarter) {
         LocalDate today = LocalDate.now();
         PeriodRange pr = new PeriodRange();
-        pr.periodCode = (periodCode != null ? periodCode.trim().toUpperCase() : "THIS_MONTH");
+        String code = (periodCode != null ? periodCode.trim().toUpperCase() : "THIS_MONTH");
+        pr.periodCode = code;
 
-        if ("NEXT_MONTH".equals(pr.periodCode)) {
+        int curYear = (customYear != null && customYear > 0) ? customYear : today.getYear();
+
+        if ("LAST_MONTH".equals(code)) {
+            LocalDate lastM = today.minusMonths(1);
+            pr.year = lastM.getYear();
+            pr.month = lastM.getMonthValue();
+            pr.quarter = (pr.month - 1) / 3 + 1;
+            pr.startDate = LocalDate.of(pr.year, pr.month, 1);
+            pr.endDate = pr.startDate.plusMonths(1).minusDays(1);
+            pr.periodLabel = "Tháng " + pr.month + "/" + pr.year + " (Tháng trước)";
+        } else if ("NEXT_MONTH".equals(code)) {
             LocalDate nextM = today.plusMonths(1);
             pr.year = nextM.getYear();
             pr.month = nextM.getMonthValue();
@@ -45,14 +60,54 @@ public class ForecastDAO {
             pr.startDate = LocalDate.of(pr.year, pr.month, 1);
             pr.endDate = pr.startDate.plusMonths(1).minusDays(1);
             pr.periodLabel = "Tháng " + pr.month + "/" + pr.year + " (Tháng sau)";
-        } else if ("THIS_QUARTER".equals(pr.periodCode)) {
-            pr.year = today.getYear();
+        } else if ("THIS_QUARTER".equals(code)) {
+            pr.year = curYear;
             pr.month = null;
             pr.quarter = (today.getMonthValue() - 1) / 3 + 1;
             int startM = (pr.quarter - 1) * 3 + 1;
             pr.startDate = LocalDate.of(pr.year, startM, 1);
             pr.endDate = pr.startDate.plusMonths(3).minusDays(1);
             pr.periodLabel = "Quý " + pr.quarter + "/" + pr.year + " (Quý này)";
+        } else if ("LAST_QUARTER".equals(code)) {
+            LocalDate lastQDate = today.minusMonths(3);
+            pr.year = lastQDate.getYear();
+            pr.month = null;
+            pr.quarter = (lastQDate.getMonthValue() - 1) / 3 + 1;
+            int startM = (pr.quarter - 1) * 3 + 1;
+            pr.startDate = LocalDate.of(pr.year, startM, 1);
+            pr.endDate = pr.startDate.plusMonths(3).minusDays(1);
+            pr.periodLabel = "Quý " + pr.quarter + "/" + pr.year + " (Quý trước)";
+        } else if ("NEXT_QUARTER".equals(code)) {
+            LocalDate nextQDate = today.plusMonths(3);
+            pr.year = nextQDate.getYear();
+            pr.month = null;
+            pr.quarter = (nextQDate.getMonthValue() - 1) / 3 + 1;
+            int startM = (pr.quarter - 1) * 3 + 1;
+            pr.startDate = LocalDate.of(pr.year, startM, 1);
+            pr.endDate = pr.startDate.plusMonths(3).minusDays(1);
+            pr.periodLabel = "Quý " + pr.quarter + "/" + pr.year + " (Quý sau)";
+        } else if ("THIS_YEAR".equals(code)) {
+            pr.year = curYear;
+            pr.month = null;
+            pr.quarter = 0;
+            pr.startDate = LocalDate.of(pr.year, 1, 1);
+            pr.endDate = LocalDate.of(pr.year, 12, 31);
+            pr.periodLabel = "Năm " + pr.year + " (Cả năm)";
+        } else if ("CUSTOM_MONTH".equals(code) || (customMonth != null && customMonth >= 1 && customMonth <= 12)) {
+            pr.year = curYear;
+            pr.month = (customMonth != null ? customMonth : today.getMonthValue());
+            pr.quarter = (pr.month - 1) / 3 + 1;
+            pr.startDate = LocalDate.of(pr.year, pr.month, 1);
+            pr.endDate = pr.startDate.plusMonths(1).minusDays(1);
+            pr.periodLabel = "Tháng " + pr.month + "/" + pr.year;
+        } else if ("CUSTOM_QUARTER".equals(code) || (customQuarter != null && customQuarter >= 1 && customQuarter <= 4)) {
+            pr.year = curYear;
+            pr.month = null;
+            pr.quarter = (customQuarter != null ? customQuarter : ((today.getMonthValue() - 1) / 3 + 1));
+            int startM = (pr.quarter - 1) * 3 + 1;
+            pr.startDate = LocalDate.of(pr.year, startM, 1);
+            pr.endDate = pr.startDate.plusMonths(3).minusDays(1);
+            pr.periodLabel = "Quý " + pr.quarter + "/" + pr.year;
         } else {
             // Default: THIS_MONTH
             pr.periodCode = "THIS_MONTH";
@@ -66,11 +121,16 @@ public class ForecastDAO {
         return pr;
     }
 
-    /**
-     * Lấy dữ liệu dự báo tổng hợp kèm danh sách phân rã theo Nhân viên hoặc Nhóm
-     */
     public Map<String, Object> getForecastReport(PeriodRange period, String groupBy) throws SQLException {
-        boolean isGroupByTeam = "TEAM".equalsIgnoreCase(groupBy);
+        return getForecastReport(period, groupBy, null);
+    }
+
+    /**
+     * Lấy dữ liệu dự báo tổng hợp kèm danh sách phân rã theo Toàn khối (ALL), Nhóm (TEAM) hoặc Nhân viên (USER)
+     */
+    public Map<String, Object> getForecastReport(PeriodRange period, String groupBy, Long teamFilterId) throws SQLException {
+        String cleanGroup = (groupBy != null) ? groupBy.trim().toUpperCase() : "USER";
+        boolean isGroupByTeam = "TEAM".equals(cleanGroup) || "ALL".equals(cleanGroup);
 
         // 1. Lấy chỉ tiêu (sales_targets) cho kỳ
         Map<Long, BigDecimal> userTargets = new HashMap<>();
@@ -128,6 +188,7 @@ public class ForecastDAO {
                 Map<String, Object> row = new LinkedHashMap<>();
                 row.put("id", teamId);
                 row.put("name", teamName);
+                row.put("teamName", teamName);
                 row.put("memberCount", memberCount);
                 row.put("targetAmount", target);
                 row.put("wonAmount", wonAmt);
@@ -154,8 +215,12 @@ public class ForecastDAO {
             for (Map<String, Object> u : allUsers) {
                 long userId = ((Number) u.get("id")).longValue();
                 String fullName = (String) u.get("fullName");
-                Long teamId = (Long) u.get("teamId");
+                Long userTeamId = (Long) u.get("teamId");
                 String teamName = (String) u.get("teamName");
+
+                if (teamFilterId != null && userTeamId != null && !teamFilterId.equals(userTeamId)) {
+                    continue;
+                }
 
                 BigDecimal target = userTargets.getOrDefault(userId, BigDecimal.ZERO);
                 DealMetric won = userWon.getOrDefault(userId, new DealMetric());
@@ -177,7 +242,7 @@ public class ForecastDAO {
                 Map<String, Object> row = new LinkedHashMap<>();
                 row.put("id", userId);
                 row.put("name", fullName);
-                row.put("teamId", teamId);
+                row.put("teamId", userTeamId);
                 row.put("teamName", teamName != null ? teamName : "Chưa phân nhóm");
                 row.put("targetAmount", target);
                 row.put("wonAmount", wonAmt);
@@ -226,10 +291,129 @@ public class ForecastDAO {
         result.put("periodLabel", period.periodLabel);
         result.put("startDate", period.getStartDateStr());
         result.put("endDate", period.getEndDateStr());
-        result.put("groupBy", isGroupByTeam ? "TEAM" : "USER");
+        result.put("groupBy", cleanGroup);
+        result.put("scope", cleanGroup);
         result.put("summary", summary);
         result.put("breakdown", breakdownList);
+        result.put("lossAnalysis", getLossAnalysis(period));
 
+        return result;
+    }
+
+    /**
+     * Phân tích lý do thua theo danh mục và đối thủ cạnh tranh
+     */
+    public Map<String, Object> getLossAnalysis(PeriodRange period) throws SQLException {
+        Map<String, Object> result = new LinkedHashMap<>();
+        List<Map<String, Object>> byCategory = new ArrayList<>();
+        List<Map<String, Object>> byCompetitor = new ArrayList<>();
+
+        // 1. Phân tích theo danh mục lý do thua
+        String sqlCategory = """
+                SELECT 
+                    COALESCE(r.id, 0) AS reason_id,
+                    COALESCE(r.name, o.lost_reason, 'Lý do khác') AS reason_name,
+                    COUNT(*) AS deal_count,
+                    COALESCE(SUM(o.amount), 0) AS total_lost_amount
+                FROM opportunities o
+                LEFT JOIN win_loss_reasons r ON r.id = o.loss_reason_id
+                WHERE o.status = 'LOST' AND o.is_deleted = 0
+                GROUP BY reason_id, reason_name
+                ORDER BY total_lost_amount DESC, deal_count DESC
+                """;
+
+        // 2. Phân tích theo đối thủ cạnh tranh
+        String sqlCompetitor = """
+                SELECT 
+                    COALESCE(c.id, 0) AS competitor_id,
+                    COALESCE(c.name, 'Chưa rõ đối thủ / Khách tự hủy') AS competitor_name,
+                    COUNT(*) AS deal_count,
+                    COALESCE(SUM(o.amount), 0) AS total_lost_amount
+                FROM opportunities o
+                LEFT JOIN competitors c ON c.id = o.competitor_id
+                WHERE o.status = 'LOST' AND o.is_deleted = 0
+                GROUP BY competitor_id, competitor_name
+                ORDER BY total_lost_amount DESC, deal_count DESC
+                """;
+
+        int totalLostDeals = 0;
+        BigDecimal totalLostAmount = BigDecimal.ZERO;
+
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            try (PreparedStatement stmt = conn.prepareStatement(sqlCategory);
+                 ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    long rId = rs.getLong("reason_id");
+                    String name = rs.getString("reason_name");
+                    int count = rs.getInt("deal_count");
+                    BigDecimal amt = rs.getBigDecimal("total_lost_amount");
+                    if (amt == null) amt = BigDecimal.ZERO;
+
+                    row.put("reasonId", rId);
+                    row.put("reasonName", name);
+                    row.put("dealCount", count);
+                    row.put("totalLostAmount", amt);
+                    byCategory.add(row);
+
+                    totalLostDeals += count;
+                    totalLostAmount = totalLostAmount.add(amt);
+                }
+            }
+
+            try (PreparedStatement stmt = conn.prepareStatement(sqlCompetitor);
+                 ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    long compId = rs.getLong("competitor_id");
+                    String name = rs.getString("competitor_name");
+                    int count = rs.getInt("deal_count");
+                    BigDecimal amt = rs.getBigDecimal("total_lost_amount");
+                    if (amt == null) amt = BigDecimal.ZERO;
+
+                    row.put("competitorId", compId);
+                    row.put("competitorName", name);
+                    row.put("dealCount", count);
+                    row.put("totalLostAmount", amt);
+                    byCompetitor.add(row);
+                }
+            }
+        }
+
+        // Tính tỷ trọng % cho danh mục lý do thua
+        for (Map<String, Object> row : byCategory) {
+            int cnt = ((Number) row.get("dealCount")).intValue();
+            BigDecimal amt = (BigDecimal) row.get("totalLostAmount");
+            double pctDeals = totalLostDeals > 0 ? (cnt * 100.0 / totalLostDeals) : 0.0;
+            double pctAmount = totalLostAmount.compareTo(BigDecimal.ZERO) > 0
+                    ? amt.multiply(BigDecimal.valueOf(100)).divide(totalLostAmount, 1, RoundingMode.HALF_UP).doubleValue()
+                    : 0.0;
+            row.put("percentDeals", Math.round(pctDeals * 10.0) / 10.0);
+            row.put("percentAmount", pctAmount);
+        }
+
+        // Tính tỷ trọng % cho đối thủ
+        int compTotalDeals = 0;
+        BigDecimal compTotalAmount = BigDecimal.ZERO;
+        for (Map<String, Object> row : byCompetitor) {
+            compTotalDeals += ((Number) row.get("dealCount")).intValue();
+            compTotalAmount = compTotalAmount.add((BigDecimal) row.get("totalLostAmount"));
+        }
+        for (Map<String, Object> row : byCompetitor) {
+            int cnt = ((Number) row.get("dealCount")).intValue();
+            BigDecimal amt = (BigDecimal) row.get("totalLostAmount");
+            double pctDeals = compTotalDeals > 0 ? (cnt * 100.0 / compTotalDeals) : 0.0;
+            double pctAmount = compTotalAmount.compareTo(BigDecimal.ZERO) > 0
+                    ? amt.multiply(BigDecimal.valueOf(100)).divide(compTotalAmount, 1, RoundingMode.HALF_UP).doubleValue()
+                    : 0.0;
+            row.put("percentDeals", Math.round(pctDeals * 10.0) / 10.0);
+            row.put("percentAmount", pctAmount);
+        }
+
+        result.put("totalLostDeals", totalLostDeals);
+        result.put("totalLostAmount", totalLostAmount);
+        result.put("byCategory", byCategory);
+        result.put("byCompetitor", byCompetitor);
         return result;
     }
 
@@ -254,9 +438,11 @@ public class ForecastDAO {
         if (period.month != null) {
             sql.append(" AND period_month = ?");
             params.add(period.month);
-        } else {
-            sql.append(" AND period_quarter = ? AND period_month IS NULL");
+        } else if (period.quarter > 0) {
+            sql.append(" AND (period_quarter = ? AND (period_month IS NULL OR period_month BETWEEN ? AND ?))");
             params.add(period.quarter);
+            params.add((period.quarter - 1) * 3 + 1);
+            params.add(period.quarter * 3);
         }
 
         try (Connection conn = DatabaseConfig.getConnection();
@@ -272,9 +458,9 @@ public class ForecastDAO {
                     if (amt == null) amt = BigDecimal.ZERO;
 
                     if (userId != null) {
-                        userTargets.put(userId, amt);
+                        userTargets.merge(userId, amt, BigDecimal::add);
                     } else if (teamId != null) {
-                        teamTargets.put(teamId, amt);
+                        teamTargets.merge(teamId, amt, BigDecimal::add);
                     }
                 }
             }
@@ -369,7 +555,7 @@ public class ForecastDAO {
         }
     }
 
-    private List<Map<String, Object>> getAllSalesUsers() throws SQLException {
+    public List<Map<String, Object>> getAllSalesUsers() throws SQLException {
         String sql = """
                 SELECT u.id, u.full_name, u.team_id, t.name AS team_name
                 FROM users u
@@ -393,7 +579,7 @@ public class ForecastDAO {
         return list;
     }
 
-    private List<Map<String, Object>> getAllTeams() throws SQLException {
+    public List<Map<String, Object>> getAllTeams() throws SQLException {
         String sql = """
                 SELECT t.id, t.name, COUNT(u.id) AS member_count
                 FROM teams t

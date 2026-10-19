@@ -37,7 +37,7 @@
 
 <link rel="stylesheet" href="css/design-system.css">
 <link rel="stylesheet" href="css/app-shell.css">
-<link rel="stylesheet" href="css/pages/pipeline.css">
+<link rel="stylesheet" href="css/pages/pipeline.css?v=20261019_col_page">
 
 
 
@@ -307,6 +307,16 @@
                     <span>Bộ lọc khác</span>
                     <span id="pipelineAdvancedBadge" class="filter-count-badge" style="display:none;">0</span>
                 </button>
+
+                <div class="col-page-size-wrap" title="Số lượng thẻ cơ hội hiển thị trên mỗi cột Kanban">
+                    <select id="colPageSizeSelect" class="crm-input col-page-size-select" title="Số cơ hội hiển thị mỗi cột">
+                        <option value="3">📄 3 thẻ / trang</option>
+                        <option value="4" selected>📄 4 thẻ / trang</option>
+                        <option value="6">📄 6 thẻ / trang</option>
+                        <option value="8">📄 8 thẻ / trang</option>
+                        <option value="all">📄 Tất cả</option>
+                    </select>
+                </div>
 
                 <button
                     id="resetPipelineFilter"
@@ -1935,7 +1945,7 @@
     </form>
 </section>
 
-<script src="js/pages/pipeline.js"></script>
+<script src="js/pages/pipeline.js?v=20261019_col_page"></script>
 
 <script src="js/page-transition.js"></script>
 

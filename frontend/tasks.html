@@ -19,125 +19,8 @@
 
 <link rel="stylesheet" href="css/design-system.css">
 <link rel="stylesheet" href="css/app-shell.css">
-<link rel="stylesheet" href="css/pages/tasks.css">
+<link rel="stylesheet" href="css/pages/tasks.css?v=20261019_pro_tasks">
 <link rel="stylesheet" href="css/animations.css">
-
-<style>
-/* Modern styling for Tasks Page */
-.task-kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 12px;
-    margin-bottom: 16px;
-}
-.task-kpi-card {
-    background: var(--crm-surface, #ffffff);
-    border: 1px solid var(--crm-border, #e2e8f0);
-    border-radius: 8px;
-    padding: 12px 14px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-    cursor: pointer;
-    transition: transform 0.15s, border-color 0.15s;
-}
-.task-kpi-card:hover {
-    transform: translateY(-2px);
-    border-color: var(--crm-primary, #2563eb);
-}
-.task-kpi-icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-}
-.task-kpi-val {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--crm-text, #1e293b);
-    line-height: 1.2;
-}
-.task-kpi-lbl {
-    font-size: 11.5px;
-    color: var(--crm-muted, #64748b);
-}
-
-.task-item-card {
-    background: var(--crm-surface, #ffffff);
-    border: 1px solid var(--crm-border, #e2e8f0);
-    border-radius: 8px;
-    padding: 14px 16px;
-    margin-bottom: 10px;
-    display: flex;
-    gap: 14px;
-    align-items: flex-start;
-    transition: all 0.2s ease;
-}
-.task-item-card:hover {
-    border-color: #cbd5e1;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-}
-.task-item-card.is-completed {
-    opacity: 0.72;
-    background: #f8fafc;
-}
-.task-item-card.is-completed .task-main-title {
-    text-decoration: line-through;
-    color: #64748b;
-}
-.task-item-card.is-urgent {
-    border-left: 4px solid #ef4444;
-}
-.task-item-card.is-high {
-    border-left: 4px solid #f59e0b;
-}
-.task-item-card.is-medium {
-    border-left: 4px solid #3b82f6;
-}
-.task-item-card.is-low {
-    border-left: 4px solid #94a3b8;
-}
-
-.priority-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 12px;
-}
-.priority-chip.urgent { background: #fee2e2; color: #b91c1c; }
-.priority-chip.high { background: #fef3c7; color: #b45309; }
-.priority-chip.medium { background: #e0f2fe; color: #0369a1; }
-.priority-chip.low { background: #f1f5f9; color: #475569; }
-
-.task-postpone-box {
-    margin-top: 8px;
-    padding: 8px 10px;
-    background: #fffbeb;
-    border: 1px dashed #fcd34d;
-    border-radius: 6px;
-    font-size: 12px;
-    color: #92400e;
-}
-.quick-chip-btn {
-    border: 1px solid var(--crm-border, #e2e8f0);
-    background: #f8fafc;
-    border-radius: 14px;
-    padding: 3px 10px;
-    font-size: 11.5px;
-    cursor: pointer;
-    transition: all 0.15s;
-}
-.quick-chip-btn:hover {
-    background: #e2e8f0;
-}
-</style>
 </head>
 
 <body class="crm-private">
@@ -193,52 +76,55 @@
 
 <main class="crm-main tasks-page">
 
-    <section class="tasks-head" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+    <section class="tasks-head">
         <div>
-            <p style="font-size: 12px; color: var(--crm-muted); margin: 0 0 4px;">CRM / Quản lý Công việc</p>
-            <h1 style="font-size: 24px; font-weight: 700; color: var(--crm-text); margin: 0 0 4px;">Công việc có hạn hoàn thành (Tasks)</h1>
-            <span style="font-size: 13px; color: var(--crm-muted);">
+            <p class="tasks-kicker">CRM / QUẢN LÝ CÔNG VIỆC</p>
+            <h1 class="tasks-title">Công việc có hạn hoàn thành (Tasks)</h1>
+            <span class="tasks-subtitle">
                 Theo dõi lời hứa gửi báo giá, cuộc gọi, công việc cá nhân và giao việc cho thành viên nhóm.
             </span>
         </div>
-        <button id="newTask" class="crm-btn crm-btn-primary" type="button" style="display: flex; align-items: center; gap: 6px;">
-            <span>➕</span> Tạo công việc
-        </button>
+        <div class="tasks-head-actions">
+            <button id="newTask" class="crm-btn crm-btn-primary" type="button">
+                <span>➕</span>
+                <span>Tạo công việc</span>
+            </button>
+        </div>
     </section>
 
     <!-- KPI Summary Cards -->
     <div class="task-kpi-grid">
-        <div class="task-kpi-card" onclick="setQuickFilter('')">
-            <div class="task-kpi-icon" style="background: #eff6ff; color: #2563eb;">📋</div>
-            <div>
+        <div class="task-kpi-card kpi-total is-active" data-filter="" onclick="setQuickFilter('')">
+            <div class="task-kpi-icon">📋</div>
+            <div class="task-kpi-info">
                 <div class="task-kpi-val" id="kpiTotalTasks">0</div>
                 <div class="task-kpi-lbl">Tổng công việc</div>
             </div>
         </div>
-        <div class="task-kpi-card" onclick="setQuickFilter('open')">
-            <div class="task-kpi-icon" style="background: #f0fdf4; color: #16a34a;">⏳</div>
-            <div>
+        <div class="task-kpi-card kpi-open" data-filter="open" onclick="setQuickFilter('open')">
+            <div class="task-kpi-icon">⏳</div>
+            <div class="task-kpi-info">
                 <div class="task-kpi-val" id="kpiOpenTasks">0</div>
                 <div class="task-kpi-lbl">Đang cần làm</div>
             </div>
         </div>
-        <div class="task-kpi-card" onclick="setQuickFilter('late')">
-            <div class="task-kpi-icon" style="background: #fef2f2; color: #dc2626;">⚠️</div>
-            <div>
+        <div class="task-kpi-card kpi-late" data-filter="late" onclick="setQuickFilter('late')">
+            <div class="task-kpi-icon">⚠️</div>
+            <div class="task-kpi-info">
                 <div class="task-kpi-val" id="kpiLateTasks">0</div>
                 <div class="task-kpi-lbl">Quá hạn chót</div>
             </div>
         </div>
-        <div class="task-kpi-card" onclick="setQuickFilter('postponed')">
-            <div class="task-kpi-icon" style="background: #fffbeb; color: #d97706;">⏱️</div>
-            <div>
+        <div class="task-kpi-card kpi-postponed" data-filter="postponed" onclick="setQuickFilter('postponed')">
+            <div class="task-kpi-icon">⏱️</div>
+            <div class="task-kpi-info">
                 <div class="task-kpi-val" id="kpiPostponedTasks">0</div>
                 <div class="task-kpi-lbl">Đã hoãn lại</div>
             </div>
         </div>
-        <div class="task-kpi-card" onclick="setQuickFilter('done')">
-            <div class="task-kpi-icon" style="background: #f1f5f9; color: #475569;">✅</div>
-            <div>
+        <div class="task-kpi-card kpi-done" data-filter="done" onclick="setQuickFilter('done')">
+            <div class="task-kpi-icon">✅</div>
+            <div class="task-kpi-info">
                 <div class="task-kpi-val" id="kpiDoneTasks">0</div>
                 <div class="task-kpi-lbl">Đã hoàn thành</div>
             </div>
@@ -246,18 +132,23 @@
     </div>
 
     <!-- Filters Bar -->
-    <section class="crm-card tasks-filter" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px; padding: 12px 16px;">
-        <input id="taskSearch" class="crm-input" type="search" placeholder="🔍 Tìm công việc, khách hàng..." style="flex: 1; min-width: 220px;">
-        
-        <select id="taskState" class="crm-input" style="width: 170px;">
+    <section class="tasks-filter">
+        <div class="task-search-wrap">
+            <svg class="task-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>
+            </svg>
+            <input id="taskSearch" class="crm-input task-search-input" type="search" placeholder="Tìm kiếm công việc, khách hàng, người thực hiện...">
+        </div>
+
+        <select id="taskState" class="crm-input task-select" title="Lọc theo trạng thái công việc">
             <option value="">Tất cả trạng thái</option>
-            <option value="open">Đang mở (Cần làm)</option>
-            <option value="late">Quá hạn</option>
-            <option value="postponed">Đã hoãn lại</option>
-            <option value="done">Đã hoàn thành</option>
+            <option value="open">⏳ Đang cần làm</option>
+            <option value="late">⚠️ Quá hạn chót</option>
+            <option value="postponed">⏱️ Đã hoãn lại</option>
+            <option value="done">✅ Đã hoàn thành</option>
         </select>
 
-        <select id="taskPriorityFilter" class="crm-input" style="width: 160px;">
+        <select id="taskPriorityFilter" class="crm-input task-select" title="Lọc theo mức ưu tiên">
             <option value="">Tất cả mức ưu tiên</option>
             <option value="urgent">🔥 Khẩn cấp</option>
             <option value="high">⚡ Cao</option>
@@ -265,17 +156,18 @@
             <option value="low">⚪ Thấp</option>
         </select>
 
-        <select id="taskMemberFilter" class="crm-input" style="width: 190px;">
+        <select id="taskMemberFilter" class="crm-input task-select" title="Lọc theo người thực hiện">
             <option value="">Tất cả người thực hiện</option>
-            <option value="self">Chỉ của tôi</option>
+            <option value="self">👤 Chỉ của tôi</option>
         </select>
     </section>
 
     <!-- Tasks List Container -->
-    <section class="crm-card tasks-card" style="padding: 16px;">
+    <section class="crm-card tasks-card">
         <div id="tasksList" class="tasks-list"></div>
-        <div id="tasksEmpty" class="tasks-empty" style="text-align: center; padding: 36px 16px; color: var(--crm-muted); font-size: 13.5px; display: none;">
-            Chưa có công việc nào phù hợp với bộ lọc hiện tại.
+        <div id="tasksEmpty" class="tasks-empty" style="display: none;">
+            <div class="tasks-empty-icon">📭</div>
+            <div>Chưa có công việc nào phù hợp với bộ lọc hiện tại.</div>
         </div>
     </section>
 
@@ -415,7 +307,7 @@
     </form>
 </section>
 
-<script src="js/pages/tasks.js"></script>
+<script src="js/pages/tasks.js?v=20261019_pro_tasks"></script>
 <script src="js/page-transition.js"></script>
 <script src="js/theme.js"></script>
 <script src="js/shared-shell.js"></script>

@@ -223,6 +223,23 @@ public class ActivityServlet extends HttpServlet {
                     currentUserId, subject, type, description, outcome, status, priority,
                     dueDate, durationMinutes, customerId, contactId, opportunityId, assigneeUserId
             );
+
+            // Bắn thông báo giao việc bất đồng bộ cho người nhận việc
+            long targetUser = (assigneeUserId != null && assigneeUserId > 0) ? assigneeUserId : currentUserId;
+            long createdId = 0L;
+            if (created != null && created.get("id") != null) {
+                try {
+                    createdId = ((Number) created.get("id")).longValue();
+                } catch (Exception ignored) {}
+            }
+
+            com.crm.service.notifications.NotificationService.getInstance().notifyTaskAssigned(
+                    targetUser,
+                    createdId,
+                    subject,
+                    dueDate != null ? dueDate.toString() : null
+            );
+
             ResponseUtil.json(resp, 201, ApiResponse.success("Tạo hoạt động/công việc thành công", created));
         } catch (SecurityException e) {
             ResponseUtil.json(resp, 403, ApiResponse.error(e.getMessage(), null));

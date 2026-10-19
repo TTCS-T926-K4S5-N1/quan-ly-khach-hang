@@ -212,6 +212,10 @@ async function initCustomer360() {
 
     // Kiểm tra xem khách hàng này có trùng lặp với công ty nào không
     checkCustomerDuplicates();
+
+    document.querySelector(".quick-btn.email")?.addEventListener("click", () => {
+        window.location.href = "email-marketing";
+    });
 }
 
 /* =========================================================
@@ -889,6 +893,16 @@ function renderTimeline() {
                     ${item.dueDate ? `<div style="font-size:11.5px; color:#b45309; margin-top:4px;">⏱️ Hạn hoàn thành: <strong>${new Date(item.dueDate).toLocaleString('vi-VN')}</strong></div>` : ""}
                     ${item.postponeReason ? `<div style="font-size:11.5px; color:#b91c1c; background:#fee2e2; padding:3px 8px; border-radius:4px; margin-top:5px;"><strong>Lý do hoãn:</strong> ${escapeHtml(item.postponeReason)}</div>` : ""}
                     ${item.text && item.text !== item.title ? `<div class="timeline-text" style="margin-top:5px;">${escapeHtml(item.text)}</div>` : ""}
+                </div>
+            `;
+        } else if (item.type === "email") {
+            detailContent = `
+                <div style="margin-top:6px; padding:10px 12px; border-radius:8px; background:#eff6ff; border:1px solid #bfdbfe;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                        <strong style="color:#1e40af; font-size:13px;">✉️ ${escapeHtml(item.title || item.subject || 'Thư gửi khách hàng')}</strong>
+                        <span class="opp-stage-badge stage-won" style="background:#dbeafe; color:#1e40af; font-size:11px; font-weight:700;">ĐÃ GỬI TỪ HỆ THỐNG</span>
+                    </div>
+                    ${item.text ? `<div class="timeline-text" style="margin-top:6px; color:#1e293b; font-size:12.5px; white-space:pre-line;">${escapeHtml(item.text)}</div>` : ""}
                 </div>
             `;
         } else {

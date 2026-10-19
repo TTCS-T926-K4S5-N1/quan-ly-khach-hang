@@ -212,6 +212,10 @@
                 Trường tùy chỉnh
             </a>
 
+            <a href="automation-rules">
+                Tự động hoá Khi – Thì
+            </a>
+
         </nav>
 
 
@@ -245,6 +249,27 @@
                 class="stage-empty"
             >
                 Chưa có giai đoạn Pipeline.
+            </div>
+
+            <!-- Cấu hình Bảng xếp hạng doanh số nội bộ -->
+            <div style="margin-top: 24px; padding: 20px; border-top: 1px solid var(--crm-border); background: var(--crm-bg); border-radius: 10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:16px;">
+                    <div>
+                        <h3 style="margin:0 0 4px 0; font-size:14.5px; color:var(--crm-text); font-weight:700;">
+                            🏆 Bảng xếp hạng Doanh số trong Nhóm (Sales Leaderboard)
+                        </h3>
+                        <p style="margin:0; font-size:12.5px; color:var(--crm-muted);">
+                            Cho phép nhân viên kinh doanh xem bảng xếp hạng doanh số thực tế đã chốt và tiến độ chỉ tiêu của các đồng đội trong nhóm của mình.
+                        </p>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span id="lbStatusText" style="font-size:12px; font-weight:700; color:#16a34a;">Đang bật</span>
+                        <label class="crm-switch">
+                            <input type="checkbox" id="toggleLeaderboardSetting" checked>
+                            <span class="crm-slider"></span>
+                        </label>
+                    </div>
+                </div>
             </div>
 
         </section>

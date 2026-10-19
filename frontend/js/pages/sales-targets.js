@@ -203,6 +203,32 @@ function renderTargetsTable() {
         const varianceFormatted = (variance >= 0 ? "+" : "") + formatMoney(variance);
         const varianceColor = variance >= 0 ? "#059669" : "#dc2626";
 
+        // Mismatch warning for team targets (Story 2 AC)
+        let mismatchBadge = "";
+        if (!isUser && t.isMismatched) {
+            mismatchBadge = `
+                <div style="margin-top: 5px; font-size: 11px; padding: 4px 7px; border-radius: 4px; background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; line-height: 1.35; text-align: left;">
+                    <div style="font-weight: 700; display: flex; align-items: center; gap: 4px;">
+                        <span>⚠️</span> Lệch tổng thành viên!
+                    </div>
+                    <div>Tổng TV: <strong>${formatMoney(t.teamMembersSum)}</strong></div>
+                    <div>Lệch: <span style="font-weight: 600;">${(t.mismatchDiff || 0) > 0 ? '+' : ''}${formatMoney(t.mismatchDiff)}</span></div>
+                </div>
+            `;
+        }
+
+        // Locked badge for passed period targets (Story 2 AC)
+        let lockedBadge = "";
+        if (t.isLocked) {
+            lockedBadge = `
+                <div style="margin-top: 4px;">
+                    <span style="display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">
+                        🔒 Đã qua kỳ (Đã khoá)
+                    </span>
+                </div>
+            `;
+        }
+
         return `
             <tr data-id="${t.id}">
                 <td>
@@ -221,10 +247,12 @@ function renderTargetsTable() {
                 </td>
                 <td style="font-weight: 600; font-size: 12.5px; color: #334155; white-space: nowrap;">
                     ${escapeHtml(t.periodLabel || "")}
+                    ${lockedBadge}
                 </td>
                 <td style="text-align: right; font-weight: 700; color: #0f172a; white-space: nowrap;">
                     ${formatMoney(t.targetAmount)}
                     ${t.targetDeals > 0 ? `<div style="font-size: 11px; color: #64748b; font-weight: normal;">(Mục tiêu: ${t.targetDeals} deal)</div>` : ''}
+                    ${mismatchBadge}
                 </td>
                 <td style="text-align: right; font-weight: 700; color: #059669; white-space: nowrap;">
                     ${formatMoney(t.actualAmount)}
@@ -249,14 +277,16 @@ function renderTargetsTable() {
                 </td>
                 <td style="font-size: 12px; color: #64748b; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(t.notes || '')}">
                     ${escapeHtml(t.notes || "—")}
+                    ${t.changeReason ? `<div style="color: #b45309; font-size: 11px; margin-top: 2px;">(Sửa: ${escapeHtml(t.changeReason)})</div>` : ''}
                 </td>
                 <td style="text-align: right; white-space: nowrap;">
-                    <button type="button" class="target-action-btn" onclick="openEditTargetModal(${t.id})" title="Chỉnh sửa chỉ tiêu">
-                        ✏️ Sửa
+                    <button type="button" class="target-action-btn" onclick="openEditTargetModal(${t.id})" title="${t.isLocked ? 'Chỉ tiêu đã khoá - Yêu cầu nêu lý do chỉnh sửa' : 'Chỉnh sửa chỉ tiêu'}">
+                        ${t.isLocked ? '🔒 Sửa (Kèm lý do)' : '✏️ Sửa'}
                     </button>
+                    ${!t.isLocked ? `
                     <button type="button" class="target-action-btn btn-delete" onclick="deleteTarget(${t.id})" title="Xóa chỉ tiêu">
                         🗑️
-                    </button>
+                    </button>` : ''}
                 </td>
             </tr>
         `;
@@ -311,14 +341,23 @@ function openCreateTargetModal() {
     document.getElementById("formTargetDeals").value = "";
     document.getElementById("formNotes").value = "";
 
+    // Reset locked and team validation states
+    document.getElementById("lockedTargetNotice").style.display = "none";
+    document.getElementById("formChangeReasonGroup").style.display = "none";
+    document.getElementById("formChangeReason").value = "";
+    document.getElementById("teamValidationAlert").style.display = "none";
+
     document.getElementById("modalTargetForm").classList.add("active");
 }
+
+let currentEditingTarget = null;
 
 function openEditTargetModal(id) {
     const target = targetsList.find(t => t.id === id);
     if (!target) return;
+    currentEditingTarget = target;
 
-    document.getElementById("targetModalTitle").textContent = "✏️ Cập nhật Chỉ tiêu Doanh số";
+    document.getElementById("targetModalTitle").textContent = target.isLocked ? "🔒 Điều chỉnh Chỉ tiêu Đã qua kỳ" : "✏️ Cập nhật Chỉ tiêu Doanh số";
     document.getElementById("formTargetId").value = target.id;
 
     const isUser = target.userId != null;
@@ -351,11 +390,33 @@ function openEditTargetModal(id) {
     document.getElementById("formTargetDeals").value = target.targetDeals || "";
     document.getElementById("formNotes").value = target.notes || "";
 
+    // Story 2 AC: Chỉ tiêu đã qua kỳ thì khoá lại, sửa phải có lý do và được ghi nhật ký
+    const lockedNotice = document.getElementById("lockedTargetNotice");
+    const reasonGroup = document.getElementById("formChangeReasonGroup");
+    const reasonInput = document.getElementById("formChangeReason");
+
+    if (target.isLocked) {
+        lockedNotice.style.display = "block";
+        reasonGroup.style.display = "block";
+        reasonInput.value = target.changeReason || "";
+    } else {
+        lockedNotice.style.display = "none";
+        reasonGroup.style.display = "none";
+        reasonInput.value = "";
+    }
+
+    if (!isUser) {
+        checkTeamValidation();
+    } else {
+        document.getElementById("teamValidationAlert").style.display = "none";
+    }
+
     document.getElementById("modalTargetForm").classList.add("active");
 }
 
 function closeTargetModal() {
     document.getElementById("modalTargetForm").classList.remove("active");
+    currentEditingTarget = null;
 }
 
 function onTargetTypeChange() {
@@ -368,11 +429,13 @@ function onTargetTypeChange() {
         groupTeam.style.display = "none";
         document.getElementById("formUserId").required = true;
         document.getElementById("formTeamId").required = false;
+        document.getElementById("teamValidationAlert").style.display = "none";
     } else {
         groupUser.style.display = "none";
         groupTeam.style.display = "block";
         document.getElementById("formUserId").required = false;
         document.getElementById("formTeamId").required = true;
+        checkTeamValidation();
     }
 }
 
@@ -396,6 +459,67 @@ function onFormPeriodTypeChange() {
         `).join("");
     } else {
         valueGroup.style.display = "none";
+    }
+
+    checkTeamValidation();
+}
+
+/**
+ * Story 2 AC: Chỉ tiêu của nhóm phải bằng tổng chỉ tiêu các thành viên, lệch thì cảnh báo
+ */
+async function checkTeamValidation() {
+    const entityType = document.querySelector("input[name='targetEntityType']:checked")?.value;
+    if (entityType !== "TEAM") {
+        document.getElementById("teamValidationAlert").style.display = "none";
+        return;
+    }
+
+    const teamId = Number(document.getElementById("formTeamId")?.value);
+    if (!teamId || isNaN(teamId)) {
+        document.getElementById("teamValidationAlert").style.display = "none";
+        return;
+    }
+
+    const year = Number(document.getElementById("formYear")?.value) || selectedYear;
+    const pType = document.getElementById("formPeriodType")?.value;
+    let month = null;
+    let quarter = null;
+    if (pType === "MONTH") {
+        month = Number(document.getElementById("formPeriodValue")?.value);
+        quarter = Math.floor((month - 1) / 3) + 1;
+    } else if (pType === "QUARTER") {
+        quarter = Number(document.getElementById("formPeriodValue")?.value);
+    }
+
+    try {
+        let q = `teamId=${teamId}&year=${year}`;
+        if (month) q += `&month=${month}`;
+        if (quarter) q += `&quarter=${quarter}`;
+
+        const res = await api(`/api/sales-targets/team-validation?${q}`);
+        if (!res) return;
+
+        const membersSum = Number(res.membersSum || 0);
+        const enteredAmount = Number(document.getElementById("formTargetAmount")?.value || 0);
+        const diff = enteredAmount - membersSum;
+
+        const alertBox = document.getElementById("teamValidationAlert");
+        const msgEl = document.getElementById("teamValidationMsg");
+
+        if (diff !== 0) {
+            alertBox.style.display = "block";
+            msgEl.innerHTML = `
+                <div>• Tổng chỉ tiêu các thành viên trong nhóm: <strong>${formatMoney(membersSum)}</strong></div>
+                <div>• Chỉ tiêu nhóm đang nhập: <strong>${formatMoney(enteredAmount)}</strong></div>
+                <div style="margin-top: 3px; font-weight: 600; color: #dc2626;">
+                    ${diff > 0 ? `⚠️ Nhóm cao hơn tổng thành viên: +${formatMoney(diff)}` : `⚠️ Nhóm thấp hơn tổng thành viên: ${formatMoney(diff)}`}
+                </div>
+            `;
+        } else {
+            alertBox.style.display = "none";
+        }
+    } catch (err) {
+        console.warn("Could not validate team targets sum:", err);
     }
 }
 
@@ -435,6 +559,14 @@ async function submitTargetForm() {
     const deals = Number(document.getElementById("formTargetDeals").value) || 0;
     const notes = document.getElementById("formNotes").value.trim();
 
+    // Story 2 AC: Chỉ tiêu đã qua kỳ thì khoá lại, sửa phải có lý do và được ghi nhật ký
+    const changeReason = document.getElementById("formChangeReason").value.trim();
+    if (currentEditingTarget?.isLocked && !changeReason) {
+        alert("⚠️ Chỉ tiêu này đã qua kỳ (bị khóa). Bạn bắt buộc phải nhập lý do điều chỉnh để lưu vào nhật ký kiểm toán hệ thống.");
+        document.getElementById("formChangeReason").focus();
+        return;
+    }
+
     const payload = {
         id: idVal ? Number(idVal) : null,
         userId: userId,
@@ -444,7 +576,8 @@ async function submitTargetForm() {
         periodQuarter: quarter,
         targetAmount: amount,
         targetDeals: deals,
-        notes: notes
+        notes: notes,
+        changeReason: changeReason
     };
 
     const btn = document.getElementById("btnSaveTarget");
@@ -489,6 +622,21 @@ async function deleteTarget(id) {
    EVENT LISTENERS & INIT
 ========================================================= */
 document.addEventListener("DOMContentLoaded", async () => {
+    // Story 2 AC: Nhân viên chỉ xem được chỉ tiêu của chính mình
+    let currentUserSession = null;
+    try {
+        currentUserSession = JSON.parse(localStorage.getItem("crm_ui_session"));
+    } catch (_) {}
+    const roles = currentUserSession?.roles || [];
+    const isPureSalesRep = roles.includes("SALES_REP") && !roles.includes("ADMIN") && !roles.includes("DIRECTOR") && !roles.includes("TEAM_LEAD");
+    if (isPureSalesRep) {
+        document.getElementById("btnOpenCreateTargetModal")?.remove();
+        const teamTab = document.querySelector(".target-view-tab[data-type='TEAM']");
+        if (teamTab) teamTab.style.display = "none";
+        const allTab = document.querySelector(".target-view-tab[data-type='ALL']");
+        if (allTab) allTab.textContent = "👤 Chỉ tiêu của tôi";
+    }
+
     // 1. Load Metadata
     await loadMetadata();
 
@@ -548,9 +696,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("btnOpenCreateTargetModal")?.addEventListener("click", openCreateTargetModal);
     document.getElementById("btnSaveTarget")?.addEventListener("click", submitTargetForm);
 
-    // Live amount formatted helper
+    // Live amount formatted helper & live team validation check
     document.getElementById("formTargetAmount")?.addEventListener("input", (e) => {
         const val = Number(e.target.value);
         document.getElementById("formAmountFormatted").textContent = val ? formatMoney(val) : "";
+        checkTeamValidation();
     });
+
+    document.getElementById("formTeamId")?.addEventListener("change", checkTeamValidation);
+    document.getElementById("formPeriodValue")?.addEventListener("change", checkTeamValidation);
+    document.getElementById("formYear")?.addEventListener("change", checkTeamValidation);
 });

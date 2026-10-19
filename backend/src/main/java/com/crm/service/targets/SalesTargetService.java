@@ -48,6 +48,11 @@ public class SalesTargetService {
         return meta;
     }
 
+    public Map<String, Object> getTeamValidation(long currentUserId, Long teamId, int year, Integer month, Integer quarter) throws Exception {
+        dataScopeService.resolve(currentUserId, "opportunity", "read");
+        return targetDAO.getTeamValidation(teamId, year, month, quarter);
+    }
+
     public Map<String, Object> upsert(
             long currentUserId,
             Long id,
@@ -58,7 +63,8 @@ public class SalesTargetService {
             Integer quarter,
             BigDecimal targetAmount,
             int targetDeals,
-            String notes
+            String notes,
+            String changeReason
     ) throws Exception {
         DataScopeContext scope = dataScopeService.resolve(currentUserId, "opportunity", "create");
 
@@ -78,6 +84,13 @@ public class SalesTargetService {
             throw new IllegalArgumentException("Chỉ tiêu doanh số phải lớn hơn hoặc bằng 0.");
         }
 
+        boolean isLocked = SalesTargetDAO.isPeriodPassed(year, month, quarter);
+        if (id != null && id > 0 && isLocked) {
+            if (changeReason == null || changeReason.trim().isBlank()) {
+                throw new IllegalArgumentException("Chỉ tiêu này thuộc kỳ đã qua (đã khóa). Việc sửa đổi bắt buộc phải nhập lý do giải trình.");
+            }
+        }
+
         long targetId = targetDAO.upsertTarget(
                 id,
                 userId,
@@ -88,22 +101,42 @@ public class SalesTargetService {
                 targetAmount,
                 targetDeals,
                 notes,
+                changeReason,
                 currentUserId
         );
 
         try {
+            String action = id != null ? (isLocked ? "UPDATE_LOCKED_TARGET" : "UPDATE_SALES_TARGET") : "CREATE_SALES_TARGET";
+            String logDesc = (isLocked ? "[QUÁ KỲ - LÝ DO: " + changeReason + "] " : "")
+                    + "Khai báo chỉ tiêu doanh số: " + targetAmount + " ₫ cho kỳ "
+                    + (month != null ? ("Tháng " + month) : (quarter != null ? ("Quý " + quarter) : "Cả năm")) + "/" + year;
             auditLogService.log(
                     currentUserId,
                     "SALES_TARGET",
                     String.valueOf(targetId),
-                    id != null ? "UPDATE_SALES_TARGET" : "CREATE_SALES_TARGET",
-                    "Khai báo chỉ tiêu doanh số: " + targetAmount + " ₫ cho kỳ " + (month != null ? ("Tháng " + month) : (quarter != null ? ("Quý " + quarter) : "Cả năm")) + "/" + year,
+                    action,
+                    logDesc,
                     null,
                     String.valueOf(targetAmount)
             );
         } catch (Exception ignored) {}
 
         return targetDAO.findById(targetId);
+    }
+
+    public Map<String, Object> upsert(
+            long currentUserId,
+            Long id,
+            Long userId,
+            Long teamId,
+            int year,
+            Integer month,
+            Integer quarter,
+            BigDecimal targetAmount,
+            int targetDeals,
+            String notes
+    ) throws Exception {
+        return upsert(currentUserId, id, userId, teamId, year, month, quarter, targetAmount, targetDeals, notes, null);
     }
 
     public boolean delete(long currentUserId, long id) throws Exception {

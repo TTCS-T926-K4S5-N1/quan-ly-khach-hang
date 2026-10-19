@@ -968,3 +968,43 @@ function escapeHtml(value) {
 
 
 loadStages();
+initLeaderboardSetting();
+
+async function initLeaderboardSetting() {
+    const sw = document.getElementById("toggleLeaderboardSetting");
+    const statusText = document.getElementById("lbStatusText");
+    if (!sw) return;
+
+    try {
+        const res = await fetch("/crm/api/settings/leaderboard", { credentials: "same-origin" });
+        const json = await res.json();
+        if (json.success && json.data) {
+            const enabled = !!json.data.teamLeaderboardStaffEnabled;
+            sw.checked = enabled;
+            if (statusText) {
+                statusText.textContent = enabled ? "Đang bật" : "Đang tắt";
+                statusText.style.color = enabled ? "#16a34a" : "#dc2626";
+            }
+        }
+    } catch (e) {
+        console.error("Lỗi tải cấu hình bảng xếp hạng:", e);
+    }
+
+    sw.addEventListener("change", async () => {
+        const enabled = sw.checked;
+        if (statusText) {
+            statusText.textContent = enabled ? "Đang bật" : "Đang tắt";
+            statusText.style.color = enabled ? "#16a34a" : "#dc2626";
+        }
+        try {
+            await fetch("/crm/api/settings/leaderboard", {
+                method: "POST",
+                headers: { "Content-Type": "application/json; charset=utf-8" },
+                body: JSON.stringify({ enabled }),
+                credentials: "same-origin"
+            });
+        } catch (e) {
+            alert("Lỗi khi cập nhật cấu hình: " + e.message);
+        }
+    });
+}

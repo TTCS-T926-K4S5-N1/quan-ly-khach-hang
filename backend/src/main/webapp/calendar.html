@@ -19,164 +19,8 @@
 
 <link rel="stylesheet" href="css/design-system.css">
 <link rel="stylesheet" href="css/app-shell.css">
-<link rel="stylesheet" href="css/pages/calendar.css">
+<link rel="stylesheet" href="css/pages/calendar.css?v=20261019_pro_cal">
 <link rel="stylesheet" href="css/animations.css">
-
-<style>
-/* Modern styling for Responsive Personal & Team Calendar */
-.calendar-view-btn-group {
-    display: inline-flex;
-    background: var(--crm-surface-variant, #f1f5f9);
-    border-radius: 8px;
-    padding: 3px;
-    border: 1px solid var(--crm-border, #e2e8f0);
-}
-.calendar-view-btn {
-    border: none;
-    background: transparent;
-    padding: 5px 14px;
-    border-radius: 6px;
-    font-size: 12.5px;
-    font-weight: 600;
-    color: var(--crm-muted, #64748b);
-    cursor: pointer;
-    transition: all 0.15s;
-}
-.calendar-view-btn.active {
-    background: var(--crm-surface, #ffffff);
-    color: var(--crm-primary, #2563eb);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-}
-
-.cal-event-badge {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 3px 6px;
-    border-radius: 4px;
-    font-size: 11px;
-    line-height: 1.25;
-    margin-bottom: 3px;
-    cursor: pointer;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    border-left: 3px solid transparent;
-}
-.cal-event-badge.is-meeting {
-    background: #e0f2fe;
-    color: #0369a1;
-    border-left-color: #0284c7;
-}
-.cal-event-badge.is-task {
-    background: #fef3c7;
-    color: #92400e;
-    border-left-color: #f59e0b;
-}
-.cal-event-badge.is-task-done {
-    background: #f1f5f9;
-    color: #64748b;
-    border-left-color: #94a3b8;
-    text-decoration: line-through;
-}
-.cal-event-badge.is-call {
-    background: #ecfdf5;
-    color: #065f46;
-    border-left-color: #10b981;
-}
-
-/* Week View styling */
-.week-grid-container {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 8px;
-    min-height: 480px;
-}
-.week-day-col {
-    background: var(--crm-surface, #ffffff);
-    border: 1px solid var(--crm-border, #e2e8f0);
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-}
-.week-day-header {
-    padding: 8px 10px;
-    text-align: center;
-    border-bottom: 1px solid var(--crm-border, #e2e8f0);
-    background: #f8fafc;
-    border-radius: 8px 8px 0 0;
-}
-.week-day-header.is-today {
-    background: #eff6ff;
-    color: #2563eb;
-    font-weight: 700;
-}
-.week-day-body {
-    padding: 8px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    overflow-y: auto;
-}
-
-/* Day View styling */
-.day-view-container {
-    padding: 16px;
-}
-.day-agenda-section {
-    margin-bottom: 20px;
-}
-.day-agenda-title {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--crm-text, #1e293b);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-    padding-bottom: 6px;
-    border-bottom: 2px solid var(--crm-border, #e2e8f0);
-}
-.day-card-item {
-    background: var(--crm-surface, #ffffff);
-    border: 1px solid var(--crm-border, #e2e8f0);
-    border-radius: 8px;
-    padding: 12px 14px;
-    margin-bottom: 8px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-}
-.team-overlap-alert {
-    background: #fffbeb;
-    border: 1px solid #fde68a;
-    border-radius: 6px;
-    padding: 8px 12px;
-    margin-bottom: 12px;
-    font-size: 12.5px;
-    color: #92400e;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-/* Responsive adjustment for Mobile */
-@media (max-width: 768px) {
-    .calendar-toolbar {
-        flex-direction: column;
-        align-items: stretch !important;
-        gap: 10px;
-    }
-    .month-controls {
-        justify-content: space-between;
-    }
-    .week-grid-container {
-        grid-template-columns: 1fr;
-    }
-}
-</style>
 </head>
 
 <body class="crm-private">
@@ -232,66 +76,80 @@
 
 <main class="crm-main calendar-page">
 
-    <section class="calendar-head" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+    <section class="calendar-head">
         <div>
-            <p style="font-size: 12px; color: var(--crm-muted); margin: 0 0 4px;">CRM / Lịch làm việc</p>
-            <h1 style="font-size: 24px; font-weight: 700; color: var(--crm-text); margin: 0 0 4px;">Lịch hoạt động cá nhân & nhóm</h1>
-            <span style="font-size: 13px; color: var(--crm-muted);">
+            <p class="calendar-kicker">CRM / LỊCH LÀM VIỆC</p>
+            <h1 class="calendar-title">Lịch hoạt động cá nhân & nhóm</h1>
+            <span class="calendar-subtitle">
                 Theo dõi cuộc gặp đã đặt và công việc có hạn hoàn thành trong cùng một khung nhìn, kiểm soát chồng chéo lịch đồng đội.
             </span>
         </div>
 
-        <div style="display: flex; gap: 8px;">
-            <a href="tasks" class="crm-btn crm-btn-secondary" style="text-decoration: none; display: flex; align-items: center; gap: 6px;">
-                <span>📋</span> Quản lý công việc
+        <div class="calendar-head-actions">
+            <a href="tasks" class="crm-btn crm-btn-secondary" title="Xem danh sách công việc">
+                <span>📋</span>
+                <span>Quản lý công việc</span>
             </a>
-            <a href="activities" class="crm-btn crm-btn-primary" style="text-decoration: none; display: flex; align-items: center; gap: 6px;">
-                <span>➕</span> Đặt lịch / Ghi hoạt động
+            <a href="activities" class="crm-btn crm-btn-primary" title="Đặt lịch hoặc ghi hoạt động mới">
+                <span>➕</span>
+                <span>Đặt lịch / Ghi hoạt động</span>
             </a>
         </div>
     </section>
 
-    <section class="crm-card calendar-card" style="padding: 16px;">
+    <section class="calendar-card crm-card">
 
         <!-- Calendar Toolbar -->
-        <header class="calendar-toolbar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
-            <div class="month-controls" style="display: flex; align-items: center; gap: 8px;">
-                <button id="previousPeriod" type="button" class="crm-btn crm-btn-secondary" style="padding: 6px 12px;" title="Kỳ trước">
+        <header class="calendar-toolbar">
+            <div class="month-controls">
+                <button id="previousPeriod" type="button" class="cal-nav-btn" title="Kỳ trước (←)">
                     <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>
                 </button>
-                <button id="todayButton" type="button" class="crm-btn crm-btn-secondary" style="padding: 6px 14px; font-weight: 600;">
+                <button id="todayButton" type="button" class="cal-today-btn" title="Chuyển về hôm nay">
                     Hôm nay
                 </button>
-                <button id="nextPeriod" type="button" class="crm-btn crm-btn-secondary" style="padding: 6px 12px;" title="Kỳ sau">
+                <button id="nextPeriod" type="button" class="cal-nav-btn" title="Kỳ sau (→)">
                     <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
                 </button>
 
-                <h2 id="calendarTitle" style="font-size: 17px; font-weight: 700; margin: 0 8px; min-width: 180px;">
-                    —
-                </h2>
+                <div class="calendar-title-wrap">
+                    <svg class="cal-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+                    </svg>
+                    <h2 id="calendarTitle">—</h2>
+                </div>
             </div>
 
-            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <div class="calendar-toolbar-right">
                 <!-- Mode switch buttons: Month, Week, Day -->
                 <div class="calendar-view-btn-group">
-                    <button id="btnViewMonth" type="button" class="calendar-view-btn active" onclick="switchCalendarView('month')">Tháng</button>
-                    <button id="btnViewWeek" type="button" class="calendar-view-btn" onclick="switchCalendarView('week')">Tuần</button>
-                    <button id="btnViewDay" type="button" class="calendar-view-btn" onclick="switchCalendarView('day')">Ngày</button>
+                    <button id="btnViewMonth" type="button" class="calendar-view-btn active" onclick="switchCalendarView('month')">
+                        <svg class="view-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                        <span>Tháng</span>
+                    </button>
+                    <button id="btnViewWeek" type="button" class="calendar-view-btn" onclick="switchCalendarView('week')">
+                        <svg class="view-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M8 21V9m4 12V9m4 12V9"/></svg>
+                        <span>Tuần</span>
+                    </button>
+                    <button id="btnViewDay" type="button" class="calendar-view-btn" onclick="switchCalendarView('day')">
+                        <svg class="view-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01"/></svg>
+                        <span>Ngày</span>
+                    </button>
                 </div>
 
                 <!-- Team / Member Selector -->
-                <select id="calendarMemberFilter" class="crm-input" style="width: 220px;" title="Xem lịch của ai">
+                <select id="calendarMemberFilter" class="crm-input calendar-select" title="Xem lịch của ai">
                     <option value="self">👤 Lịch của tôi</option>
                     <option value="team" selected>👥 Toàn nhóm kinh doanh</option>
                 </select>
 
                 <!-- Type Filter: Meeting & Task unified -->
-                <select id="calendarTypeFilter" class="crm-input" style="width: 190px;">
-                    <option value="">Tất cả (Cuộc gặp + Task)</option>
+                <select id="calendarTypeFilter" class="crm-input calendar-select" title="Lọc theo loại sự kiện">
+                    <option value="">🎯 Tất cả (Cuộc gặp + Task)</option>
                     <option value="meeting">🤝 Cuộc gặp (Meetings)</option>
                     <option value="task">📋 Công việc (Tasks)</option>
-                    <option value="call">📞 Cuộc gọi</option>
-                    <option value="email">✉️ Email</option>
+                    <option value="call">📞 Cuộc gọi (Calls)</option>
+                    <option value="email">✉️ Email & Ghi chú</option>
                 </select>
             </div>
         </header>
@@ -304,16 +162,16 @@
 
         <!-- 1. MONTH VIEW -->
         <div id="monthViewWrapper">
-            <div class="calendar-weekdays" style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12.5px; font-weight: 600; color: var(--crm-muted); padding-bottom: 8px; border-bottom: 1px solid var(--crm-border);">
+            <div class="calendar-weekdays">
                 <span>Thứ 2</span>
                 <span>Thứ 3</span>
                 <span>Thứ 4</span>
                 <span>Thứ 5</span>
                 <span>Thứ 6</span>
                 <span>Thứ 7</span>
-                <span>Chủ nhật</span>
+                <span class="is-weekend">Chủ nhật</span>
             </div>
-            <div id="calendarGrid" class="calendar-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 6px;"></div>
+            <div id="calendarGrid" class="calendar-grid"></div>
         </div>
 
         <!-- 2. WEEK VIEW -->
@@ -325,16 +183,29 @@
         <div id="dayViewWrapper" class="day-view-container" style="display: none;">
             <div class="day-agenda-section">
                 <div class="day-agenda-title">
-                    <span>🤝</span> Cuộc gặp & Lịch hẹn khách hàng (<span id="dayMeetingsCount">0</span>)
+                    <span>🤝</span>
+                    <span>Cuộc gặp & Lịch hẹn khách hàng</span>
+                    <span class="day-agenda-badge" id="dayMeetingsCount">0</span>
                 </div>
                 <div id="dayMeetingsList"></div>
             </div>
 
             <div class="day-agenda-section">
                 <div class="day-agenda-title">
-                    <span>📋</span> Công việc có hạn trong ngày (<span id="dayTasksCount">0</span>)
+                    <span>📋</span>
+                    <span>Công việc có hạn trong ngày</span>
+                    <span class="day-agenda-badge" id="dayTasksCount">0</span>
                 </div>
                 <div id="dayTasksList"></div>
+            </div>
+
+            <div class="day-agenda-section" id="dayOthersSection" style="display: none;">
+                <div class="day-agenda-title">
+                    <span>📞</span>
+                    <span>Cuộc gọi & Hoạt động khác</span>
+                    <span class="day-agenda-badge" id="dayOthersCount">0</span>
+                </div>
+                <div id="dayOthersList"></div>
             </div>
         </div>
 
@@ -349,10 +220,10 @@
 <!-- DETAIL MODAL -->
 <div id="calendarOverlay" class="calendar-overlay"></div>
 
-<section id="calendarModal" class="calendar-modal crm-card" style="max-width: 520px; width: 90%;">
-    <header style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--crm-border); padding-bottom: 10px; margin-bottom: 14px;">
-        <strong id="calendarModalTitle" style="font-size: 16px; color: var(--crm-text);">Chi tiết sự kiện</strong>
-        <button id="closeCalendarModal" type="button" style="background: none; border: none; cursor: pointer; color: var(--crm-muted);">
+<section id="calendarModal" class="calendar-modal crm-card">
+    <header style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--crm-border); padding-bottom: 12px; margin-bottom: 14px;">
+        <strong id="calendarModalTitle" style="font-size: 16px; font-weight: 700; color: var(--crm-text);">Chi tiết sự kiện</strong>
+        <button id="closeCalendarModal" type="button" style="background: none; border: none; cursor: pointer; color: var(--crm-muted); font-size: 18px;">
             <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
         </button>
     </header>
@@ -361,13 +232,13 @@
         <!-- Populated dynamically -->
     </div>
 
-    <footer style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid var(--crm-border); padding-top: 12px; margin-top: 16px;">
+    <footer style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid var(--crm-border); padding-top: 14px; margin-top: 16px;">
         <button id="calendarModalCloseBtn" class="crm-btn crm-btn-secondary" type="button" onclick="closeModal()">Đóng</button>
         <button id="calendarModalActionBtn" class="crm-btn crm-btn-primary" type="button" style="display: none;">Hành động</button>
     </footer>
 </section>
 
-<script src="js/pages/calendar.js"></script>
+<script src="js/pages/calendar.js?v=20261019_pro_cal"></script>
 <script src="js/page-transition.js"></script>
 <script src="js/theme.js"></script>
 <script src="js/shared-shell.js"></script>

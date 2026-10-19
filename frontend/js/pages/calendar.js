@@ -286,9 +286,12 @@ function renderMonthView(items) {
     for (let i = startDayOfWeek - 1; i > 0; i--) {
         const dayNum = daysInPrevMonth - i + 1;
         const cell = document.createElement("div");
-        cell.className = "calendar-day is-muted";
-        cell.style.cssText = "min-height: 90px; background: #f8fafc; border: 1px solid #f1f5f9; padding: 4px; border-radius: 6px; opacity: 0.5;";
-        cell.innerHTML = `<span style="font-size: 11.5px; font-weight: 600; color: #94a3b8;">${dayNum}</span>`;
+        cell.className = "calendar-day other-month";
+        cell.innerHTML = `
+            <div class="day-cell-header">
+                <span class="day-number-badge">${dayNum}</span>
+            </div>
+        `;
         grid.appendChild(cell);
     }
 
@@ -300,18 +303,16 @@ function renderMonthView(items) {
 
         const cell = document.createElement("div");
         cell.className = "calendar-day" + (isToday ? " is-today" : "");
-        cell.style.cssText = `min-height: 96px; background: #ffffff; border: 1px solid ${isToday ? '#3b82f6' : '#e2e8f0'}; padding: 4px 6px; border-radius: 6px; display: flex; flex-direction: column; overflow: hidden;`;
-        if (isToday) cell.style.boxShadow = "0 0 0 1px #3b82f6";
 
         let dayHeaderHtml = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <span style="font-size: 12px; font-weight: 700; color: ${isToday ? '#2563eb' : '#334155'};">${day}</span>
-                ${isToday ? '<span style="font-size: 9.5px; background: #2563eb; color: #fff; padding: 1px 4px; border-radius: 4px;">Hôm nay</span>' : ''}
+            <div class="day-cell-header">
+                <span class="day-number-badge" title="Xem chi tiết ngày ${day}/${month + 1}" onclick="goToDayView('${dKey}')" style="cursor: pointer;">${day}</span>
+                ${isToday ? '<span class="today-indicator-tag">Hôm nay</span>' : ''}
             </div>
         `;
 
         const dayEvents = eventsByDate[dKey] || [];
-        let eventsHtml = '<div style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px;">';
+        let eventsHtml = '<div class="day-events-wrap">';
 
         dayEvents.slice(0, 3).forEach(ev => {
             const evType = (ev.type || "").toUpperCase();
@@ -325,25 +326,46 @@ function renderMonthView(items) {
             } else if (evType === "CALL") {
                 badgeClass = "is-call";
                 icon = "📞";
+            } else if (evType === "EMAIL") {
+                badgeClass = "is-email";
+                icon = "✉️";
             }
 
             const timeStr = ev.dueDate ? new Date(ev.dueDate).toTimeString().slice(0, 5) : "";
             eventsHtml += `
                 <div class="cal-event-badge ${badgeClass}" title="${escapeHtml(ev.subject || ev.title)} - ${escapeHtml(ev.ownerName || '')}" onclick="openEventDetail(${ev.id})">
-                    <span>${icon}</span>
-                    <span style="font-weight: 600;">${timeStr ? timeStr + ' ' : ''}</span>
-                    <span>${escapeHtml(ev.subject || ev.title)}</span>
+                    <span class="cal-badge-icon">${icon}</span>
+                    ${timeStr ? `<span class="cal-badge-time">${timeStr}</span>` : ''}
+                    <span class="cal-badge-title">${escapeHtml(ev.subject || ev.title)}</span>
                 </div>
             `;
         });
 
         if (dayEvents.length > 3) {
-            eventsHtml += `<div style="font-size: 10px; color: #64748b; font-weight: 600; text-align: right; padding: 2px 0;">+${dayEvents.length - 3} nữa...</div>`;
+            eventsHtml += `
+                <div class="cal-more-badge" onclick="goToDayView('${dKey}')" title="Xem tất cả ${dayEvents.length} lịch trong ngày">
+                    +${dayEvents.length - 3} khác ▾
+                </div>
+            `;
         }
 
         eventsHtml += '</div>';
 
         cell.innerHTML = dayHeaderHtml + eventsHtml;
+        grid.appendChild(cell);
+    }
+
+    // 3. Cells for next month (fill trailing row)
+    const totalCells = (startDayOfWeek - 1) + daysInMonth;
+    const remainingCells = (7 - (totalCells % 7)) % 7;
+    for (let nextDay = 1; nextDay <= remainingCells; nextDay++) {
+        const cell = document.createElement("div");
+        cell.className = "calendar-day other-month";
+        cell.innerHTML = `
+            <div class="day-cell-header">
+                <span class="day-number-badge">${nextDay}</span>
+            </div>
+        `;
         grid.appendChild(cell);
     }
 }
@@ -376,12 +398,12 @@ function renderWeekView(items) {
         const isToday = (dKey === todayStr);
 
         const col = document.createElement("div");
-        col.className = "week-day-col";
+        col.className = "week-day-col" + (isToday ? " is-today" : "");
 
         col.innerHTML = `
             <div class="week-day-header ${isToday ? 'is-today' : ''}">
-                <div style="font-size: 12px; color: var(--crm-muted);">${dayNames[i]}</div>
-                <div style="font-size: 16px; font-weight: 700;">${dObj.getDate()}/${dObj.getMonth() + 1}</div>
+                <div class="week-day-name">${dayNames[i]}</div>
+                <div class="week-day-date">${dObj.getDate()}/${dObj.getMonth() + 1}</div>
             </div>
             <div class="week-day-body" id="week-body-${dKey}"></div>
         `;
@@ -392,7 +414,7 @@ function renderWeekView(items) {
         const dayEvents = eventsByDate[dKey] || [];
 
         if (dayEvents.length === 0) {
-            bodyEl.innerHTML = `<div style="font-size: 11px; color: #94a3b8; font-style: italic; text-align: center; margin-top: 20px;">Không có lịch</div>`;
+            bodyEl.innerHTML = `<div class="week-empty-state">Không có lịch</div>`;
         } else {
             dayEvents.forEach(ev => {
                 const evType = (ev.type || "").toUpperCase();
@@ -409,22 +431,25 @@ function renderWeekView(items) {
                     badgeClass = "is-call";
                     icon = "📞";
                     typeName = "Cuộc gọi";
+                } else if (evType === "EMAIL") {
+                    badgeClass = "is-email";
+                    icon = "✉️";
+                    typeName = "Email";
                 }
 
                 const timeStr = ev.dueDate ? new Date(ev.dueDate).toTimeString().slice(0, 5) : "";
                 const durStr = ev.durationMinutes ? `${ev.durationMinutes}p` : "";
 
                 const evCard = document.createElement("div");
-                evCard.className = `cal-event-badge ${badgeClass}`;
-                evCard.style.cssText = "display: block; padding: 6px 8px; border-radius: 6px; white-space: normal; margin-bottom: 6px;";
+                evCard.className = `cal-event-badge ${badgeClass} week-event-card`;
                 evCard.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 11px; margin-bottom: 2px;">
-                        <span>${icon} ${timeStr} ${durStr ? `(${durStr})` : ''}</span>
-                        <span style="font-size: 10px; opacity: 0.85;">${typeName}</span>
+                    <div class="week-card-top">
+                        <span class="week-card-time">${icon} ${timeStr} ${durStr ? `(${durStr})` : ''}</span>
+                        <span class="week-card-type">${typeName}</span>
                     </div>
-                    <div style="font-size: 12px; font-weight: 600; margin-bottom: 2px;">${escapeHtml(ev.subject || ev.title)}</div>
-                    ${ev.customerName ? `<div style="font-size: 10.5px; opacity: 0.9;">🏢 ${escapeHtml(ev.customerName)}</div>` : ''}
-                    <div style="font-size: 10px; opacity: 0.8; margin-top: 2px;">👤 ${escapeHtml(ev.ownerName || 'Tôi')}</div>
+                    <div class="week-card-title">${escapeHtml(ev.subject || ev.title)}</div>
+                    ${ev.customerName ? `<div class="week-card-customer">🏢 ${escapeHtml(ev.customerName)}</div>` : ''}
+                    <div class="week-card-owner">👤 ${escapeHtml(ev.ownerName || 'Tôi')}</div>
                 `;
                 evCard.onclick = () => openEventDetail(ev.id);
                 bodyEl.appendChild(evCard);
@@ -509,6 +534,39 @@ function renderDayView(items) {
                 </div>
             `;
         }).join("");
+    }
+
+    // Render Other Activities if present
+    const othersSection = document.getElementById("dayOthersSection");
+    const othersList = document.getElementById("dayOthersList");
+    const countO = document.getElementById("dayOthersCount");
+    if (othersSection && othersList) {
+        if (otherActs.length > 0) {
+            othersSection.style.display = "block";
+            if (countO) countO.textContent = otherActs.length;
+            othersList.innerHTML = otherActs.map(a => {
+                const timeStr = a.dueDate ? new Date(a.dueDate).toTimeString().slice(0, 5) : "";
+                const isCall = (a.type || "").toUpperCase() === "CALL";
+                return `
+                    <div class="day-card-item" style="border-left: 4px solid ${isCall ? '#10b981' : '#0284c7'}; cursor: pointer;" onclick="openEventDetail(${a.id})">
+                        <div>
+                            <div style="font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 4px;">
+                                ${isCall ? '📞' : '✉️'} ${timeStr ? timeStr + ' - ' : ''}${escapeHtml(a.subject || a.title)}
+                            </div>
+                            <div style="font-size: 12px; color: var(--crm-muted); display: flex; gap: 14px;">
+                                <span>🏢 Khách hàng: <strong>${escapeHtml(a.customerName || '—')}</strong></span>
+                                <span>👤 Người thực hiện: <strong>${escapeHtml(a.ownerName || 'Tôi')}</strong></span>
+                            </div>
+                        </div>
+                        <span style="font-size: 12px; background: ${isCall ? '#d1fae5; color: #065f46;' : '#e0f2fe; color: #0284c7;'} padding: 4px 10px; border-radius: 12px; font-weight: 600;">
+                            ${isCall ? 'Cuộc gọi' : 'Hoạt động'}
+                        </span>
+                    </div>
+                `;
+            }).join("");
+        } else {
+            othersSection.style.display = "none";
+        }
     }
 }
 
@@ -625,3 +683,21 @@ function escapeHtml(str) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;");
 }
+
+function goToDayView(dateStr) {
+    if (dateStr) {
+        const parts = dateStr.split("-");
+        if (parts.length === 3) {
+            currentDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        } else {
+            currentDate = new Date(dateStr);
+        }
+    }
+    switchCalendarView("day");
+}
+
+/* Expose global handlers for inline markup */
+window.switchCalendarView = switchCalendarView;
+window.goToDayView = goToDayView;
+window.openEventDetail = openEventDetail;
+window.closeModal = closeModal;

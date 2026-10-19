@@ -32,7 +32,7 @@
 
 <link rel="stylesheet" href="css/design-system.css">
 <link rel="stylesheet" href="css/app-shell.css">
-<link rel="stylesheet" href="css/pages/activities.css">
+<link rel="stylesheet" href="css/pages/activities.css?v=20261019_pro_ui">
 
 
 
@@ -205,86 +205,92 @@
 
     </section>
 
-    <!-- VIEW TABS (Story 3) -->
+    <!-- VIEW TABS (Segmented Control) -->
     <div class="activities-view-tabs">
         <button id="tabActivitiesList" class="view-tab-btn active" type="button">
-            <span>📋</span> Danh sách hoạt động
+            <svg class="tab-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/></svg>
+            <span>Danh sách hoạt động</span>
         </button>
         <button id="tabTeamReport" class="view-tab-btn" type="button">
-            <span>📊</span> Báo cáo theo thành viên (Trưởng nhóm)
+            <svg class="tab-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>Báo cáo theo thành viên (Trưởng nhóm)</span>
             <span class="badge-pill" id="badgeTeamMemberCount">Nhóm</span>
         </button>
     </div>
 
-    <!-- ENHANCED FILTER BAR (Story 3: Lọc theo thời gian, loại HĐ, thành viên) -->
-    <section class="activity-filter-box">
-        <div class="filter-row-top">
+    <!-- ENHANCED UNIFIED FILTER TOOLBAR -->
+    <section class="activity-filter-box crm-card">
+        <div class="activity-filter-toolbar">
+            <!-- Ô tìm kiếm thông minh -->
+            <div class="activity-search-wrap">
+                <svg class="activity-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input
+                    id="activitySearch"
+                    class="crm-input activity-search-input"
+                    type="search"
+                    placeholder="Tìm theo tiêu đề, khách hàng, nội dung..."
+                >
+            </div>
+
+            <!-- Loại hoạt động -->
+            <div class="activity-select-wrap">
+                <select id="activityTypeFilter" class="crm-input activity-filter-select" title="Lọc theo loại hoạt động">
+                    <option value="">🎯 Tất cả loại hoạt động</option>
+                    <option value="call">📞 Cuộc gọi (Call)</option>
+                    <option value="email">✉️ Email</option>
+                    <option value="meeting">🤝 Cuộc họp (Meeting)</option>
+                    <option value="task">✅ Công việc (Task)</option>
+                    <option value="note">📝 Ghi chú (Note)</option>
+                </select>
+            </div>
+
+            <!-- Thành viên phụ trách -->
+            <div class="activity-select-wrap">
+                <select id="activityMemberFilter" class="crm-input activity-filter-select" title="Lọc theo thành viên phụ trách">
+                    <option value="">👥 Tất cả thành viên</option>
+                </select>
+            </div>
+
+            <!-- Phím chọn nhanh thời gian (Date Presets) -->
             <div class="filter-date-presets" id="quickDatePresets">
-                <span style="font-size: 12px; font-weight: 600; color: #64748b; margin-right: 4px;">Khoảng thời gian:</span>
+                <span class="date-presets-label">Thời gian:</span>
                 <button type="button" class="filter-chip-btn active" data-preset="all">Tất cả</button>
                 <button type="button" class="filter-chip-btn" data-preset="today">Hôm nay</button>
                 <button type="button" class="filter-chip-btn" data-preset="week">7 ngày qua</button>
                 <button type="button" class="filter-chip-btn" data-preset="month">Tháng này</button>
+                <button type="button" class="filter-chip-btn" data-preset="custom" id="btnToggleCustomDate" title="Chọn khoảng ngày tùy chọn">📅 Tùy chọn...</button>
             </div>
-            <div style="font-size: 12px; color: #64748b;" id="filterResultNotice">
-                Đang hiển thị toàn bộ hoạt động
+
+            <!-- Khoảng ngày tùy chọn (hiển thị khi nhấn Tùy chọn...) -->
+            <div id="customDateRangeWrap" class="activity-custom-date-wrap" style="display: none;">
+                <input id="activityFromDate" class="crm-input date-range-input" type="date" title="Từ ngày">
+                <span class="date-range-sep">–</span>
+                <input id="activityToDate" class="crm-input date-range-input" type="date" title="Đến ngày">
+            </div>
+
+            <!-- Nút đặt lại -->
+            <div class="activity-filter-actions">
+                <button
+                    id="btnResetFilters"
+                    class="activity-reset-btn"
+                    type="button"
+                    title="Đặt lại toàn bộ bộ lọc"
+                >
+                    <svg class="reset-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                    <span>Đặt lại</span>
+                </button>
             </div>
         </div>
 
-        <div class="filter-inputs-grid">
-            <input
-                id="activitySearch"
-                class="crm-input"
-                type="search"
-                placeholder="Tìm tiêu đề, khách hàng..."
-            >
-
-            <select
-                id="activityTypeFilter"
-                class="crm-input"
-            >
-                <option value="">
-                    Tất cả loại hoạt động
-                </option>
-                <option value="call">📞 Cuộc gọi (Call)</option>
-                <option value="email">✉️ Email</option>
-                <option value="meeting">🤝 Cuộc họp (Meeting)</option>
-                <option value="task">✅ Công việc (Task)</option>
-                <option value="note">📝 Ghi chú (Note)</option>
-            </select>
-
-            <select
-                id="activityMemberFilter"
-                class="crm-input"
-                title="Lọc theo thành viên phụ trách"
-            >
-                <option value="">👥 Tất cả thành viên</option>
-            </select>
-
-            <input
-                id="activityFromDate"
-                class="crm-input"
-                type="date"
-                title="Từ ngày"
-                placeholder="Từ ngày"
-            >
-
-            <input
-                id="activityToDate"
-                class="crm-input"
-                type="date"
-                title="Đến ngày"
-                placeholder="Đến ngày"
-            >
-
-            <button
-                id="btnResetFilters"
-                class="crm-btn crm-btn-secondary"
-                style="padding: 7px 14px; font-size: 12px; white-space: nowrap;"
-                type="button"
-            >
-                Đặt lại
-            </button>
+        <!-- Thanh thông tin kết quả nhỏ gọn phía dưới -->
+        <div class="activity-filter-subbar">
+            <div class="filter-status-tag" id="filterResultNotice">
+                <span class="status-dot"></span>
+                <span>Đang hiển thị toàn bộ hoạt động</span>
+            </div>
         </div>
     </section>
 
@@ -717,7 +723,7 @@
         </form>
     </div>
 
-<script src="js/pages/activities.js?v=20261012"></script>
+<script src="js/pages/activities.js?v=20261019_pro_ui"></script>
 
 <script src="js/page-transition.js"></script>
 

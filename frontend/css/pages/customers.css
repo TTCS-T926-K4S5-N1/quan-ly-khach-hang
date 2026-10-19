@@ -286,25 +286,16 @@
 
 .row-action-menu {
     position: absolute;
-
     right: 0;
     top: calc(100% + 4px);
-
-    z-index: 20;
-
-    width: 145px;
-
+    z-index: 1000;
+    min-width: 175px;
     display: none;
-
-    padding: 5px;
-
-    border: 1px solid var(--crm-border);
-
-    border-radius: 9px;
-
-    background: #fff;
-
-    box-shadow: var(--crm-shadow);
+    padding: 6px;
+    border: 1px solid var(--crm-border, #e2e8f0);
+    border-radius: 10px;
+    background: #ffffff;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
 .row-action-menu.open {
@@ -1158,6 +1149,73 @@
     transform: translateY(-1px);
 }
 .action-btn-convert:active {
+    transform: translateY(0);
+}
+
+/* Nút Xem hồ sơ 360: Modern Sky/Blue Soft */
+.action-btn-360 {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-color: #bfdbfe;
+}
+.action-btn-360:hover {
+    background: #2563eb;
+    color: #ffffff;
+    border-color: #2563eb;
+    box-shadow: 0 3px 10px rgba(37, 99, 235, 0.3);
+    transform: translateY(-1px);
+}
+.action-btn-360:active {
+    transform: translateY(0);
+}
+
+/* Nút Chỉnh sửa: Slate Soft */
+.action-btn-edit {
+    background: #f8fafc;
+    color: #334155;
+    border-color: #cbd5e1;
+}
+.action-btn-edit:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+    border-color: #94a3b8;
+    transform: translateY(-1px);
+}
+.action-btn-edit:active {
+    transform: translateY(0);
+}
+
+/* Nút Xóa: Red Soft */
+.action-btn-delete {
+    background: #fff1f2;
+    color: #e11d48;
+    border-color: #fecdd3;
+}
+.action-btn-delete:hover {
+    background: #e11d48;
+    color: #ffffff;
+    border-color: #e11d48;
+    box-shadow: 0 3px 10px rgba(225, 29, 72, 0.3);
+    transform: translateY(-1px);
+}
+.action-btn-delete:active {
+    transform: translateY(0);
+}
+
+/* Nút Thêm cơ hội: Emerald/Teal */
+.action-btn-opp {
+    background: #f0fdf4;
+    color: #15803d;
+    border-color: #bbf7d0;
+}
+.action-btn-opp:hover {
+    background: #16a34a;
+    color: #ffffff;
+    border-color: #16a34a;
+    box-shadow: 0 3px 10px rgba(22, 163, 74, 0.3);
+    transform: translateY(-1px);
+}
+.action-btn-opp:active {
     transform: translateY(0);
 }
 

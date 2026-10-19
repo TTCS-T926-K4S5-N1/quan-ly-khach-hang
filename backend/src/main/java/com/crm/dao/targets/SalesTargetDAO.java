@@ -38,6 +38,58 @@ public class SalesTargetDAO {
         }
     }
 
+    public static boolean isPeriodPassed(int periodYear, Integer periodMonth, Integer periodQuarter) {
+        LocalDate now = LocalDate.now();
+        int curYear = now.getYear();
+        int curMonth = now.getMonthValue();
+        int curQuarter = (curMonth - 1) / 3 + 1;
+
+        if (periodYear < curYear) return true;
+        if (periodYear > curYear) return false;
+
+        if (periodMonth != null) {
+            return periodMonth < curMonth;
+        } else if (periodQuarter != null) {
+            return periodQuarter < curQuarter;
+        }
+        return false;
+    }
+
+    public BigDecimal getTeamMembersSum(Connection conn, Long teamId, int year, Integer month, Integer quarter) throws SQLException {
+        if (teamId == null) return BigDecimal.ZERO;
+        StringBuilder sql = new StringBuilder("""
+                SELECT COALESCE(SUM(st.target_amount), 0) AS total_members
+                FROM sales_targets st
+                JOIN users u ON u.id = st.user_id
+                WHERE u.team_id = ? AND st.period_year = ?
+                """);
+        List<Object> params = new ArrayList<>();
+        params.add(teamId);
+        params.add(year);
+
+        if (month != null) {
+            sql.append(" AND st.period_month = ?");
+            params.add(month);
+        } else if (quarter != null) {
+            sql.append(" AND st.period_quarter = ? AND st.period_month IS NULL");
+            params.add(quarter);
+        } else {
+            sql.append(" AND st.period_month IS NULL AND st.period_quarter IS NULL");
+        }
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                stmt.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getBigDecimal("total_members");
+                }
+            }
+        }
+        return BigDecimal.ZERO;
+    }
+
     public List<Map<String, Object>> search(
             DataScopeContext scope,
             Integer year,
@@ -58,6 +110,7 @@ public class SalesTargetDAO {
                     st.target_amount,
                     st.target_deals,
                     st.notes,
+                    st.change_reason,
                     st.created_by,
                     st.created_at,
                     st.updated_at,
@@ -139,6 +192,23 @@ public class SalesTargetDAO {
                     item.put("variance", variance);
                     item.put("startDate", range.startDate.toString());
                     item.put("endDate", range.endDate.toString());
+
+                    // Check if period has passed (Locked)
+                    boolean isLocked = isPeriodPassed(qYear, (Integer) rs.getObject("period_month"), (Integer) rs.getObject("period_quarter"));
+                    item.put("isLocked", isLocked);
+
+                    // Team validation: check if team target equals sum of member targets
+                    if (targetUserId == null && targetTeamId != null) {
+                        BigDecimal teamMembersSum = getTeamMembersSum(conn, targetTeamId, qYear, (Integer) rs.getObject("period_month"), (Integer) rs.getObject("period_quarter"));
+                        item.put("teamMembersSum", teamMembersSum);
+                        BigDecimal mismatchDiff = targetAmount.subtract(teamMembersSum);
+                        item.put("mismatchDiff", mismatchDiff);
+                        item.put("isMismatched", mismatchDiff.compareTo(BigDecimal.ZERO) != 0);
+                    } else {
+                        item.put("teamMembersSum", BigDecimal.ZERO);
+                        item.put("mismatchDiff", BigDecimal.ZERO);
+                        item.put("isMismatched", false);
+                    }
 
                     // Status classification
                     String status;
@@ -264,6 +334,21 @@ public class SalesTargetDAO {
                     item.put("actualDeals", actual.dealsCount);
                     item.put("achievementRate", achievementRate);
                     item.put("variance", actual.amount.subtract(targetAmount));
+
+                    boolean isLocked = isPeriodPassed(year, month, quarter);
+                    item.put("isLocked", isLocked);
+
+                    if (targetUserId == null && targetTeamId != null) {
+                        BigDecimal teamMembersSum = getTeamMembersSum(conn, targetTeamId, year, month, quarter);
+                        item.put("teamMembersSum", teamMembersSum);
+                        BigDecimal mismatchDiff = targetAmount.subtract(teamMembersSum);
+                        item.put("mismatchDiff", mismatchDiff);
+                        item.put("isMismatched", mismatchDiff.compareTo(BigDecimal.ZERO) != 0);
+                    } else {
+                        item.put("teamMembersSum", BigDecimal.ZERO);
+                        item.put("mismatchDiff", BigDecimal.ZERO);
+                        item.put("isMismatched", false);
+                    }
                     return item;
                 }
             }
@@ -281,6 +366,7 @@ public class SalesTargetDAO {
             BigDecimal targetAmount,
             int targetDeals,
             String notes,
+            String changeReason,
             long createdBy
     ) throws SQLException {
         if (userId == null && teamId == null) {
@@ -297,6 +383,14 @@ public class SalesTargetDAO {
             periodQuarter = (periodMonth - 1) / 3 + 1;
         }
 
+        // Kiểm tra nếu sửa chỉ tiêu thuộc kỳ đã qua -> bắt buộc có lý do
+        boolean isLocked = isPeriodPassed(periodYear, periodMonth, periodQuarter);
+        if (id != null && id > 0 && isLocked) {
+            if (changeReason == null || changeReason.trim().isBlank()) {
+                throw new IllegalArgumentException("Chỉ tiêu này thuộc kỳ đã qua (đã khóa). Việc sửa đổi bắt buộc phải có lý do giải trình.");
+            }
+        }
+
         if (id != null && id > 0) {
             // Update existing
             String updateSql = """
@@ -309,6 +403,7 @@ public class SalesTargetDAO {
                         target_amount = ?,
                         target_deals = ?,
                         notes = ?,
+                        change_reason = ?,
                         updated_at = NOW()
                     WHERE id = ?
                     """;
@@ -322,7 +417,8 @@ public class SalesTargetDAO {
                 stmt.setBigDecimal(6, targetAmount != null ? targetAmount : BigDecimal.ZERO);
                 stmt.setInt(7, targetDeals);
                 stmt.setString(8, notes);
-                stmt.setLong(9, id);
+                stmt.setString(9, changeReason);
+                stmt.setLong(10, id);
                 stmt.executeUpdate();
                 return id;
             }
@@ -330,15 +426,15 @@ public class SalesTargetDAO {
             // Check if existing target for same user/team and period
             Long existingId = findExistingTargetId(userId, teamId, periodYear, periodMonth, periodQuarter);
             if (existingId != null) {
-                return upsertTarget(existingId, userId, teamId, periodYear, periodMonth, periodQuarter, targetAmount, targetDeals, notes, createdBy);
+                return upsertTarget(existingId, userId, teamId, periodYear, periodMonth, periodQuarter, targetAmount, targetDeals, notes, changeReason, createdBy);
             }
 
             // Insert new
             String insertSql = """
                     INSERT INTO sales_targets (
                         user_id, team_id, period_year, period_month, period_quarter,
-                        target_amount, target_deals, notes, created_by, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                        target_amount, target_deals, notes, change_reason, created_by, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
                     """;
             try (Connection conn = DatabaseConfig.getConnection();
                  PreparedStatement stmt = conn.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
@@ -350,7 +446,8 @@ public class SalesTargetDAO {
                 stmt.setBigDecimal(6, targetAmount != null ? targetAmount : BigDecimal.ZERO);
                 stmt.setInt(7, targetDeals);
                 stmt.setString(8, notes);
-                stmt.setLong(9, createdBy);
+                stmt.setString(9, changeReason);
+                stmt.setLong(10, createdBy);
                 stmt.executeUpdate();
                 try (ResultSet rs = stmt.getGeneratedKeys()) {
                     if (rs.next()) {
@@ -360,6 +457,75 @@ public class SalesTargetDAO {
             }
         }
         return 0;
+    }
+
+    public long upsertTarget(
+            Long id,
+            Long userId,
+            Long teamId,
+            int periodYear,
+            Integer periodMonth,
+            Integer periodQuarter,
+            BigDecimal targetAmount,
+            int targetDeals,
+            String notes,
+            long createdBy
+    ) throws SQLException {
+        return upsertTarget(id, userId, teamId, periodYear, periodMonth, periodQuarter, targetAmount, targetDeals, notes, null, createdBy);
+    }
+
+    public Map<String, Object> getTeamValidation(Long teamId, int year, Integer month, Integer quarter) throws SQLException {
+        Map<String, Object> res = new LinkedHashMap<>();
+        if (teamId == null) {
+            res.put("teamMembersSum", BigDecimal.ZERO);
+            res.put("memberCount", 0);
+            res.put("members", List.of());
+            return res;
+        }
+
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            BigDecimal sum = getTeamMembersSum(conn, teamId, year, month, quarter);
+            res.put("teamMembersSum", sum);
+
+            StringBuilder sql = new StringBuilder("""
+                    SELECT u.id, u.full_name, COALESCE(st.target_amount, 0) AS target_amount
+                    FROM users u
+                    LEFT JOIN sales_targets st ON st.user_id = u.id AND st.period_year = ?
+                    """);
+            List<Object> params = new ArrayList<>();
+            params.add(year);
+
+            if (month != null) {
+                sql.append(" AND st.period_month = ?");
+                params.add(month);
+            } else if (quarter != null) {
+                sql.append(" AND st.period_quarter = ? AND st.period_month IS NULL");
+                params.add(quarter);
+            } else {
+                sql.append(" AND st.period_month IS NULL AND st.period_quarter IS NULL");
+            }
+            sql.append(" WHERE u.team_id = ? AND u.status = 'ACTIVE' ORDER BY u.full_name ASC");
+            params.add(teamId);
+
+            List<Map<String, Object>> members = new ArrayList<>();
+            try (PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+                for (int i = 0; i < params.size(); i++) {
+                    stmt.setObject(i + 1, params.get(i));
+                }
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        Map<String, Object> m = new LinkedHashMap<>();
+                        m.put("userId", rs.getLong("id"));
+                        m.put("userName", rs.getString("full_name"));
+                        m.put("targetAmount", rs.getBigDecimal("target_amount"));
+                        members.add(m);
+                    }
+                }
+            }
+            res.put("memberCount", members.size());
+            res.put("members", members);
+        }
+        return res;
     }
 
     public boolean deleteTarget(long id) throws SQLException {
@@ -552,6 +718,7 @@ public class SalesTargetDAO {
         item.put("targetAmount", rs.getBigDecimal("target_amount"));
         item.put("targetDeals", rs.getInt("target_deals"));
         item.put("notes", rs.getString("notes"));
+        item.put("changeReason", rs.getString("change_reason"));
         item.put("createdBy", rs.getObject("created_by"));
         item.put("createdByName", rs.getString("created_by_name"));
         item.put("createdAt", rs.getTimestamp("created_at"));
