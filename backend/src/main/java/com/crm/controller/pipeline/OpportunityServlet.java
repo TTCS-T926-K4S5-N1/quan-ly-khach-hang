@@ -1,6 +1,7 @@
 package com.crm.controller.pipeline;
 
 import com.crm.dto.common.ApiResponse;
+import com.crm.dto.pipeline.OpportunityFilterCriteria;
 import com.crm.dto.pipeline.OpportunityWriteRequest;
 import com.crm.service.pipeline.OpportunityService;
 import com.crm.util.JsonUtil;
@@ -13,6 +14,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
@@ -31,13 +33,23 @@ public class OpportunityServlet extends HttpServlet {
             String path = req.getPathInfo();
 
             if (path == null || path.equals("/")) {
-                String keyword = req.getParameter("keyword");
-                String status = req.getParameter("status");
-                Long stageId = longParam(req, "stageId");
-                int page = intParam(req, "page", 1);
-                int size = intParam(req, "size", 100);
+                OpportunityFilterCriteria criteria = new OpportunityFilterCriteria();
+                criteria.setKeyword(req.getParameter("keyword"));
+                criteria.setStatus(req.getParameter("status"));
+                criteria.setStageId(longParam(req, "stageId"));
+                criteria.setMinAmount(decimalParam(req, "minAmount"));
+                criteria.setMaxAmount(decimalParam(req, "maxAmount"));
+                criteria.setCloseDateFrom(req.getParameter("closeDateFrom"));
+                criteria.setCloseDateTo(req.getParameter("closeDateTo"));
+                criteria.setProductId(longParam(req, "productId"));
+                criteria.setOwnerId(longParam(req, "ownerId"));
+                criteria.setOwnerFilter(req.getParameter("ownerFilter"));
+                criteria.setQuickDate(req.getParameter("quickDate"));
+                criteria.setPage(intParam(req, "page", 1));
+                criteria.setSize(intParam(req, "size", 100));
+                criteria.resolveDateRange();
 
-                var items = opportunityService.search(currentUserId, stageId, status, keyword, page, size);
+                var items = opportunityService.search(currentUserId, criteria);
                 ResponseUtil.json(resp, 200, ApiResponse.success("Lấy danh sách cơ hội thành công", items));
                 return;
             }
@@ -198,6 +210,16 @@ public class OpportunityServlet extends HttpServlet {
             return Integer.parseInt(val.trim());
         } catch (NumberFormatException e) {
             return fallback;
+        }
+    }
+
+    private BigDecimal decimalParam(HttpServletRequest req, String name) {
+        String val = req.getParameter(name);
+        if (val == null || val.isBlank()) return null;
+        try {
+            return new BigDecimal(val.trim());
+        } catch (Exception e) {
+            return null;
         }
     }
 }

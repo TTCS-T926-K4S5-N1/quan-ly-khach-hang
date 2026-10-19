@@ -1,6 +1,7 @@
 package com.crm.dao.pipeline;
 
 import com.crm.config.DatabaseConfig;
+import com.crm.dto.pipeline.OpportunityFilterCriteria;
 import com.crm.dto.pipeline.OpportunityWriteRequest;
 import com.crm.service.permissions.DataScopeContext;
 
@@ -17,6 +18,24 @@ public class OpportunityDAO {
             int page,
             int size
     ) throws SQLException {
+        OpportunityFilterCriteria criteria = new OpportunityFilterCriteria();
+        criteria.setStageId(stageId);
+        criteria.setStatus(status);
+        criteria.setKeyword(keyword);
+        criteria.setPage(page);
+        criteria.setSize(size);
+        return search(scope, criteria);
+    }
+
+    public List<Map<String, Object>> search(
+            DataScopeContext scope,
+            OpportunityFilterCriteria criteria
+    ) throws SQLException {
+        if (criteria == null) {
+            criteria = new OpportunityFilterCriteria();
+        }
+        criteria.resolveDateRange();
+
         StringBuilder sql = new StringBuilder("""
                 SELECT
                     o.id,
@@ -52,25 +71,67 @@ public class OpportunityDAO {
             scope.appendOwnerPredicate("o.owner_user_id", sql, params);
         }
 
-        if (stageId != null) {
+        // 1. Giai đoạn (stageId)
+        if (criteria.getStageId() != null) {
             sql.append(" AND o.stage_id = ?");
-            params.add(stageId);
+            params.add(criteria.getStageId());
         }
 
-        if (status != null && !status.isBlank()) {
+        // 2. Trạng thái (status)
+        if (criteria.getStatus() != null && !criteria.getStatus().isBlank()) {
             sql.append(" AND o.status = ?");
-            params.add(status.trim());
+            params.add(criteria.getStatus().trim());
         }
 
-        if (keyword != null && !keyword.isBlank()) {
+        // 3. Từ khóa (keyword)
+        if (criteria.getKeyword() != null && !criteria.getKeyword().isBlank()) {
             sql.append(" AND (LOWER(o.name) LIKE ? OR LOWER(o.contact_name) LIKE ? OR LOWER(c.name) LIKE ?)");
-            String kw = "%" + keyword.trim().toLowerCase() + "%";
+            String kw = "%" + criteria.getKeyword().trim().toLowerCase() + "%";
             params.add(kw);
             params.add(kw);
             params.add(kw);
+        }
+
+        // 4. Khoảng giá trị (minAmount, maxAmount)
+        if (criteria.getMinAmount() != null) {
+            sql.append(" AND o.amount >= ?");
+            params.add(criteria.getMinAmount());
+        }
+        if (criteria.getMaxAmount() != null) {
+            sql.append(" AND o.amount <= ?");
+            params.add(criteria.getMaxAmount());
+        }
+
+        // 5. Khoảng ngày chốt (closeDateFrom, closeDateTo)
+        if (criteria.getCloseDateFrom() != null && !criteria.getCloseDateFrom().isBlank()) {
+            sql.append(" AND o.expected_close_date >= ?");
+            params.add(criteria.getCloseDateFrom().trim());
+        }
+        if (criteria.getCloseDateTo() != null && !criteria.getCloseDateTo().isBlank()) {
+            sql.append(" AND o.expected_close_date <= ?");
+            params.add(criteria.getCloseDateTo().trim());
+        }
+
+        // 6. Người sở hữu (ownerId)
+        if (criteria.getOwnerId() != null) {
+            sql.append(" AND o.owner_user_id = ?");
+            params.add(criteria.getOwnerId());
+        }
+
+        // 7. Lọc theo sản phẩm (productId) qua bảng opportunity_items
+        if (criteria.getProductId() != null) {
+            sql.append("""
+                 AND EXISTS (
+                     SELECT 1 FROM opportunity_items oi
+                     WHERE oi.opportunity_id = o.id AND oi.product_id = ?
+                 )
+                """);
+            params.add(criteria.getProductId());
         }
 
         sql.append(" ORDER BY o.id DESC");
+        int size = criteria.getSize();
+        int page = criteria.getPage();
         if (size > 0) {
             sql.append(" LIMIT ? OFFSET ?");
             params.add(size);
