@@ -4,10 +4,13 @@ import com.crm.config.DatabaseConfig;
 import com.crm.dto.pipeline.OpportunityWriteRequest;
 import com.crm.service.permissions.DataScopeContext;
 
+import java.math.BigDecimal;
 import java.sql.*;
 import java.util.*;
 
 public class OpportunityDAO {
+
+    private final OpportunityItemDAO opportunityItemDAO = new OpportunityItemDAO();
 
     public List<Map<String, Object>> search(
             DataScopeContext scope,
@@ -128,7 +131,11 @@ public class OpportunityDAO {
             stmt.setLong(1, id);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    return mapOpportunity(rs);
+                    Map<String, Object> opp = mapOpportunity(rs);
+                    List<Map<String, Object>> items = opportunityItemDAO.findByOpportunityId(conn, id);
+                    opp.put("items", items);
+                    opp.put("itemCount", items.size());
+                    return opp;
                 }
             }
         }
@@ -136,6 +143,32 @@ public class OpportunityDAO {
     }
 
     public long create(OpportunityWriteRequest req, long defaultOwnerId) throws SQLException {
+        long ownerId = req.getOwnerUserId() != null ? req.getOwnerUserId() : defaultOwnerId;
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            boolean hasItems = req.getItems() != null && !req.getItems().isEmpty();
+            if (hasItems) {
+                conn.setAutoCommit(false);
+            }
+            try {
+                long oppId = insertOpportunityRow(conn, req, ownerId);
+                if (hasItems) {
+                    for (com.crm.dto.pipeline.OpportunityItemDTO item : req.getItems()) {
+                        opportunityItemDAO.create(conn, oppId, item);
+                    }
+                    opportunityItemDAO.recalculateOpportunityTotals(conn, oppId);
+                    conn.commit();
+                }
+                return oppId;
+            } catch (SQLException e) {
+                if (hasItems) {
+                    conn.rollback();
+                }
+                throw e;
+            }
+        }
+    }
+
+    private long insertOpportunityRow(Connection conn, OpportunityWriteRequest req, long ownerId) throws SQLException {
         String sql = """
                 INSERT INTO opportunities (
                     name, customer_id, contact_name, amount, stage_id, probability,
@@ -144,9 +177,7 @@ public class OpportunityDAO {
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
-        long ownerId = req.getOwnerUserId() != null ? req.getOwnerUserId() : defaultOwnerId;
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setString(1, req.getName());
             stmt.setObject(2, req.getCustomerId(), Types.BIGINT);
             stmt.setString(3, req.getContactName());
@@ -172,6 +203,31 @@ public class OpportunityDAO {
     }
 
     public void update(long id, OpportunityWriteRequest req) throws SQLException {
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            boolean hasItems = req.getItems() != null;
+            if (hasItems) {
+                conn.setAutoCommit(false);
+            }
+            try {
+                updateOpportunityRow(conn, id, req);
+                if (hasItems) {
+                    opportunityItemDAO.deleteByOpportunityId(conn, id);
+                    for (com.crm.dto.pipeline.OpportunityItemDTO item : req.getItems()) {
+                        opportunityItemDAO.create(conn, id, item);
+                    }
+                    opportunityItemDAO.recalculateOpportunityTotals(conn, id);
+                    conn.commit();
+                }
+            } catch (SQLException e) {
+                if (hasItems) {
+                    conn.rollback();
+                }
+                throw e;
+            }
+        }
+    }
+
+    private void updateOpportunityRow(Connection conn, long id, OpportunityWriteRequest req) throws SQLException {
         String sql = """
                 UPDATE opportunities SET
                     name = ?, customer_id = ?, contact_name = ?, amount = ?, stage_id = ?,
@@ -180,8 +236,7 @@ public class OpportunityDAO {
                 WHERE id = ? AND is_deleted = 0
                 """;
 
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, req.getName());
             stmt.setObject(2, req.getCustomerId(), Types.BIGINT);
             stmt.setString(3, req.getContactName());
@@ -246,6 +301,11 @@ public class OpportunityDAO {
         map.put("customerName", rs.getString("customer_name"));
         map.put("contactName", rs.getString("contact_name"));
         map.put("amount", rs.getBigDecimal("amount"));
+        try {
+            map.put("annualAmount", rs.getBigDecimal("annual_amount") != null ? rs.getBigDecimal("annual_amount") : BigDecimal.ZERO);
+        } catch (SQLException ignored) {
+            map.put("annualAmount", BigDecimal.ZERO);
+        }
         map.put("stageId", rs.getObject("stage_id"));
         map.put("stageName", rs.getString("stage_name"));
         map.put("stageOrder", rs.getObject("stage_order"));

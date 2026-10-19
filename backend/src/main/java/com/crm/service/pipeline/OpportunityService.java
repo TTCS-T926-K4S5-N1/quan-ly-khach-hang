@@ -3,6 +3,8 @@ package com.crm.service.pipeline;
 import com.crm.dao.customfields.CustomFieldValueDAO;
 import com.crm.dao.pipeline.OpportunityDAO;
 import com.crm.dao.pipeline.PipelineStageDAO;
+import com.crm.dao.products.ProductDAO;
+import com.crm.dto.pipeline.OpportunityItemDTO;
 import com.crm.dto.pipeline.OpportunityWriteRequest;
 import com.crm.service.permissions.DataScopeContext;
 import com.crm.service.permissions.DataScopeService;
@@ -11,10 +13,29 @@ import java.util.*;
 
 public class OpportunityService {
 
-    private final OpportunityDAO opportunityDAO = new OpportunityDAO();
-    private final PipelineStageDAO stageDAO = new PipelineStageDAO();
-    private final CustomFieldValueDAO customFieldValueDAO = new CustomFieldValueDAO();
-    private final DataScopeService dataScopeService = new DataScopeService();
+    private final OpportunityDAO opportunityDAO;
+    private final PipelineStageDAO stageDAO;
+    private final CustomFieldValueDAO customFieldValueDAO;
+    private final DataScopeService dataScopeService;
+    private final ProductDAO productDAO;
+
+    public OpportunityService() {
+        this(new OpportunityDAO(), new PipelineStageDAO(), new CustomFieldValueDAO(), new DataScopeService(), new ProductDAO());
+    }
+
+    public OpportunityService(
+            OpportunityDAO opportunityDAO,
+            PipelineStageDAO stageDAO,
+            CustomFieldValueDAO customFieldValueDAO,
+            DataScopeService dataScopeService,
+            ProductDAO productDAO
+    ) {
+        this.opportunityDAO = opportunityDAO;
+        this.stageDAO = stageDAO;
+        this.customFieldValueDAO = customFieldValueDAO;
+        this.dataScopeService = dataScopeService;
+        this.productDAO = productDAO;
+    }
 
     public List<Map<String, Object>> search(
             long currentUserId,
@@ -52,6 +73,18 @@ public class OpportunityService {
 
         dataScopeService.resolve(currentUserId, "opportunity", "create");
 
+        // If items are provided, calculate each item amount from catalog list price
+        if (req.getItems() != null && !req.getItems().isEmpty()) {
+            for (OpportunityItemDTO item : req.getItems()) {
+                if (item.getProductId() != null) {
+                    Map<String, Object> product = productDAO.findById(item.getProductId());
+                    OpportunityCalculator.computeItemAmounts(item, product);
+                }
+            }
+            req.setAmount(OpportunityCalculator.sumTotalAmount(req.getItems()));
+            req.setAnnualAmount(OpportunityCalculator.sumAnnualAmount(req.getItems()));
+        }
+
         // If stage is provided, get default probability
         if (req.getStageId() != null && req.getProbability() == null) {
             var stage = stageDAO.findById(req.getStageId());
@@ -83,6 +116,18 @@ public class OpportunityService {
         long ownerId = (Long) existing.get("ownerUserId");
         if (!scope.canAccessOwner(ownerId)) {
             throw new SecurityException("Bạn không có quyền truy cập dữ liệu này do giới hạn phạm vi sở hữu.");
+        }
+
+        // If items are provided, calculate each item amount from catalog list price
+        if (req.getItems() != null) {
+            for (OpportunityItemDTO item : req.getItems()) {
+                if (item.getProductId() != null) {
+                    Map<String, Object> product = productDAO.findById(item.getProductId());
+                    OpportunityCalculator.computeItemAmounts(item, product);
+                }
+            }
+            req.setAmount(OpportunityCalculator.sumTotalAmount(req.getItems()));
+            req.setAnnualAmount(OpportunityCalculator.sumAnnualAmount(req.getItems()));
         }
 
         opportunityDAO.update(id, req);

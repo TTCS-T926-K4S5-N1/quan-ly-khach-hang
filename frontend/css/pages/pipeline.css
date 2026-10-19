@@ -372,7 +372,7 @@
 
     z-index: 2100;
 
-    width: min(430px,100%);
+    width: min(640px, 100vw);
 
     display: flex;
 
@@ -513,6 +513,139 @@
     border-top: 1px solid var(--crm-border);
 
     background: #fff;
+}
+
+/* SCRUM-74: OPPORTUNITY PRODUCTS & SERVICES */
+.opp-products-section {
+    margin: 16px 0;
+    padding: 16px;
+    background: #f8fafc;
+    border: 1px solid var(--crm-border);
+    border-radius: 8px;
+}
+.opp-products-title {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 12px;
+}
+.opp-products-title strong {
+    font-size: 14px;
+    color: var(--crm-text, #1e293b);
+}
+.opp-products-subtitle {
+    font-size: 12px;
+    color: var(--crm-muted, #64748b);
+    margin-top: 2px;
+}
+.opp-product-add-card {
+    background: #ffffff;
+    border: 1px solid var(--crm-border);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.opp-product-config-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+.opp-recurring-box {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 6px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.opp-badge-recurring {
+    display: inline-block;
+    align-self: flex-start;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #15803d;
+    background: #dcfce7;
+    border-radius: 12px;
+}
+.opp-hint {
+    font-size: 11px;
+    color: var(--crm-muted, #64748b);
+    margin-top: 3px;
+    display: block;
+}
+.opp-product-btn-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 4px;
+}
+.opp-items-container {
+    overflow-x: auto;
+    margin-bottom: 12px;
+}
+.opp-items-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+.opp-items-table th {
+    background: #f1f5f9;
+    padding: 8px 6px;
+    text-align: left;
+    font-weight: 600;
+    color: #475569;
+    border-bottom: 1px solid var(--crm-border);
+    white-space: nowrap;
+}
+.opp-items-table td {
+    padding: 8px 6px;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: middle;
+}
+.opp-item-del-btn {
+    background: none;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    line-height: 1;
+}
+.opp-item-del-btn:hover {
+    background: #fee2e2;
+}
+.opp-summary-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #e0f2fe;
+    border: 1px solid #bae6fd;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-top: 8px;
+}
+.opp-summary-item {
+    display: flex;
+    flex-direction: column;
+}
+.opp-summary-label {
+    font-size: 11px;
+    color: #0369a1;
+    font-weight: 500;
+}
+.opp-summary-val {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0c4a6e;
+}
+.opp-summary-val-acv {
+    font-size: 14px;
+    font-weight: 700;
+    color: #15803d;
 }
 
 

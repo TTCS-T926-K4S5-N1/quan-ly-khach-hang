@@ -8,6 +8,8 @@ let customers = [];
 let winReasons = [];
 let lossReasons = [];
 let competitors = [];
+let catalogProducts = [];
+let currentOppItems = [];
 
 let draggedOppId = null;
 let closingOppId = null;
@@ -70,8 +72,10 @@ async function initPipeline() {
             loadStages(),
             loadWinLossAndCompetitors(),
             loadCustomers(),
-            loadOpportunities()
+            loadOpportunities(),
+            loadCatalogProducts()
         ]);
+        setupProductItemEventListeners();
     } catch (err) {
         console.error("Initialization error:", err);
     }
@@ -236,6 +240,264 @@ function populateWinLossSelects() {
     }
 }
 
+async function loadCatalogProducts() {
+    try {
+        const list = await api("/api/products?active=true");
+        if (Array.isArray(list) && list.length > 0) {
+            catalogProducts = list;
+        }
+    } catch (err) {
+        console.warn("Could not load products from API:", err);
+    }
+
+    if (!catalogProducts || catalogProducts.length === 0) {
+        catalogProducts = [
+            { id: 1, code: "CRM-CLOUD-ENT", name: "Phần mềm CRM Cloud Doanh Nghiệp", type: "RECURRING", listPrice: 2500000, unit: "tháng", active: true },
+            { id: 2, code: "CRM-IMPL", name: "Dịch vụ Triển khai & Đào tạo CRM", type: "SERVICE", listPrice: 15000000, unit: "gói", active: true },
+            { id: 3, code: "CRM-USER-LIC", name: "Gói người dùng bổ sung CRM", type: "RECURRING", listPrice: 150000, unit: "user/tháng", active: true },
+            { id: 4, code: "HW-SERVER", name: "Máy chủ lưu trữ Dedicated", type: "STANDARD", listPrice: 45000000, unit: "chiếc", active: true }
+        ];
+    }
+
+    populateProductSelect();
+}
+
+function populateProductSelect() {
+    const select = document.getElementById("oppProductSelect");
+    if (!select) return;
+    select.innerHTML = '<option value="">-- Chọn sản phẩm / dịch vụ --</option>';
+    catalogProducts.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        const typeLabel = p.type === "RECURRING" ? "[Thuê bao] " : (p.type === "SERVICE" ? "[Dịch vụ] " : "");
+        opt.textContent = `${typeLabel}${p.name} (${p.code || ""}) - ${formatMoney(p.listPrice || 0)}`;
+        select.appendChild(opt);
+    });
+}
+
+function resetProductInputControls() {
+    const select = document.getElementById("oppProductSelect");
+    if (select) select.value = "";
+    const qty = document.getElementById("oppItemQuantity");
+    if (qty) qty.value = "1";
+    const unitPrice = document.getElementById("oppItemUnitPrice");
+    if (unitPrice) unitPrice.value = "";
+    const hint = document.getElementById("oppItemListPriceHint");
+    if (hint) hint.textContent = "";
+    const recurringBox = document.getElementById("oppRecurringOptions");
+    if (recurringBox) recurringBox.style.display = "none";
+    const cycle = document.getElementById("oppItemBillingCycle");
+    if (cycle) cycle.value = "MONTHLY";
+    const term = document.getElementById("oppItemTermCount");
+    if (term) term.value = "12";
+    const acv = document.getElementById("oppItemAnnualAmount");
+    if (acv) {
+        acv.value = "";
+        delete acv.dataset.userEdited;
+    }
+}
+
+function calculateAnnualAmount(qty, unitPrice, billingCycle) {
+    let multiplier = 12;
+    if (billingCycle === "QUARTERLY") multiplier = 4;
+    else if (billingCycle === "SEMI_ANNUAL") multiplier = 2;
+    else if (billingCycle === "ANNUAL") multiplier = 1;
+    return Math.max(0, qty * unitPrice * multiplier);
+}
+
+function updateRecurringPreview() {
+    const recurringBox = document.getElementById("oppRecurringOptions");
+    if (!recurringBox || recurringBox.style.display === "none") return;
+
+    const qty = Math.max(1, Number(document.getElementById("oppItemQuantity")?.value) || 1);
+    const unitPrice = Math.max(0, Number(document.getElementById("oppItemUnitPrice")?.value) || 0);
+    const cycle = document.getElementById("oppItemBillingCycle")?.value || "MONTHLY";
+    const acvInput = document.getElementById("oppItemAnnualAmount");
+
+    if (acvInput && !acvInput.dataset.userEdited) {
+        acvInput.value = calculateAnnualAmount(qty, unitPrice, cycle);
+    }
+}
+
+function setupProductItemEventListeners() {
+    const select = document.getElementById("oppProductSelect");
+    select?.addEventListener("change", () => {
+        const prod = catalogProducts.find(p => String(p.id) === String(select.value));
+        const unitPriceInput = document.getElementById("oppItemUnitPrice");
+        const hintEl = document.getElementById("oppItemListPriceHint");
+        const recurringBox = document.getElementById("oppRecurringOptions");
+        const acvInput = document.getElementById("oppItemAnnualAmount");
+
+        if (acvInput) delete acvInput.dataset.userEdited;
+
+        if (!prod) {
+            if (unitPriceInput) unitPriceInput.value = "";
+            if (hintEl) hintEl.textContent = "";
+            if (recurringBox) recurringBox.style.display = "none";
+            return;
+        }
+
+        const listPrice = Number(prod.listPrice) || 0;
+        if (unitPriceInput) unitPriceInput.value = listPrice;
+        if (hintEl) hintEl.textContent = `Giá niêm yết: ${formatMoney(listPrice)}`;
+
+        if (prod.type === "RECURRING") {
+            if (recurringBox) recurringBox.style.display = "block";
+            const cycleSelect = document.getElementById("oppItemBillingCycle");
+            if (cycleSelect) cycleSelect.value = "MONTHLY";
+            const termInput = document.getElementById("oppItemTermCount");
+            if (termInput) termInput.value = "12";
+            updateRecurringPreview();
+        } else {
+            if (recurringBox) recurringBox.style.display = "none";
+            if (acvInput) acvInput.value = "";
+        }
+    });
+
+    document.getElementById("oppItemQuantity")?.addEventListener("input", updateRecurringPreview);
+    document.getElementById("oppItemUnitPrice")?.addEventListener("input", updateRecurringPreview);
+    document.getElementById("oppItemBillingCycle")?.addEventListener("change", updateRecurringPreview);
+
+    document.getElementById("oppItemAnnualAmount")?.addEventListener("input", event => {
+        event.target.dataset.userEdited = "true";
+    });
+
+    document.getElementById("oppAddItemBtn")?.addEventListener("click", () => {
+        const select = document.getElementById("oppProductSelect");
+        const prod = catalogProducts.find(p => String(p.id) === String(select?.value));
+        if (!prod) {
+            alert("Vui lòng chọn sản phẩm / dịch vụ từ danh mục.");
+            return;
+        }
+
+        const qty = Math.max(1, parseInt(document.getElementById("oppItemQuantity")?.value, 10) || 1);
+        const unitPriceVal = document.getElementById("oppItemUnitPrice")?.value;
+        const unitPrice = (unitPriceVal !== "" && !isNaN(Number(unitPriceVal)))
+            ? Math.max(0, Number(unitPriceVal))
+            : (Number(prod.listPrice) || 0);
+
+        const isRecurring = (prod.type === "RECURRING");
+        let billingCycle = null;
+        let termCount = 1;
+        let annualAmount = 0;
+        let totalAmount = 0;
+
+        if (isRecurring) {
+            billingCycle = document.getElementById("oppItemBillingCycle")?.value || "MONTHLY";
+            termCount = Math.max(1, parseInt(document.getElementById("oppItemTermCount")?.value, 10) || 12);
+
+            const userAcvVal = document.getElementById("oppItemAnnualAmount")?.value;
+            if (userAcvVal !== "" && !isNaN(Number(userAcvVal))) {
+                annualAmount = Math.max(0, Number(userAcvVal));
+            } else {
+                annualAmount = calculateAnnualAmount(qty, unitPrice, billingCycle);
+            }
+            totalAmount = qty * unitPrice * termCount;
+        } else {
+            termCount = 1;
+            annualAmount = 0;
+            totalAmount = qty * unitPrice;
+        }
+
+        currentOppItems.push({
+            productId: prod.id,
+            productCode: prod.code || "",
+            productName: prod.name || "",
+            productType: prod.type || "STANDARD",
+            quantity: qty,
+            unitPrice: unitPrice,
+            listPrice: Number(prod.listPrice) || 0,
+            discountPercent: 0,
+            billingCycle: billingCycle,
+            termCount: termCount,
+            annualAmount: annualAmount,
+            totalAmount: totalAmount
+        });
+
+        resetProductInputControls();
+        renderOppItemsTable();
+    });
+}
+
+function billingCycleLabel(cycle) {
+    switch (cycle) {
+        case "MONTHLY": return "Tháng";
+        case "QUARTERLY": return "Quý";
+        case "SEMI_ANNUAL": return "6 tháng";
+        case "ANNUAL": return "Năm";
+        default: return cycle || "";
+    }
+}
+
+function renderOppItemsTable() {
+    const tbody = document.getElementById("oppItemsBody");
+    const summaryTotal = document.getElementById("oppSummaryTotal");
+    const summaryAnnual = document.getElementById("oppSummaryAnnual");
+    const summaryAnnualBox = document.getElementById("oppSummaryAnnualBox");
+    const oppValueInput = document.getElementById("opportunityValue");
+
+    if (!tbody) return;
+
+    if (!currentOppItems || currentOppItems.length === 0) {
+        tbody.innerHTML = `
+            <tr id="emptyItemsRow">
+                <td colspan="7" style="text-align: center; color: var(--crm-muted); padding: 12px;">
+                    Chưa có dòng sản phẩm nào. Chọn sản phẩm phía trên để tính giá trị hợp đồng.
+                </td>
+            </tr>
+        `;
+        if (summaryTotal) summaryTotal.textContent = "0 ₫";
+        if (summaryAnnualBox) summaryAnnualBox.style.display = "none";
+        if (oppValueInput) oppValueInput.value = "0";
+        return;
+    }
+
+    tbody.innerHTML = "";
+    let totalOppAmount = 0;
+    let totalAnnualAmount = 0;
+
+    currentOppItems.forEach((item, index) => {
+        totalOppAmount += Number(item.totalAmount) || 0;
+        totalAnnualAmount += Number(item.annualAmount) || 0;
+
+        const isRec = (item.productType === "RECURRING");
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>
+                <strong>${escapeHtml(item.productName)}</strong>
+                <small style="display:block;color:#64748b;">${escapeHtml(item.productCode || "")}</small>
+                ${isRec ? '<span class="opp-badge-recurring">Thuê bao</span>' : ''}
+            </td>
+            <td style="text-align: center;">${item.quantity}</td>
+            <td style="text-align: right;">${formatMoney(item.unitPrice)}</td>
+            <td style="text-align: center;">${isRec ? `${item.termCount} kỳ (${billingCycleLabel(item.billingCycle)})` : '—'}</td>
+            <td style="text-align: right;">${isRec ? formatMoney(item.annualAmount) : '—'}</td>
+            <td style="text-align: right; font-weight: 600;">${formatMoney(item.totalAmount)}</td>
+            <td style="text-align: center;">
+                <button type="button" class="crm-btn-link" data-remove-item="${index}" style="color:#ef4444;font-size:14px;cursor:pointer;" title="Xóa dòng">✕</button>
+            </td>
+        `;
+
+        tr.querySelector("[data-remove-item]")?.addEventListener("click", () => {
+            currentOppItems.splice(index, 1);
+            renderOppItemsTable();
+        });
+
+        tbody.appendChild(tr);
+    });
+
+    if (oppValueInput) oppValueInput.value = totalOppAmount;
+    if (summaryTotal) summaryTotal.textContent = formatMoney(totalOppAmount);
+    if (summaryAnnualBox) {
+        if (totalAnnualAmount > 0) {
+            summaryAnnualBox.style.display = "block";
+            if (summaryAnnual) summaryAnnual.textContent = formatMoney(totalAnnualAmount);
+        } else {
+            summaryAnnualBox.style.display = "none";
+        }
+    }
+}
+
 /* =========================================================
    EVENT LISTENERS
 ========================================================= */
@@ -287,7 +549,9 @@ opportunityForm?.addEventListener("submit", async event => {
     const customerId = Number(customerIdVal);
     const stageId = Number(document.getElementById("opportunityStage").value) || stages[0]?.id;
     const probability = clamp(Number(document.getElementById("opportunityProbability").value) || 0, 0, 100);
-    const amount = Math.max(0, Number(document.getElementById("opportunityValue").value) || 0);
+    const sumTotal = currentOppItems.reduce((sum, it) => sum + (Number(it.totalAmount) || 0), 0);
+    const sumAnnual = currentOppItems.reduce((sum, it) => sum + (Number(it.annualAmount) || 0), 0);
+    const amount = currentOppItems.length > 0 ? sumTotal : Math.max(0, Number(document.getElementById("opportunityValue").value) || 0);
     const expectedCloseDate = fieldValue("opportunityCloseDate") || null;
 
     const payload = {
@@ -296,7 +560,9 @@ opportunityForm?.addEventListener("submit", async event => {
         stageId,
         probability,
         amount,
-        expectedCloseDate
+        annualAmount: sumAnnual,
+        expectedCloseDate,
+        items: currentOppItems
     };
 
     try {
@@ -675,7 +941,7 @@ function setupDropZone(zone, stageId) {
 /* =========================================================
    DRAWER OPEN / CLOSE
 ========================================================= */
-function openOpportunityDrawer(id = null) {
+async function openOpportunityDrawer(id = null) {
     editingOppId = id;
     const titleEl = document.getElementById("opportunityDrawerTitle");
     const nameErr = document.getElementById("opportunityNameError");
@@ -683,10 +949,14 @@ function openOpportunityDrawer(id = null) {
     if (nameErr) nameErr.textContent = "";
     if (custErr) custErr.textContent = "";
 
+    resetProductInputControls();
+    currentOppItems = [];
+    renderOppItemsTable();
+
     if (id !== null) {
+        if (titleEl) titleEl.textContent = "Sửa cơ hội";
         const opp = opportunities.find(o => o.id === id);
         if (opp) {
-            if (titleEl) titleEl.textContent = "Sửa cơ hội";
             setField("opportunityName", opp.name);
             setField("opportunityCustomer", opp.customerId);
             setField("opportunityValue", opp.amount);
@@ -695,9 +965,47 @@ function openOpportunityDrawer(id = null) {
             setField("opportunityProbability", opp.probability);
             setField("opportunityOwner", opp.ownerName);
         }
+
+        try {
+            const fullOpp = await api(`/api/opportunities/${id}`);
+            if (fullOpp) {
+                if (fullOpp.name) setField("opportunityName", fullOpp.name);
+                if (fullOpp.customerId) setField("opportunityCustomer", fullOpp.customerId);
+                if (fullOpp.amount !== undefined) setField("opportunityValue", fullOpp.amount);
+                if (fullOpp.expectedCloseDate) setField("opportunityCloseDate", fullOpp.expectedCloseDate);
+                if (fullOpp.stageId) setField("opportunityStage", fullOpp.stageId);
+                if (fullOpp.probability !== undefined) setField("opportunityProbability", fullOpp.probability);
+                if (fullOpp.ownerName) setField("opportunityOwner", fullOpp.ownerName);
+
+                if (Array.isArray(fullOpp.items) && fullOpp.items.length > 0) {
+                    currentOppItems = fullOpp.items.map(it => ({
+                        id: it.id,
+                        opportunityId: it.opportunityId,
+                        productId: it.productId,
+                        productCode: it.productCode || "",
+                        productName: it.productName || ("Sản phẩm #" + it.productId),
+                        productType: it.productType || "STANDARD",
+                        quantity: Number(it.quantity) || 1,
+                        unitPrice: Number(it.unitPrice) || 0,
+                        listPrice: Number(it.listPrice) || 0,
+                        discountPercent: Number(it.discountPercent) || 0,
+                        billingCycle: it.billingCycle || null,
+                        termCount: Number(it.termCount) || 1,
+                        annualAmount: Number(it.annualAmount) || 0,
+                        totalAmount: Number(it.totalAmount) || 0,
+                        notes: it.notes || ""
+                    }));
+                }
+                renderOppItemsTable();
+            }
+        } catch (err) {
+            console.warn("Could not load opportunity details:", err);
+        }
     } else {
         if (titleEl) titleEl.textContent = "Thêm cơ hội";
         opportunityForm.reset();
+        currentOppItems = [];
+        renderOppItemsTable();
         if (stages.length > 0) {
             setField("opportunityStage", stages[0].id);
             setField("opportunityProbability", stages[0].probability);
