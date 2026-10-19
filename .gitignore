@@ -1,9 +1,3 @@
-# Build artifacts may contain local configuration and SMTP reset messages.
-backend/target/
-*.log
-frontend/node_modules/
-.m2-repository/
-.idea/
-.vscode/
-.env
-.env.*
+node_modules
+dist
+.DS_Store
