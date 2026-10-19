@@ -19,7 +19,7 @@
 
 <link rel="stylesheet" href="css/design-system.css">
 <link rel="stylesheet" href="css/app-shell.css">
-<link rel="stylesheet" href="css/pages/import-users.css">
+<link rel="stylesheet" href="css/pages/import-users.css?v=20261012b">
 <link rel="stylesheet" href="css/animations.css">
 </head>
 
@@ -32,24 +32,24 @@
     </div>
 
     <nav class="crm-nav">
-        <a href="dashboard.html" class="crm-nav-item">
+        <a href="dashboard" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
             <span class="crm-nav-label">Tổng quan</span>
         </a>
 
         <div class="crm-nav-section">Quản trị</div>
 
-        <a href="users.html" class="crm-nav-item">
+        <a href="users" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
             <span class="crm-nav-label">Người dùng</span>
         </a>
 
-        <a href="import-users.html" class="crm-nav-item active">
+        <a href="import-users" class="crm-nav-item active">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V3m-5 5 5-5 5 5M4 16v5h16v-5"/></svg></span>
             <span class="crm-nav-label">Nhập Excel</span>
         </a>
 
-        <a href="audit-log.html" class="crm-nav-item">
+        <a href="audit-log" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1"/></svg></span>
             <span class="crm-nav-label">Audit Log</span>
         </a>
@@ -258,23 +258,42 @@
             </div>
         </div>
 
-        <!-- FILTER TABS & SEARCH -->
+        <!-- FILTER TABS, STATUS FILTER & SEARCH -->
         <div class="preview-toolbar">
-            <div class="preview-filter-tabs">
-                <button type="button" class="tab-btn active" data-filter="all">
-                    Tất cả (<span id="tabCountAll">0</span>)
-                </button>
-                <button type="button" class="tab-btn" data-filter="valid">
-                    ✓ Hợp lệ (<span id="tabCountValid">0</span>)
-                </button>
-                <button type="button" class="tab-btn" data-filter="error">
-                    ⚠️ Có lỗi (<span id="tabCountError">0</span>)
-                </button>
+            <div class="preview-toolbar-left">
+                <div class="preview-filter-tabs">
+                    <button type="button" class="tab-btn active" data-filter="all">
+                        Tất cả (<span id="tabCountAll">0</span>)
+                    </button>
+                    <button type="button" class="tab-btn" data-filter="valid">
+                        ✓ Hợp lệ (<span id="tabCountValid">0</span>)
+                    </button>
+                    <button type="button" class="tab-btn" data-filter="error">
+                        ⚠️ Có lỗi (<span id="tabCountError">0</span>)
+                    </button>
+                </div>
+
+                <div class="preview-status-box">
+                    <select id="previewStatusFilter" class="preview-status-select" title="Lọc theo trạng thái tài khoản">
+                        <option value="all">Tất cả trạng thái</option>
+                        <option value="ACTIVE">ACTIVE (Hoạt động)</option>
+                        <option value="INACTIVE">INACTIVE (Ngừng hoạt động)</option>
+                    </select>
+                </div>
             </div>
 
-            <div class="preview-search-box">
-                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-                <input id="previewSearchInput" type="search" placeholder="Lọc theo họ tên, email...">
+            <div class="preview-toolbar-right">
+                <span id="filterResultBadge" class="filter-result-badge">Hiển thị 0 dòng</span>
+
+                <div class="preview-search-box">
+                    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+                    <input id="previewSearchInput" type="text" placeholder="Lọc theo họ tên, email, trạng thái...">
+                    <button id="clearSearchBtn" type="button" class="clear-search-btn" title="Xóa từ khóa tìm kiếm" hidden>×</button>
+                </div>
+
+                <button id="resetFilterBtn" type="button" class="crm-btn crm-btn-secondary crm-btn-sm reset-filter-btn" title="Bỏ toàn bộ bộ lọc" hidden>
+                    ✕ Bỏ lọc
+                </button>
             </div>
         </div>
 
@@ -305,7 +324,7 @@
 <div id="drawerOverlay" class="crm-drawer-overlay"></div>
 <aside id="mobileDrawer" class="crm-mobile-drawer"></aside>
 
-<script src="js/pages/import-users.js"></script>
+<script src="js/pages/import-users.js?v=20261012b"></script>
 <script src="js/page-transition.js"></script>
 <script src="js/theme.js"></script>
 <script src="js/shared-shell.js"></script>

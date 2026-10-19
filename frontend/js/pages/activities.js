@@ -1,5 +1,31 @@
 "use strict";
 
+function fixMojibake(str) {
+    if (!str || typeof str !== "string") return str;
+    if (!str.includes("Æ") && !str.includes("Ã") && !str.includes("áº") && !str.includes("á»") && !str.includes("Ä")) {
+        return str;
+    }
+    try {
+        const bytes = [];
+        for (let i = 0; i < str.length; i++) {
+            const code = str.charCodeAt(i);
+            if (code === 0xC3 && i + 1 < str.length && str.charCodeAt(i + 1) === 0x20) {
+                bytes.push(0xC3, 0xA0);
+                i++;
+                continue;
+            }
+            if (code <= 0xFF) {
+                bytes.push(code);
+            } else {
+                return str;
+            }
+        }
+        return new TextDecoder("utf-8", { fatal: true }).decode(new Uint8Array(bytes));
+    } catch (_) {
+        return str;
+    }
+}
+
 const API_BASE = "http://localhost:8080/crm";
 
 let activities = [];
@@ -32,7 +58,7 @@ async function api(path, options = {}) {
 
     if (response.status === 401) {
         localStorage.removeItem("crm_ui_session");
-        window.location.href = "login.html";
+        window.location.href = "login";
         throw new Error("Phiên đăng nhập đã hết hạn.");
     }
 
@@ -64,7 +90,12 @@ async function loadActivities() {
 
     try {
         const cached = JSON.parse(localStorage.getItem("crm_ui_activities"));
-        activities = Array.isArray(cached) ? cached : [];
+        activities = Array.isArray(cached) ? cached.map(item => ({
+            ...item,
+            title: fixMojibake(item.title || item.subject || "Hoạt động"),
+            relation: fixMojibake(item.relation || item.customerName || ""),
+            description: fixMojibake(item.description || "")
+        })) : [];
     } catch {
         activities = [];
     }
@@ -88,16 +119,21 @@ function normalizeActivityFromBackend(item) {
     return {
         id: item.id,
         type: (item.type || "task").toLowerCase(),
-        title: item.subject || item.title || "Hoạt động",
-        relation: rel,
+        title: fixMojibake(item.subject || item.title || "Hoạt động"),
+        relation: fixMojibake(rel),
         date: dateStr,
         time: timeStr,
-        owner: item.ownerName || "Tôi",
-        description: item.description || "",
+        ownerId: item.ownerId || item.createdById || null,
+        owner: fixMojibake(item.ownerName || item.createdByName || "Tôi"),
+        description: fixMojibake(item.description || ""),
         reminder: !!item.reminder,
         status: st,
         customerId: item.customerId,
+        contactId: item.contactId,
+        contactName: fixMojibake(item.contactName || ""),
         opportunityId: item.opportunityId,
+        durationMinutes: item.durationMinutes || 0,
+        outcome: fixMojibake(item.outcome || ""),
         createdAt: item.createdAt || new Date().toISOString()
     };
 }
@@ -204,6 +240,9 @@ async function saveActivity() {
     const description = value("activityDescription");
     const reminder = document.getElementById("activityReminder")?.checked;
 
+    const duration = value("activityDuration") || 30;
+    const outcome = value("activityOutcome");
+
     const dueDateStr = date ? `${date} ${time || "09:00"}:00` : null;
 
     try {
@@ -214,6 +253,8 @@ async function saveActivity() {
                     subject: title,
                     type: type.toUpperCase(),
                     description: description,
+                    outcome: outcome,
+                    durationMinutes: Number(duration) || 0,
                     status: "OPEN",
                     dueDate: dueDateStr
                 })
@@ -226,7 +267,9 @@ async function saveActivity() {
                     subject: title,
                     type: type.toUpperCase(),
                     description: description,
-                    status: "OPEN",
+                    outcome: outcome,
+                    durationMinutes: Number(duration) || 0,
+                    status: "COMPLETED",
                     dueDate: dueDateStr
                 })
             });
@@ -247,13 +290,19 @@ function render() {
     const query = value("activitySearch").toLowerCase();
     const type = value("activityTypeFilter");
     const status = value("activityStatusFilter");
+    const memberId = value("activityMemberFilter");
+    const fromDate = value("activityFromDate");
+    const toDate = value("activityToDate");
 
     const filtered = activities.filter(item => {
-        const text = `${item.title} ${item.relation} ${item.description}`.toLowerCase();
+        const text = `${item.title} ${item.relation} ${item.description} ${item.owner}`.toLowerCase();
         const searchOk = !query || text.includes(query);
-        const typeOk = !type || item.type === type;
+        const typeOk = !type || item.type.toLowerCase() === type.toLowerCase();
         const statusOk = !status || item.status === status;
-        return searchOk && typeOk && statusOk;
+        const memberOk = !memberId || String(item.ownerId) === String(memberId) || item.owner.toLowerCase().includes(memberId.toLowerCase());
+        const dateOk = (!fromDate || (item.date && item.date >= fromDate)) &&
+                       (!toDate || (item.date && item.date <= toDate));
+        return searchOk && typeOk && statusOk && memberOk && dateOk;
     });
 
     const list = document.getElementById("activityList");
@@ -274,6 +323,12 @@ function render() {
             <div class="activity-main">
                 <strong>${escapeHtml(item.title)}</strong>
                 <p>${escapeHtml(item.description || "Không có ghi chú")}</p>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; font-size: 11px;">
+                    ${item.durationMinutes ? `<span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-weight: 600;">⏱️ ${item.durationMinutes}p</span>` : ''}
+                    ${item.outcome ? `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-weight: 600;">🎯 ${escapeHtml(item.outcome)}</span>` : ''}
+                    ${item.owner ? `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-weight: 600;">👤 ${escapeHtml(item.owner)}</span>` : ''}
+                    ${item.contactName ? `<span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px;">📇 ${escapeHtml(item.contactName)}</span>` : ''}
+                </div>
             </div>
 
             <div class="activity-relation">
@@ -309,12 +364,15 @@ function updateSummary() {
     const open = activities.filter(item => item.status === "open");
     const done = activities.filter(item => item.status === "done");
     const late = activities.filter(item => item.status === "open" && item.date && item.date < now);
-    const today = activities.filter(item => item.date === now);
 
     text("summaryTotal", activities.length);
     text("summaryPending", open.length);
     text("summaryDone", done.length);
     text("summaryLate", late.length);
+    text("totalActivity", activities.length);
+    text("openActivity", open.length);
+    text("doneActivity", done.length);
+    text("lateActivity", late.length);
 }
 
 /* =========================================================
@@ -333,6 +391,8 @@ function openDrawer(item = null) {
         setValue("activityDate", item.date);
         setValue("activityTime", item.time);
         setValue("activityOwner", item.owner);
+        setValue("activityDuration", item.durationMinutes || 30);
+        setValue("activityOutcome", item.outcome || "");
         setValue("activityDescription", item.description);
         const rem = document.getElementById("activityReminder");
         if (rem) rem.checked = !!item.reminder;
@@ -343,6 +403,8 @@ function openDrawer(item = null) {
         setValue("activityType", "task");
         setValue("activityDate", todayString());
         setValue("activityTime", "09:00");
+        setValue("activityDuration", "30");
+        setValue("activityOutcome", "");
     }
 
     drawer?.classList.add("open");
@@ -416,5 +478,409 @@ function escapeHtml(val) {
         .replace(/'/g, "&#039;");
 }
 
+/* =========================================================
+   STORY 3: VIEW TABS & DATE PRESETS
+========================================================= */
+function initViewTabs() {
+    const tabList = document.getElementById("tabActivitiesList");
+    const tabReport = document.getElementById("tabTeamReport");
+    const viewList = document.getElementById("viewActivitiesList");
+    const viewReport = document.getElementById("viewTeamReport");
+
+    tabList?.addEventListener("click", () => {
+        tabList.classList.add("active");
+        tabReport?.classList.remove("active");
+        if (viewList) viewList.style.display = "block";
+        if (viewReport) viewReport.style.display = "none";
+    });
+
+    tabReport?.addEventListener("click", () => {
+        tabReport.classList.add("active");
+        tabList?.classList.remove("active");
+        if (viewList) viewList.style.display = "none";
+        if (viewReport) viewReport.style.display = "block";
+        loadTeamStats();
+    });
+}
+
+function initDatePresets() {
+    const presets = document.querySelectorAll("#quickDatePresets .filter-chip-btn");
+    const customWrap = document.getElementById("customDateRangeWrap");
+
+    presets.forEach(btn => {
+        btn.addEventListener("click", () => {
+            presets.forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+
+            const preset = btn.dataset.preset;
+            const fromInput = document.getElementById("activityFromDate");
+            const toInput = document.getElementById("activityToDate");
+            const today = new Date();
+
+            if (preset === "custom") {
+                if (customWrap) customWrap.style.display = "inline-flex";
+                if (fromInput) fromInput.focus();
+                text("filterResultNotice", "Khoảng ngày tùy chọn");
+                return;
+            }
+
+            if (customWrap) customWrap.style.display = "none";
+
+            if (preset === "all") {
+                if (fromInput) fromInput.value = "";
+                if (toInput) toInput.value = "";
+                text("filterResultNotice", "Đang hiển thị toàn bộ hoạt động");
+            } else if (preset === "today") {
+                const dStr = todayString();
+                if (fromInput) fromInput.value = dStr;
+                if (toInput) toInput.value = dStr;
+                text("filterResultNotice", "Hoạt động trong ngày hôm nay");
+            } else if (preset === "week") {
+                const past = new Date(today.getTime() - 7 * 86400000);
+                if (fromInput) fromInput.value = past.toISOString().split("T")[0];
+                if (toInput) toInput.value = todayString();
+                text("filterResultNotice", "Hoạt động trong 7 ngày qua");
+            } else if (preset === "month") {
+                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                if (fromInput) fromInput.value = firstDay.toISOString().split("T")[0];
+                if (toInput) toInput.value = todayString();
+                text("filterResultNotice", "Hoạt động trong tháng này");
+            }
+
+            render();
+            loadTeamStats();
+        });
+    });
+
+    document.getElementById("btnResetFilters")?.addEventListener("click", () => {
+        setValue("activitySearch", "");
+        setValue("activityTypeFilter", "");
+        setValue("activityMemberFilter", "");
+        setValue("activityFromDate", "");
+        setValue("activityToDate", "");
+        if (customWrap) customWrap.style.display = "none";
+        presets.forEach(b => b.classList.remove("active"));
+        document.querySelector("#quickDatePresets [data-preset='all']")?.classList.add("active");
+        text("filterResultNotice", "Đang hiển thị toàn bộ hoạt động");
+        render();
+        loadTeamStats();
+    });
+
+    ["activitySearch", "activityTypeFilter", "activityMemberFilter", "activityFromDate", "activityToDate"].forEach(id => {
+        document.getElementById(id)?.addEventListener("input", () => {
+            render();
+            loadTeamStats();
+        });
+        document.getElementById(id)?.addEventListener("change", () => {
+            render();
+            loadTeamStats();
+        });
+    });
+}
+
+/* =========================================================
+   STORY 3: TEAM STATS MONITORING
+========================================================= */
+let teamStatsData = [];
+
+async function loadTeamStats() {
+    const fromDate = value("activityFromDate");
+    const toDate = value("activityToDate");
+    const type = value("activityTypeFilter");
+    const memberId = value("activityMemberFilter");
+
+    const params = new URLSearchParams();
+    if (fromDate) params.append("fromDate", fromDate);
+    if (toDate) params.append("toDate", toDate);
+    if (type) params.append("type", type);
+    if (memberId) params.append("memberUserId", memberId);
+
+    const tbody = document.getElementById("teamStatsTableBody");
+    try {
+        const data = await api(`/api/activities/team-stats?${params.toString()}`);
+        if (!data || !Array.isArray(data.stats)) return;
+
+        teamStatsData = data.stats;
+        renderTeamStats(teamStatsData, data.totalActivities || 0);
+
+        populateMemberDropdown(teamStatsData);
+    } catch (err) {
+        console.warn("Could not load team stats:", err);
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:#ef4444; padding:20px;">Lỗi tải dữ liệu nhóm: ${escapeHtml(err.message)}</td></tr>`;
+        }
+    }
+}
+
+function renderTeamStats(stats, totalActivities) {
+    const tbody = document.getElementById("teamStatsTableBody");
+    if (!tbody) return;
+
+    if (!stats.length) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:#94a3b8; padding:30px;">Không có dữ liệu thành viên nào phù hợp bộ lọc.</td></tr>`;
+        return;
+    }
+
+    text("kpiTotalActivities", totalActivities);
+    text("badgeTeamMemberCount", `${stats.length} thành viên`);
+
+    const topMember = [...stats].sort((a, b) => b.totalActivities - a.totalActivities)[0];
+    if (topMember) {
+        text("kpiTopMember", fixMojibake(topMember.userName));
+        text("kpiTopMemberSub", `${topMember.totalActivities} hoạt động ghi nhận`);
+    }
+
+    const totalCallsMeetings = stats.reduce((acc, m) => acc + (m.callCount || 0) + (m.meetingCount || 0), 0);
+    text("kpiCallsMeetings", totalCallsMeetings);
+
+    const totalOverdue = stats.reduce((acc, m) => acc + (m.overdueTaskCount || 0), 0);
+    text("kpiTeamOverdue", totalOverdue);
+
+    tbody.innerHTML = "";
+    stats.forEach(member => {
+        const memberName = fixMojibake(member.userName || "Thành viên");
+        const initial = (memberName.trim()[0] || "U").toUpperCase();
+        const rating = member.activityRating || "Tích cực";
+        let ratingClass = "good";
+        if (rating === "Rất tích cực") ratingClass = "high";
+        else if (rating === "Cần cải thiện") ratingClass = "low";
+        else if (rating === "Trung bình") ratingClass = "moderate";
+
+        const total = member.totalActivities || 0;
+        const callPct = total > 0 ? ((member.callCount || 0) / total) * 100 : 0;
+        const meetPct = total > 0 ? ((member.meetingCount || 0) / total) * 100 : 0;
+        const mailPct = total > 0 ? ((member.emailCount || 0) / total) * 100 : 0;
+        const taskPct = total > 0 ? ((member.taskCount || 0) / total) * 100 : 0;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>
+                <div class="member-info-cell">
+                    <div class="member-avatar">${escapeHtml(initial)}</div>
+                    <div class="member-name-block">
+                        <strong>${escapeHtml(memberName)}</strong>
+                        <span>${escapeHtml(member.email || "")} · ${escapeHtml(fixMojibake(member.teamName || "Nhóm kinh doanh"))}</span>
+                    </div>
+                </div>
+            </td>
+            <td style="text-align: center;">
+                <span class="count-chip total">${total}</span>
+            </td>
+            <td style="text-align: center;">
+                <span class="count-chip call">${member.callCount || 0}</span>
+            </td>
+            <td style="text-align: center;">
+                <span class="count-chip meeting">${member.meetingCount || 0}</span>
+            </td>
+            <td style="text-align: center;">
+                <span class="count-chip email">${member.emailCount || 0}</span>
+            </td>
+            <td style="text-align: center;">
+                <span class="count-chip task">${member.taskCount || 0}</span>
+            </td>
+            <td style="text-align: center;">
+                <span class="count-chip overdue" style="${(member.overdueTaskCount || 0) > 0 ? 'background:#fee2e2; color:#b91c1c; font-weight:800;' : 'background:#f1f5f9; color:#94a3b8;'}">
+                    ${member.overdueTaskCount || 0}
+                </span>
+            </td>
+            <td>
+                <div class="touchpoint-bar-container" title="Phân bổ: Cuộc gọi ${Math.round(callPct)}%, Họp ${Math.round(meetPct)}%, Email ${Math.round(mailPct)}%, Task ${Math.round(taskPct)}%">
+                    <div class="touchpoint-slice call" style="width: ${callPct}%"></div>
+                    <div class="touchpoint-slice meeting" style="width: ${meetPct}%"></div>
+                    <div class="touchpoint-slice email" style="width: ${mailPct}%"></div>
+                    <div class="touchpoint-slice task" style="width: ${taskPct}%"></div>
+                </div>
+            </td>
+            <td>
+                <span class="rating-badge ${ratingClass}">
+                    ● ${escapeHtml(rating)}
+                </span>
+            </td>
+            <td style="text-align: right;">
+                <button type="button" class="crm-btn crm-btn-secondary filter-member-btn" data-user-id="${member.userId}" style="padding: 4px 10px; font-size: 11.5px;">
+                    Lọc HĐ
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    tbody.querySelectorAll(".filter-member-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const uid = btn.dataset.userId;
+            setValue("activityMemberFilter", uid);
+            document.getElementById("tabActivitiesList")?.click();
+            render();
+        });
+    });
+}
+
+function populateMemberDropdown(stats) {
+    const select = document.getElementById("activityMemberFilter");
+    if (!select || select.options.length > 1) return;
+
+    stats.forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m.userId;
+        opt.textContent = `👤 ${fixMojibake(m.userName)} (${m.totalActivities} HĐ)`;
+        select.appendChild(opt);
+    });
+}
+
+/* =========================================================
+   STORY 2: QUICK CALL (MOBILE-OPTIMIZED <= 3 TAPS)
+========================================================= */
+function initQuickCallFeature() {
+    const fab = document.getElementById("fabQuickCall");
+    const openBtn = document.getElementById("btnOpenQuickCall");
+    const overlay = document.getElementById("quickCallOverlay");
+    const modal = document.getElementById("quickCallModal");
+    const closeBtn = document.getElementById("closeQuickCallModal");
+    const customerSelect = document.getElementById("quickCallCustomerSelect");
+    const linkedOppNotice = document.getElementById("quickCallLinkedOppNotice");
+    const oppNameSpan = document.getElementById("quickCallOppName");
+    const form = document.getElementById("quickCallForm");
+
+    const openQuickCall = async () => {
+        if (overlay) overlay.style.display = "block";
+        if (modal) modal.style.display = "block";
+
+        if (customerSelect && customerSelect.options.length <= 1) {
+            try {
+                const res = await api("/api/customers");
+                if (Array.isArray(res)) {
+                    res.forEach(c => {
+                        const opt = document.createElement("option");
+                        opt.value = c.id;
+                        opt.textContent = `${fixMojibake(c.name || c.companyName)} (${c.phone || "Không có SĐT"})`;
+                        customerSelect.appendChild(opt);
+                    });
+                }
+            } catch (e) {
+                console.warn("Could not load customers for quick call:", e);
+            }
+        }
+    };
+
+    const closeQuickCall = () => {
+        if (overlay) overlay.style.display = "none";
+        if (modal) modal.style.display = "none";
+        if (linkedOppNotice) linkedOppNotice.style.display = "none";
+    };
+
+    fab?.addEventListener("click", openQuickCall);
+    openBtn?.addEventListener("click", openQuickCall);
+    closeBtn?.addEventListener("click", closeQuickCall);
+    overlay?.addEventListener("click", closeQuickCall);
+
+    customerSelect?.addEventListener("change", async () => {
+        const custId = customerSelect.value;
+        if (!custId) {
+            if (linkedOppNotice) linkedOppNotice.style.display = "none";
+            return;
+        }
+        try {
+            const opps = await api(`/api/opportunities?customerId=${custId}`);
+            if (Array.isArray(opps) && opps.length > 0) {
+                const openOpp = opps.find(o => o.stage !== "CLOSED_WON" && o.stage !== "CLOSED_LOST") || opps[0];
+                if (oppNameSpan) oppNameSpan.textContent = fixMojibake(openOpp.name || openOpp.title);
+                if (linkedOppNotice) linkedOppNotice.style.display = "block";
+            } else {
+                if (linkedOppNotice) linkedOppNotice.style.display = "none";
+            }
+        } catch (_) {
+            if (linkedOppNotice) linkedOppNotice.style.display = "none";
+        }
+    });
+
+    document.querySelectorAll(".quick-call-touch-grid .touch-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll(".quick-call-touch-grid .touch-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            setValue("quickCallOutcome", btn.dataset.outcome);
+        });
+    });
+
+    document.querySelectorAll(".quick-tag-chip[data-tag]").forEach(chip => {
+        chip.addEventListener("click", () => {
+            const notesInput = document.getElementById("quickCallNotes");
+            if (notesInput) {
+                const tag = chip.dataset.tag;
+                if (!notesInput.value) notesInput.value = tag;
+                else if (!notesInput.value.includes(tag)) notesInput.value += "; " + tag;
+            }
+        });
+    });
+
+    document.querySelectorAll(".callback-chip").forEach(chip => {
+        chip.addEventListener("click", () => {
+            document.querySelectorAll(".callback-chip").forEach(c => c.classList.remove("active"));
+            chip.classList.add("active");
+            setValue("quickCallCallback", chip.dataset.cb);
+        });
+    });
+
+    form?.addEventListener("submit", async e => {
+        e.preventDefault();
+        const custId = customerSelect?.value;
+        if (!custId) {
+            alert("Vui lòng chọn khách hàng vừa liên hệ.");
+            return;
+        }
+        const outcome = value("quickCallOutcome") || "Nghe máy - Quan tâm";
+        const notes = value("quickCallNotes");
+        const cbOption = value("quickCallCallback") || "none";
+
+        let callbackAt = null;
+        const now = new Date();
+        if (cbOption === "2h") {
+            const d = new Date(now.getTime() + 2 * 3600 * 1000);
+            callbackAt = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:00`;
+        } else if (cbOption === "tomorrow") {
+            const d = new Date(now.getTime() + 24 * 3600 * 1000);
+            callbackAt = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} 09:00:00`;
+        } else if (cbOption === "next_monday") {
+            const d = new Date(now.getTime() + ((1 + 7 - now.getDay()) % 7 || 7) * 24 * 3600 * 1000);
+            callbackAt = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} 09:00:00`;
+        }
+
+        const submitBtn = document.getElementById("btnSubmitQuickCall");
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = "⏳ Đang ghi nhận...";
+        }
+
+        try {
+            const res = await api("/api/activities/quick-call", {
+                method: "POST",
+                body: JSON.stringify({
+                    customerId: Number(custId),
+                    outcome: outcome,
+                    notes: notes,
+                    callbackAt: callbackAt
+                })
+            });
+
+            closeQuickCall();
+            const oppLinkedMsg = res?.opportunityId ? ` (Đã tự động gắn vào cơ hội mở)` : ``;
+            alert(`✅ Đã ghi nhanh cuộc gọi thành công!${oppLinkedMsg}`);
+
+            await loadActivities();
+            await loadTeamStats();
+        } catch (err) {
+            alert("Lỗi khi ghi cuộc gọi: " + err.message);
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "⚡ LƯU NHANH CUỘC GỌI";
+            }
+        }
+    });
+}
+
 // Start
+initViewTabs();
+initDatePresets();
+initQuickCallFeature();
 loadActivities();
+loadTeamStats();

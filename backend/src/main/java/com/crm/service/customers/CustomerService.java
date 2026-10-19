@@ -1,12 +1,12 @@
 package com.crm.service.customers;
 
 import com.crm.dao.customers.CustomerDAO;
+import com.crm.dao.customers.Customer360DAO;
 import com.crm.dao.customfields.CustomFieldValueDAO;
 import com.crm.dto.customers.CustomerWriteRequest;
 import com.crm.service.permissions.DataScopeContext;
 import com.crm.service.permissions.DataScopeService;
 
-import java.sql.SQLException;
 import java.util.*;
 
 public class CustomerService {
@@ -22,11 +22,33 @@ public class CustomerService {
             int page,
             int size
     ) throws Exception {
+        com.crm.dto.customers.CustomerFilterCriteria criteria = new com.crm.dto.customers.CustomerFilterCriteria();
+        criteria.setKeyword(keyword);
+        criteria.setStatus(status);
+        criteria.setPage(page);
+        criteria.setSize(size);
+        return search(currentUserId, criteria);
+    }
+
+    public Map<String, Object> search(
+            long currentUserId,
+            com.crm.dto.customers.CustomerFilterCriteria criteria
+    ) throws Exception {
         DataScopeContext scope = dataScopeService.resolve(currentUserId, "customer", "read");
-        long total = customerDAO.count(scope, keyword, status);
+        if (criteria == null) {
+            criteria = new com.crm.dto.customers.CustomerFilterCriteria();
+        }
+
+        if ("MINE".equalsIgnoreCase(criteria.getOwnerFilter())) {
+            criteria.setOwnerUserId(currentUserId);
+        }
+
+        long total = customerDAO.count(scope, criteria);
+        int size = criteria.getSize();
+        int page = criteria.getPage();
         int totalPages = (int) Math.ceil((double) total / size);
 
-        List<Map<String, Object>> items = customerDAO.search(scope, keyword, status, page, size);
+        List<Map<String, Object>> items = customerDAO.search(scope, criteria);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("items", items);
@@ -52,7 +74,23 @@ public class CustomerService {
 
         Map<String, Object> customFields = customFieldValueDAO.getValues("CUSTOMER", id);
         customer.put("customFields", customFields);
+
+        try {
+            com.crm.dao.contacts.ContactDAO contactDAO = new com.crm.dao.contacts.ContactDAO();
+            List<Map<String, Object>> contacts = contactDAO.findByCustomerId(id);
+            customer.put("contacts", contacts);
+        } catch (Exception ignored) {
+            customer.put("contacts", Collections.emptyList());
+        }
+
         return customer;
+    }
+
+    public Map<String, Object> getCustomer360(long currentUserId, long id) throws Exception {
+        if (id <= 0) throw new IllegalArgumentException("ID không hợp lệ");
+        DataScopeContext scope = dataScopeService.resolve(currentUserId, "customer", "read");
+        Customer360DAO customer360DAO = new Customer360DAO();
+        return customer360DAO.getCustomer360(id, scope);
     }
 
     public Map<String, Object> create(long currentUserId, CustomerWriteRequest req) throws Exception {
@@ -60,12 +98,22 @@ public class CustomerService {
             throw new IllegalArgumentException("Tên khách hàng/công ty là bắt buộc.");
         }
 
+        customFieldValueDAO.validateRequiredFields("CUSTOMER", req.getCustomFields());
+
         dataScopeService.resolve(currentUserId, "customer", "create");
         long customerId = customerDAO.create(req, currentUserId);
 
         if (req.getCustomFields() != null && !req.getCustomFields().isEmpty()) {
             customFieldValueDAO.saveValues("CUSTOMER", customerId, req.getCustomFields());
         }
+
+        // Tự động chấm điểm và phân bổ lead
+        try {
+            new com.crm.service.routing.LeadScoringService().evaluateAndSaveLeadScore(null, customerId);
+            if (req.getOwnerUserId() == null || req.getOwnerUserId() <= 0) {
+                new com.crm.service.routing.LeadAssignmentService().evaluateAndAssignLead(null, customerId, null);
+            }
+        } catch (Exception ignored) {}
 
         return getById(currentUserId, customerId);
     }
@@ -75,10 +123,20 @@ public class CustomerService {
             throw new IllegalArgumentException("Tên khách hàng/công ty là bắt buộc.");
         }
 
+        if (req.getCustomFields() != null) {
+            customFieldValueDAO.validateRequiredFields("CUSTOMER", req.getCustomFields());
+        }
+
         DataScopeContext scope = dataScopeService.resolve(currentUserId, "customer", "update");
         Map<String, Object> existing = customerDAO.findById(id);
         if (existing == null) {
             return null;
+        }
+
+        // Quy tắc nghiệp vụ User Story 4: Lead chuyển sang trạng thái Đã chuyển đổi và không sửa được nữa
+        String currentStatus = (String) existing.get("status");
+        if ("CONVERTED".equalsIgnoreCase(currentStatus)) {
+            throw new IllegalStateException("Lead này đã được chuyển đổi thành Khách hàng và Cơ hội bán hàng, dữ liệu ở chế độ chỉ đọc và không thể chỉnh sửa.");
         }
 
         long ownerId = (Long) existing.get("ownerUserId");
@@ -92,6 +150,12 @@ public class CustomerService {
             customFieldValueDAO.saveValues("CUSTOMER", id, req.getCustomFields());
         }
 
+        // Tự động tính lại điểm khi thông tin thay đổi (Acceptance Criteria Story 1)
+        try {
+            new com.crm.service.routing.LeadScoringService().evaluateAndSaveLeadScore(null, id);
+            new com.crm.service.routing.LeadAssignmentService().evaluateAndAssignLead(null, id, null);
+        } catch (Exception ignored) {}
+
         return getById(currentUserId, id);
     }
 
@@ -102,11 +166,86 @@ public class CustomerService {
             throw new NoSuchElementException("Khách hàng không tồn tại.");
         }
 
+        String currentStatus = (String) existing.get("status");
+        if ("CONVERTED".equalsIgnoreCase(currentStatus)) {
+            throw new IllegalStateException("Lead này đã được chuyển đổi, không thể xóa để bảo đảm toàn vẹn dữ liệu lịch sử.");
+        }
+
         long ownerId = (Long) existing.get("ownerUserId");
         if (!scope.canAccessOwner(ownerId)) {
             throw new SecurityException("Bạn không có quyền truy cập dữ liệu này do giới hạn phạm vi sở hữu.");
         }
 
         customerDAO.softDelete(id);
+    }
+
+    /* =========================================================
+       DUPLICATE DETECTION & MERGE (CHỈ TRƯỞNG NHÓM TRỞ LÊN GỘP)
+    ========================================================= */
+    private final com.crm.dao.customers.CustomerMergeDAO customerMergeDAO = new com.crm.dao.customers.CustomerMergeDAO();
+    private final com.crm.dao.users.UserDAO userDAO = new com.crm.dao.users.UserDAO();
+
+    public List<Map<String, Object>> checkDuplicates(
+            long currentUserId,
+            String name,
+            String taxCode,
+            String website,
+            Long excludeId
+    ) throws Exception {
+        return customerMergeDAO.checkDuplicates(name, taxCode, website, excludeId);
+    }
+
+    public List<Map<String, Object>> checkDuplicates(
+            long currentUserId,
+            String name,
+            String taxCode,
+            String website,
+            String email,
+            String phone,
+            Long excludeId
+    ) throws Exception {
+        return customerMergeDAO.checkDuplicates(name, taxCode, website, email, phone, excludeId);
+    }
+
+    public Map<String, Object> suggestExistingCustomer(
+            long currentUserId,
+            String email,
+            String phone,
+            String companyName
+    ) throws Exception {
+        return customerMergeDAO.suggestExistingCustomer(email, phone, companyName);
+    }
+
+    public List<Map<String, Object>> findAllDuplicatePairs(long currentUserId) throws Exception {
+        return customerMergeDAO.findAllDuplicatePairs();
+    }
+
+    public Map<String, Object> getComparison(long currentUserId, long id1, long id2) throws Exception {
+        return customerMergeDAO.getSideBySideComparison(id1, id2);
+    }
+
+    public Map<String, Object> mergeCustomers(long currentUserId, com.crm.dto.customers.CustomerMergeRequest req) throws Exception {
+        if (req == null || req.getMasterId() == null || req.getDuplicateId() == null) {
+            throw new IllegalArgumentException("Thiếu ID khách hàng chính hoặc khách hàng trùng.");
+        }
+
+        // BẢO MẬT: Chỉ Trưởng nhóm trở lên được thực hiện gộp
+        boolean isLead = customerMergeDAO.isTeamLeadOrAbove(currentUserId);
+        if (!isLead) {
+            throw new SecurityException("Chỉ Trưởng nhóm kinh doanh trở lên mới có quyền thực hiện gộp khách hàng.");
+        }
+
+        com.crm.model.users.User operator = userDAO.findById(currentUserId);
+        String operatorName = (operator != null && operator.getFullName() != null)
+                ? operator.getFullName()
+                : "Người dùng #" + currentUserId;
+
+        return customerMergeDAO.mergeCustomers(
+                req.getMasterId(),
+                req.getDuplicateId(),
+                req.toFieldOverrides(),
+                currentUserId,
+                operatorName
+        );
     }
 }

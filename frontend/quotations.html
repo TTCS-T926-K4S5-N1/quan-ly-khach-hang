@@ -61,24 +61,34 @@
             Không gian làm việc
         </div>
 
-        <a href="dashboard.html" class="crm-nav-item">
+        <a href="dashboard" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
             <span class="crm-nav-label">Tổng quan</span>
         </a>
 
-        <a href="customers.html" class="crm-nav-item">
+        <a href="customers" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
             <span class="crm-nav-label">Khách hàng</span>
         </a>
 
-        <a href="pipeline.html" class="crm-nav-item">
+        <a href="pipeline" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 9-8 9-8-9 8-9Z"/></svg></span>
             <span class="crm-nav-label">Cơ hội</span>
         </a>
 
-        <a href="quotations.html" class="crm-nav-item active">
+        <a href="quotations" class="crm-nav-item active">
             <span class="crm-nav-icon">▤</span>
             <span class="crm-nav-label">Báo giá</span>
+        </a>
+
+        <a href="contracts" class="crm-nav-item">
+            <span class="crm-nav-icon">📜</span>
+            <span class="crm-nav-label">Hợp đồng</span>
+        </a>
+
+        <a href="sales-targets" class="crm-nav-item">
+            <span class="crm-nav-icon">🎯</span>
+            <span class="crm-nav-label">Chỉ tiêu doanh số</span>
         </a>
 
         <a href="#" class="crm-nav-item">
@@ -183,13 +193,22 @@
 
         </div>
 
-        <a
-            href="quote-editor.html"
-            class="crm-btn crm-btn-primary"
-            style="text-decoration:none"
-        >
-            + Tạo báo giá
-        </a>
+        <div style="display:flex; gap: 8px;">
+            <a
+                href="document-templates.html"
+                class="crm-btn"
+                style="text-decoration:none; background: #ffffff; border: 1px solid var(--crm-border); color: var(--crm-text-1);"
+            >
+                ⚙️ Mẫu Báo giá & HĐ
+            </a>
+            <a
+                href="quote-editor"
+                class="crm-btn crm-btn-primary"
+                style="text-decoration:none"
+            >
+                + Tạo báo giá
+            </a>
+        </div>
 
     </section>
 
@@ -215,12 +234,28 @@
                 Nháp
             </option>
 
-            <option value="pending">
+            <option value="pending_approval">
                 Chờ duyệt
             </option>
 
             <option value="approved">
                 Đã duyệt
+            </option>
+
+            <option value="sent">
+                Đã gửi khách
+            </option>
+
+            <option value="accepted">
+                Khách chấp nhận
+            </option>
+
+            <option value="converted">
+                Đã tạo hợp đồng
+            </option>
+
+            <option value="expired">
+                Hết hiệu lực
             </option>
 
             <option value="rejected">
@@ -280,6 +315,214 @@
         class="quote-mobile-list"
     ></section>
 
+    <!-- =========================================================
+         MODAL 1: DUYỆT BÁO GIÁ (STORY 2)
+    ========================================================= -->
+    <div id="approvalModal" class="modal-overlay">
+        <div class="modal-dialog" style="max-width: 550px;">
+            <div class="modal-head">
+                <h3>⚖️ Phê duyệt Báo giá</h3>
+                <button type="button" class="crm-icon-btn" onclick="closeApprovalModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div style="background: #f8fafc; border: 1px solid var(--crm-border); border-radius: 8px; padding: 12px; margin-bottom: 14px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <span>Mã báo giá: <b id="apprModalCode">—</b></span>
+                        <span id="apprModalLevelBadge" class="appr-level-chip appr-level-none">Tự động</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <span>Khách hàng: <strong id="apprModalCustomer">—</strong></span>
+                        <span>Tổng tiền: <strong id="apprModalTotal" style="color:#15803d;">0 ₫</strong></span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #64748b;">
+                        <span>Tổng chiết khấu: <b id="apprModalDiscount" style="color:#dc2626;">0%</b></span>
+                        <span id="apprModalFloorWarning" style="color:#ef4444; font-weight: 600; display: none;">⚠️ Có giá sàn vi phạm</span>
+                    </div>
+                </div>
+
+                <label style="display: block; margin-bottom: 6px; font-weight: 600;">
+                    Ý kiến nhận xét / Lý do:
+                    <span style="font-weight: normal; color: #ef4444; font-size: 11.5px;">(Bắt buộc khi Từ chối hoặc Yêu cầu sửa)</span>
+                    <textarea id="apprCommentInput" class="crm-input" rows="3" placeholder="Nhập ý kiến chỉ đạo, yêu cầu điều chỉnh giá hoặc lý do phê duyệt/từ chối..." style="width: 100%; margin-top: 4px; resize: vertical;"></textarea>
+                </label>
+                <div id="apprErrorMsg" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: none;"></div>
+            </div>
+            <div class="modal-foot">
+                <button type="button" class="crm-btn crm-btn-secondary" onclick="closeApprovalModal()">Đóng</button>
+                <button type="button" id="btnApprReject" class="crm-btn" style="background: #fee2e2; color: #b91c1c; border-color: #fca5a5;">
+                    ❌ Từ chối
+                </button>
+                <button type="button" id="btnApprRequestChanges" class="crm-btn" style="background: #ffedd5; color: #c2410c; border-color: #fdba74;">
+                    🔄 Trả lại sửa
+                </button>
+                <button type="button" id="btnApprApprove" class="crm-btn crm-btn-primary" style="background: #10b981; border-color: #10b981;">
+                    ✅ Duyệt báo giá
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         MODAL 2: LỊCH SỬ DUYỆT BẤT BIẾN (STORY 2)
+    ========================================================= -->
+    <div id="historyModal" class="modal-overlay">
+        <div class="modal-dialog" style="max-width: 750px;">
+            <div class="modal-head">
+                <h3>📜 Lịch sử Phê duyệt Báo giá</h3>
+                <button type="button" class="crm-icon-btn" onclick="closeHistoryModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 12px; color: #166534; display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 16px;">🛡️</span>
+                    <span><b>Lịch sử duyệt bất biến:</b> Mọi hành động duyệt, từ chối, yêu cầu sửa cùng ý kiến đóng góp được lưu vĩnh viễn và không thể chỉnh sửa hoặc xóa.</span>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table class="quote-table" style="font-size: 12px;">
+                        <thead>
+                            <tr>
+                                <th>Thời điểm</th>
+                                <th>Người duyệt</th>
+                                <th>Vai trò</th>
+                                <th>Hành động</th>
+                                <th>Mức CK</th>
+                                <th>Ý kiến nhận xét</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="historyEmpty" style="display: none; text-align: center; padding: 24px; color: #64748b;">
+                    Chưa có lượt phê duyệt nào cho báo giá này.
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button type="button" class="crm-btn crm-btn-secondary" onclick="closeHistoryModal()">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         MODAL 3: SO SÁNH 2 PHIÊN BẢN CẠNH NHAU (STORY 3)
+    ========================================================= -->
+    <div id="compareModal" class="modal-overlay">
+        <div class="modal-dialog" style="max-width: 960px;">
+            <div class="modal-head">
+                <div>
+                    <h3 style="display: flex; align-items: center; gap: 8px;">
+                        <span>⚖️ So sánh Hai Phiên bản Báo giá</span>
+                        <span id="compareQuoteBaseNumber" style="font-size: 13px; font-weight: normal; color: #64748b;"></span>
+                    </h3>
+                </div>
+                <button type="button" class="crm-icon-btn" onclick="closeCompareModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <!-- Version Selection Bar -->
+                <div style="display: flex; align-items: center; gap: 12px; background: #f8fafc; border: 1px solid var(--crm-border); border-radius: 8px; padding: 12px; margin-bottom: 16px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="font-weight: 700;">Phiên bản 1:</span>
+                        <select id="compareSelectV1" class="crm-input" style="height: 32px; font-size: 12px; font-weight: 600;"></select>
+                    </div>
+                    <span style="color: #64748b; font-size: 16px;">⮂</span>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="font-weight: 700;">Phiên bản 2:</span>
+                        <select id="compareSelectV2" class="crm-input" style="height: 32px; font-size: 12px; font-weight: 600;"></select>
+                    </div>
+                    <button type="button" id="btnExecuteCompare" class="crm-btn crm-btn-primary" style="padding: 5px 12px; font-size: 12px;">
+                        So sánh ngay
+                    </button>
+                    <div id="compareDiffSummaryBadge" style="margin-left: auto; font-size: 12px; font-weight: 700; color: #2563eb;"></div>
+                </div>
+
+                <!-- 1. Header Changes -->
+                <div style="margin-bottom: 18px;">
+                    <h4 style="margin: 0 0 8px 0; font-size: 13px; color: #1e293b; font-weight: 700;">1. Thông tin chung & Điều khoản</h4>
+                    <table class="diff-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 20%;">Thông tin</th>
+                                <th style="width: 35%;" id="thVer1Title">Phiên bản 1</th>
+                                <th style="width: 35%;" id="thVer2Title">Phiên bản 2</th>
+                                <th style="width: 10%; text-align: center;">Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody id="compareHeaderBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 2. Line Items Changes -->
+                <div>
+                    <h4 style="margin: 0 0 8px 0; font-size: 13px; color: #1e293b; font-weight: 700;">2. Chi tiết Dòng sản phẩm / Dịch vụ</h4>
+                    <table class="diff-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 25%;">Sản phẩm / Dịch vụ</th>
+                                <th style="width: 12%; text-align: center;">Thay đổi</th>
+                                <th style="width: 31%;" id="thItemVer1Title">Phiên bản 1 (SL / Đơn giá / CK / Tiền)</th>
+                                <th style="width: 31%;" id="thItemVer2Title">Phiên bản 2 (SL / Đơn giá / CK / Tiền)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="compareItemsBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button type="button" id="btnSetActiveVersion" class="crm-btn" style="background: #f0fdf4; color: #15803d; border-color: #bbf7d0; margin-right: auto;">
+                    ⭐ Đặt Phiên bản này làm hiệu lực duy nhất
+                </button>
+                <button type="button" class="crm-btn crm-btn-secondary" onclick="closeCompareModal()">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         MODAL 4: GỬI EMAIL BÁO GIÁ KÈM LINK XEM (STORY 3)
+    ========================================================= -->
+    <div id="sendEmailModal" class="modal-overlay">
+        <div class="modal-dialog" style="max-width: 580px;">
+            <div class="modal-head">
+                <h3>✉️ Gửi Email Báo Giá Kèm Liên Kết Trực Tuyến</h3>
+                <button type="button" class="crm-icon-btn" onclick="closeSendEmailModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 12px; margin-bottom: 14px; font-size: 12.5px; color: #0369a1; line-height: 1.5;">
+                    💡 Khách hàng có thể truy cập vào liên kết bảo mật bên dưới để xem chi tiết báo giá và bấm <b>Chấp nhận</b> hoặc <b>Từ chối</b> (kèm ý kiến). Trạng thái và dòng thời gian cơ hội sẽ tự động cập nhật ngay lập tức.
+                </div>
+
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label style="display: block; font-weight: 600; font-size: 13px; margin-bottom: 4px;">Email người nhận (*):</label>
+                    <input id="sendEmailRecipient" type="email" class="crm-input" style="width: 100%;" placeholder="khachhang@congty.com">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label style="display: block; font-weight: 600; font-size: 13px; margin-bottom: 4px;">Liên kết xem & phản hồi trực tuyến (dành riêng cho báo giá này):</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input id="sendEmailPublicUrl" type="text" class="crm-input" style="width: 100%; background: #f8fafc;" readonly>
+                        <button type="button" class="crm-btn" style="white-space: nowrap;" onclick="copyPublicUrl()">📋 Copy</button>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label style="display: block; font-weight: 600; font-size: 13px; margin-bottom: 4px;">Lời nhắn gửi kèm:</label>
+                    <textarea id="sendEmailMessage" class="crm-input" rows="3" style="width: 100%; resize: vertical;" placeholder="Kính gửi Quý khách hàng, chúng tôi xin gửi báo giá giải pháp..."></textarea>
+                </div>
+
+                <div id="sendEmailErrorMsg" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: none;"></div>
+            </div>
+            <div class="modal-foot">
+                <button type="button" class="crm-btn crm-btn-secondary" onclick="closeSendEmailModal()">Hủy</button>
+                <button type="button" id="btnSubmitSendEmail" class="crm-btn crm-btn-primary" onclick="submitSendQuoteEmail()">
+                    ✉️ Gửi Email & Chuyển trạng thái
+                </button>
+            </div>
+        </div>
+    </div>
 </main>
 
 
@@ -320,22 +563,22 @@
 
     <nav class="crm-nav">
 
-        <a href="dashboard.html" class="crm-nav-item">
+        <a href="dashboard" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
             <span class="crm-nav-label">Tổng quan</span>
         </a>
 
-        <a href="customers.html" class="crm-nav-item">
+        <a href="customers" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
             <span class="crm-nav-label">Khách hàng</span>
         </a>
 
-        <a href="pipeline.html" class="crm-nav-item">
+        <a href="pipeline" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 9-8 9-8-9 8-9Z"/></svg></span>
             <span class="crm-nav-label">Cơ hội</span>
         </a>
 
-        <a href="quotations.html" class="crm-nav-item active">
+        <a href="quotations" class="crm-nav-item active">
             <span class="crm-nav-icon">▤</span>
             <span class="crm-nav-label">Báo giá</span>
         </a>
@@ -348,7 +591,7 @@
 <nav class="crm-bottom-nav">
 
     <a
-        href="dashboard.html"
+        href="dashboard"
         class="crm-bottom-item"
     >
         <span>
@@ -367,7 +610,7 @@
 
 
     <a
-        href="customers.html"
+        href="customers"
         class="crm-bottom-item"
     >
         <span>
@@ -384,7 +627,7 @@
 
 
     <a
-        href="pipeline.html"
+        href="pipeline"
         class="crm-bottom-item"
     >
         <span>
@@ -400,7 +643,7 @@
 
 
     <a
-        href="calendar.html"
+        href="calendar"
         class="crm-bottom-item"
     >
         <span>

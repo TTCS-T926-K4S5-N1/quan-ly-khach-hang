@@ -308,7 +308,7 @@ form?.addEventListener(
                 setTimeout(
                     () => {
                         window.location.href =
-                            "login.html";
+                            "login";
                     },
                     1000
                 );
@@ -359,7 +359,7 @@ form?.addEventListener(
                 () => {
 
                     window.location.href =
-                        "login.html";
+                        "login";
 
                 },
                 1200

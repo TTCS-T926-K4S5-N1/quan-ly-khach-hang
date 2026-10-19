@@ -18,7 +18,7 @@ public class MenuService {
                 item(
                         "DASHBOARD",
                         "Tổng quan",
-                        "dashboard.html",
+                        "dashboard",
                         "workspace",
                         "dashboard"
                 )
@@ -29,21 +29,100 @@ public class MenuService {
            WORKSPACE
         ===================================================== */
 
-        /*
-         * Các module nghiệp vụ Customer / Opportunity /
-         * Activity / Quote sẽ tự xuất hiện khi permission
-         * tương ứng được bổ sung ở các sprint sau.
-         */
-
         if (permissions.contains("customer.read")) {
 
             menu.add(
                     item(
                             "CUSTOMERS",
                             "Khách hàng",
-                            "customers.html",
+                            "customers",
                             "workspace",
                             "customer"
+                    )
+            );
+        }
+
+
+        if (permissions.contains("lead.read") || permissions.contains("lead.form.manage") || permissions.contains("lead.create")) {
+
+            menu.add(
+                    item(
+                            "LEAD_FORMS",
+                            "Biểu mẫu Lead",
+                            "lead-forms",
+                            "workspace",
+                            "form"
+                    )
+            );
+        }
+
+        if (permissions.contains("campaign.read") || permissions.contains("campaign.manage") || permissions.contains("lead.read") || permissions.contains("customer.read")) {
+
+            menu.add(
+                    item(
+                            "CAMPAIGNS",
+                            "Chiến dịch",
+                            "campaigns",
+                            "workspace",
+                            "campaign"
+                    )
+            );
+
+            menu.add(
+                    item(
+                            "EMAIL_MARKETING",
+                            "Mẫu & Gửi Email",
+                            "email-marketing",
+                            "workspace",
+                            "mail"
+                    )
+            );
+        }
+
+        if (permissions.contains("report.lead_source") || permissions.contains("campaign.read") || permissions.contains("lead.read") || permissions.contains("customer.read")) {
+            menu.add(
+                    item(
+                            "LEAD_REPORTS",
+                            "Báo cáo Nguồn Lead",
+                            "lead-reports",
+                            "workspace",
+                            "campaign"
+                    )
+            );
+        }
+
+        if (permissions.contains("opportunity.read") || permissions.contains("report.read") || permissions.contains("forecast.read")) {
+            menu.add(
+                    item(
+                            "FORECAST_REPORT",
+                            "Dự báo & Chỉ tiêu",
+                            "forecast-report",
+                            "workspace",
+                            "report"
+                    )
+            );
+        }
+
+        if (permissions.contains("activity.read") || permissions.contains("report.read") || permissions.contains("team.read")) {
+            menu.add(
+                    item(
+                            "TEAM_ACTIVITY_REPORT",
+                            "Năng suất Nhóm",
+                            "team-activity-report",
+                            "workspace",
+                            "pie-chart"
+                    )
+            );
+        }
+
+        if (permissions.contains("lead.routing.read") || permissions.contains("lead.routing.manage") || permissions.contains("customer.read")) {
+            menu.add(
+                    item(
+                            "LEAD_ROUTING",
+                            "Phân bổ & Chấm điểm",
+                            "lead-routing",
+                            "workspace",
+                            "routing"
                     )
             );
         }
@@ -55,7 +134,7 @@ public class MenuService {
                     item(
                             "OPPORTUNITIES",
                             "Cơ hội",
-                            "pipeline.html",
+                            "pipeline",
                             "workspace",
                             "opportunity"
                     )
@@ -69,7 +148,7 @@ public class MenuService {
                     item(
                             "ACTIVITIES",
                             "Hoạt động",
-                            "activities.html",
+                            "activities",
                             "workspace",
                             "activity"
                     )
@@ -79,7 +158,7 @@ public class MenuService {
                     item(
                             "CALENDAR",
                             "Lịch",
-                            "calendar.html",
+                            "calendar",
                             "workspace",
                             "calendar"
                     )
@@ -93,7 +172,7 @@ public class MenuService {
                     item(
                             "TASKS",
                             "Công việc",
-                            "tasks.html",
+                            "tasks",
                             "workspace",
                             "task"
                     )
@@ -107,7 +186,7 @@ public class MenuService {
                     item(
                             "QUOTATIONS",
                             "Báo giá",
-                            "quotations.html",
+                            "quotations",
                             "workspace",
                             "quote"
                     )
@@ -121,7 +200,7 @@ public class MenuService {
                     item(
                             "PRODUCTS",
                             "Sản phẩm",
-                            "products.html",
+                            "products",
                             "workspace",
                             "product"
                     )
@@ -139,7 +218,7 @@ public class MenuService {
                     item(
                             "USERS",
                             "Người dùng",
-                            "users.html",
+                            "users",
                             "admin",
                             "users"
                     )
@@ -153,7 +232,7 @@ public class MenuService {
                     item(
                             "USER_IMPORT",
                             "Nhập người dùng Excel",
-                            "import-users.html",
+                            "import-users",
                             "admin",
                             "import"
                     )
@@ -167,7 +246,7 @@ public class MenuService {
                     item(
                             "AUDIT",
                             "Nhật ký hệ thống",
-                            "audit-log.html",
+                            "audit-log",
                             "admin",
                             "audit"
                     )
@@ -181,7 +260,7 @@ public class MenuService {
                     item(
                             "ORGANIZATION",
                             "Tổ chức",
-                            "organization.html",
+                            "organization",
                             "admin",
                             "organization"
                     )
@@ -195,7 +274,7 @@ public class MenuService {
                     item(
                             "MASTER_DATA",
                             "Danh mục dùng chung",
-                            "master-data.html",
+                            "master-data",
                             "admin",
                             "master"
                     )
@@ -209,7 +288,7 @@ public class MenuService {
                     item(
                             "CUSTOM_FIELDS",
                             "Trường tùy chỉnh",
-                            "custom-fields.html",
+                            "custom-fields",
                             "admin",
                             "custom"
                     )
@@ -223,7 +302,7 @@ public class MenuService {
                     item(
                             "PIPELINE_SETTINGS",
                             "Cấu hình Pipeline",
-                            "pipeline-settings.html",
+                            "pipeline-settings",
                             "admin",
                             "settings"
                     )
@@ -241,13 +320,28 @@ public class MenuService {
                     item(
                             "WIN_LOSS",
                             "Lý do thắng/thua & Đối thủ",
-                            "win-loss-settings.html",
+                            "win-loss-settings",
                             "admin",
                             "winLoss"
                     )
             );
         }
 
+        if (
+                permissions.contains("system.admin")
+                || permissions.contains("pipeline.manage")
+                || permissions.contains("opportunity.read")
+        ) {
+            menu.add(
+                    item(
+                            "AUTOMATION_RULES",
+                            "Tự động hoá Khi – Thì",
+                            "automation-rules",
+                            "admin",
+                            "activity"
+                    )
+            );
+        }
 
         return menu;
     }

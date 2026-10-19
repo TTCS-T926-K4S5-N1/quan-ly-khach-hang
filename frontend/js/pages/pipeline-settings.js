@@ -81,6 +81,35 @@ document
     );
 
 
+document
+    .getElementById("stageConditionType")
+    ?.addEventListener("change", event => {
+        const val = event.target.value;
+        const condEl = document.getElementById("stageCondition");
+        const reqEl = document.getElementById("stageConditionRequired");
+        if (!condEl || !reqEl) return;
+
+        if (val === "HAS_MEETING") {
+            condEl.value = "Phải có ít nhất một cuộc gặp (Meeting) được ghi nhận trong Hoạt động";
+            reqEl.checked = true;
+        } else if (val === "HAS_CALL") {
+            condEl.value = "Phải có ít nhất một cuộc gọi (Call) được ghi nhận trong Hoạt động";
+            reqEl.checked = true;
+        } else if (val === "HAS_PRODUCTS") {
+            condEl.value = "Phải thêm sản phẩm / dịch vụ vào cơ hội để xác định giá trị hợp đồng có căn cứ";
+            reqEl.checked = true;
+        } else if (val === "HAS_CONTACT") {
+            condEl.value = "Phải gắn thông tin Người liên hệ (Contact) cho cơ hội";
+            reqEl.checked = true;
+        } else if (val === "MIN_AMOUNT") {
+            condEl.value = "Giá trị hợp đồng cơ hội phải lớn hơn 0 đ";
+            reqEl.checked = true;
+        } else if (val === "NONE") {
+            reqEl.checked = false;
+        }
+    });
+
+
 document.addEventListener(
     "click",
     async event => {
@@ -253,6 +282,11 @@ async function saveStage() {
                 ?.value
         );
 
+    const conditionType =
+        value(
+            "stageConditionType"
+        ) || "NONE";
+
     const exitCondition =
         value(
             "stageCondition"
@@ -265,6 +299,15 @@ async function saveStage() {
                     "stageConditionRequired"
                 )
                 ?.checked
+        );
+
+    const stagnantDays =
+        Number(
+            document
+                .getElementById(
+                    "stageStagnantDays"
+                )
+                ?.value || 7
         );
 
     const editingId =
@@ -362,9 +405,14 @@ async function saveStage() {
 
         probability,
 
+        conditionType,
+
         exitCondition,
 
         conditionRequired,
+
+        stagnantDays:
+            stagnantDays > 0 ? stagnantDays : 7,
 
         active:
             existing
@@ -579,6 +627,11 @@ async function updateStageOrder(
                             stage.probability
                         ),
 
+                    conditionType:
+                        stage.conditionType
+                        ??
+                        "NONE",
+
                     exitCondition:
                         stage.exitCondition
                         ??
@@ -613,6 +666,11 @@ function openStageDrawer(
     setValue(
         "editingStageIndex",
         ""
+    );
+
+    setValue(
+        "stageConditionType",
+        "NONE"
     );
 
 
@@ -669,12 +727,21 @@ function openStageDrawer(
             );
 
             setValue(
+                "stageConditionType",
+                stage.conditionType || "NONE"
+            );
+
+            setValue(
                 "stageCondition",
                 stage.exitCondition
                 ??
                 ""
             );
 
+            setValue(
+                "stageStagnantDays",
+                stage.stagnantDays || 7
+            );
 
             const required =
                 document.getElementById(
@@ -826,6 +893,8 @@ function render() {
                     stage-condition
                     ${stage.conditionRequired ? "required" : ""}
                 ">
+                    <span style="display:inline-block;padding:2px 7px;border-radius:4px;background:#fef3c7;color:#92400e;font-weight:600;font-size:11px;margin-right:6px;" title="Cảnh báo cơ hội đình trệ nếu không có hoạt động trong ${stage.stagnantDays || 7} ngày">⏳ Đình trệ sau ${stage.stagnantDays || 7} ngày</span>
+                    ${stage.conditionRequired ? '<span style="display:inline-block;padding:2px 6px;border-radius:4px;background:#ffe4e6;color:#be123c;font-weight:700;font-size:11px;margin-right:6px;">BẮT BUỘC</span>' : ''}
                     ${
                         stage.exitCondition
                         ?
@@ -899,3 +968,43 @@ function escapeHtml(value) {
 
 
 loadStages();
+initLeaderboardSetting();
+
+async function initLeaderboardSetting() {
+    const sw = document.getElementById("toggleLeaderboardSetting");
+    const statusText = document.getElementById("lbStatusText");
+    if (!sw) return;
+
+    try {
+        const res = await fetch("/crm/api/settings/leaderboard", { credentials: "same-origin" });
+        const json = await res.json();
+        if (json.success && json.data) {
+            const enabled = !!json.data.teamLeaderboardStaffEnabled;
+            sw.checked = enabled;
+            if (statusText) {
+                statusText.textContent = enabled ? "Đang bật" : "Đang tắt";
+                statusText.style.color = enabled ? "#16a34a" : "#dc2626";
+            }
+        }
+    } catch (e) {
+        console.error("Lỗi tải cấu hình bảng xếp hạng:", e);
+    }
+
+    sw.addEventListener("change", async () => {
+        const enabled = sw.checked;
+        if (statusText) {
+            statusText.textContent = enabled ? "Đang bật" : "Đang tắt";
+            statusText.style.color = enabled ? "#16a34a" : "#dc2626";
+        }
+        try {
+            await fetch("/crm/api/settings/leaderboard", {
+                method: "POST",
+                headers: { "Content-Type": "application/json; charset=utf-8" },
+                body: JSON.stringify({ enabled }),
+                credentials: "same-origin"
+            });
+        } catch (e) {
+            alert("Lỗi khi cập nhật cấu hình: " + e.message);
+        }
+    });
+}

@@ -60,12 +60,12 @@
 
     <nav class="crm-nav">
 
-        <a href="dashboard.html" class="crm-nav-item">
+        <a href="dashboard" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
             <span class="crm-nav-label">Tổng quan</span>
         </a>
 
-        <a href="pipeline.html" class="crm-nav-item">
+        <a href="pipeline" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 9-8 9-8-9 8-9Z"/></svg></span>
             <span class="crm-nav-label">Cơ hội</span>
         </a>
@@ -74,12 +74,12 @@
             Danh mục bán hàng
         </div>
 
-        <a href="products.html" class="crm-nav-item active">
+        <a href="products" class="crm-nav-item active">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4-8 4-8-4 8-4ZM4 7v10l8 4 8-4V7M12 11v10"/></svg></span>
             <span class="crm-nav-label">Sản phẩm & Bảng giá</span>
         </a>
 
-        <a href="pipeline-settings.html" class="crm-nav-item">
+        <a href="pipeline-settings" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m9 3 6 0 1 4 4 1 1 6-4 2-1 4-6 1-2-4-4-1-1-6 4-2 1-4Z"/></svg></span>
             <span class="crm-nav-label">Pipeline</span>
         </a>
@@ -233,6 +233,22 @@
             </span>
 
         </div>
+
+        <footer id="productPagination" class="crm-pagination" style="display: none;">
+            <div class="crm-pagination-info">
+                <span id="prodPaginationRange">Hiển thị 0 - 0 / 0 sản phẩm</span>
+                <label class="crm-pagination-size-select">
+                    <span>Số dòng:</span>
+                    <select id="prodPageSizeSelect">
+                        <option value="5">5</option>
+                        <option value="10" selected>10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                    </select>
+                </label>
+            </div>
+            <div id="prodPaginationControls" class="crm-pagination-controls"></div>
+        </footer>
 
     </section>
 

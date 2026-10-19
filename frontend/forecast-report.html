@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<script>
+(function () {
+    try {
+        var theme = localStorage.getItem("crm_ui_theme");
+        document.documentElement.setAttribute("data-theme", theme === "dark" ? "dark" : "light");
+        document.documentElement.removeAttribute("data-crm-theme");
+    } catch (e) {
+        document.documentElement.setAttribute("data-theme", "light");
+    }
+})();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Báo cáo Dự báo Doanh số & Tiến độ Chỉ tiêu | Corporate CRM</title>
+
+<link rel="stylesheet" href="css/design-system.css?v=20261019_2">
+<link rel="stylesheet" href="css/app-shell.css?v=20261019_2">
+<link rel="stylesheet" href="css/pages/forecast-report.css?v=20261019_2">
+<link rel="stylesheet" href="css/animations.css?v=20261019_2">
+</head>
+
+<body class="crm-private">
+
+<aside class="crm-sidebar"></aside>
+
+<div class="crm-shell">
+    <header class="crm-topbar"></header>
+
+    <main class="crm-content">
+        <!-- Breadcrumbs -->
+        <div style="font-size: 13px; color: var(--crm-muted, #64748b); margin-bottom: 8px;">
+            <a href="dashboard" style="color: inherit; text-decoration: none;">Tổng quan</a>
+            <span style="margin: 0 6px;">/</span>
+            <span>Báo cáo kinh doanh</span>
+            <span style="margin: 0 6px;">/</span>
+            <span style="color: var(--crm-primary); font-weight: 600;">Dự báo doanh số & Tiến độ chỉ tiêu</span>
+        </div>
+
+        <!-- Page Header -->
+        <div class="forecast-header">
+            <div class="forecast-title-area">
+                <h1>
+                    <span>🎯</span> Báo cáo Dự báo Doanh số & Tiến độ Chỉ tiêu
+                </h1>
+                <p>
+                    Dành cho Giám đốc kinh doanh: So sánh ba con số then chốt (Đã chốt, Dự báo theo trọng số, Chỉ tiêu) theo từng kỳ; xem theo nhân viên, nhóm hoặc toàn khối và phân tích lý do thua để điều chỉnh kịp trong kỳ thay vì đợi hết quý.
+                </p>
+            </div>
+            <div class="forecast-header-actions">
+                <a href="sales-targets" class="crm-btn crm-btn-secondary" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                    🎯 Khai báo Chỉ tiêu
+                </a>
+                <a href="pipeline" class="crm-btn crm-btn-secondary" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                    📊 Pipeline Cơ hội
+                </a>
+                <button id="btnRefresh" class="crm-btn crm-btn-secondary" type="button" title="Tải lại dữ liệu báo cáo" style="display:inline-flex; align-items:center; gap:6px;">
+                    🔄 Làm mới
+                </button>
+                <button id="btnExportExcel" class="crm-btn crm-btn-primary" type="button" style="display:inline-flex; align-items:center; gap:6px; background:#059669; border-color:#059669;">
+                    📥 Xuất Excel (.xlsx)
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="forecast-filter-bar">
+            <div class="filter-left-group">
+                <!-- Chọn kỳ -->
+                <div class="filter-group-label">
+                    <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true" width="16" height="16"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="12 6 12 12 16 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    <span>Kỳ báo cáo:</span>
+                </div>
+                <div class="preset-segmented-control" id="periodSegmented">
+                    <button type="button" class="preset-chip active" data-period="THIS_MONTH">Tháng này</button>
+                    <button type="button" class="preset-chip" data-period="LAST_MONTH">Tháng trước</button>
+                    <button type="button" class="preset-chip" data-period="NEXT_MONTH">Tháng sau</button>
+                    <button type="button" class="preset-chip" data-period="THIS_QUARTER">Quý này</button>
+                    <button type="button" class="preset-chip" data-period="LAST_QUARTER">Quý trước</button>
+                    <button type="button" class="preset-chip" data-period="THIS_YEAR">Năm nay</button>
+                </div>
+
+                <div class="filter-divider" aria-hidden="true"></div>
+
+                <!-- Chế độ xem: Toàn khối / Nhóm / Nhân viên -->
+                <div class="filter-group-label">
+                    <span>Xem theo:</span>
+                </div>
+                <div class="scope-segmented-control" id="scopeSegmented">
+                    <button type="button" class="scope-chip" data-scope="ALL">🏢 Toàn khối</button>
+                    <button type="button" class="scope-chip" data-scope="TEAM">👥 Theo Nhóm</button>
+                    <button type="button" class="scope-chip active" data-scope="USER">👤 Theo Nhân viên</button>
+                </div>
+            </div>
+
+            <!-- Filter Right: Lọc theo Team -->
+            <div class="select-filter-box" id="teamFilterBox">
+                <span>Lọc phòng ban:</span>
+                <select id="selectTeamFilter" title="Lọc theo nhóm">
+                    <option value="">-- Tất cả nhóm kinh doanh --</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 4 Top KPI Cards (3 Numbers + Projected) -->
+        <div class="forecast-kpi-grid">
+            <!-- Card 1: Quota / Target -->
+            <div class="forecast-kpi-card card-theme-target">
+                <div class="kpi-card-header">
+                    <span class="kpi-card-title">🎯 1. Chỉ tiêu (Quota)</span>
+                    <span class="kpi-card-icon">🎯</span>
+                </div>
+                <div class="kpi-card-value" id="kpiTargetAmount">0 ₫</div>
+                <div class="kpi-card-sub" id="kpiTargetSub">Tổng chỉ tiêu đã giao</div>
+            </div>
+
+            <!-- Card 2: Closed Won -->
+            <div class="forecast-kpi-card card-theme-won">
+                <div class="kpi-card-header">
+                    <span class="kpi-card-title">🏆 2. Đã chốt (Closed Won)</span>
+                    <span class="kpi-card-icon">🏆</span>
+                </div>
+                <div class="kpi-card-value" id="kpiWonAmount">0 ₫</div>
+                <div class="kpi-card-sub" id="kpiWonSub">0 deal đã chốt thực tế</div>
+            </div>
+
+            <!-- Card 3: Weighted Forecast -->
+            <div class="forecast-kpi-card card-theme-weighted">
+                <div class="kpi-card-header">
+                    <span class="kpi-card-title">📈 3. Dự báo trọng số</span>
+                    <span class="kpi-card-icon">📈</span>
+                </div>
+                <div class="kpi-card-value" id="kpiWeightedAmount">0 ₫</div>
+                <div class="kpi-card-sub" id="kpiWeightedSub">0 deal pipeline có xác suất</div>
+            </div>
+
+            <!-- Card 4: Total Projected & Status -->
+            <div class="forecast-kpi-card card-theme-projected">
+                <div class="kpi-card-header">
+                    <span class="kpi-card-title">🔮 Tổng dự kiến kỳ</span>
+                    <span id="kpiStatusBadge" class="status-pill kha-thi-dat">KHẢ THI ĐẠT</span>
+                </div>
+                <div class="kpi-card-value" id="kpiProjectedAmount">0 ₫</div>
+                <div class="kpi-card-sub" id="kpiProjectedSub">Đạt 0.0% so với chỉ tiêu</div>
+            </div>
+        </div>
+
+        <!-- Section 2: Visual Comparison Bar (3 Numbers Stacked) -->
+        <div class="forecast-visual-section">
+            <div class="visual-section-header">
+                <div class="visual-section-title">
+                    <span>📊</span> Tiến độ so sánh ba con số kỳ <span id="visualPeriodLabel" style="color:var(--crm-primary);"></span>
+                </div>
+                <div class="visual-legend">
+                    <span class="legend-item"><span class="legend-dot legend-won"></span> Đã chốt thực tế (<span id="legendWonVal">0 ₫</span>)</span>
+                    <span class="legend-item"><span class="legend-dot legend-weighted"></span> Dự báo có trọng số (<span id="legendWeightedVal">0 ₫</span>)</span>
+                    <span class="legend-item"><span class="legend-dot legend-gap"></span> Khoảng cách tới chỉ tiêu (<span id="legendGapVal">0 ₫</span>)</span>
+                </div>
+            </div>
+
+            <div class="multi-progress-track" title="Thanh so sánh Đã chốt + Dự báo trọng số so với Chỉ tiêu 100%">
+                <div id="barWon" class="multi-progress-bar bar-won" style="width: 0%;">0%</div>
+                <div id="barWeighted" class="multi-progress-bar bar-weighted" style="width: 0%;">0%</div>
+            </div>
+
+            <div class="visual-footer-info">
+                <span>0% (Khởi đầu kỳ)</span>
+                <span>Mốc 100% Chỉ tiêu: <strong id="visualTargetVal">0 ₫</strong></span>
+                <span id="visualStatusText">Tiến độ kỳ: 0%</span>
+            </div>
+        </div>
+
+        <!-- Section 3: Detailed Breakdown Table -->
+        <div class="forecast-table-card">
+            <div class="table-card-header">
+                <div class="table-card-title">
+                    <span>📋</span> <span id="tableTitle">Bảng số liệu chi tiết theo Nhân viên</span>
+                </div>
+                <div style="font-size: 13px; color: var(--crm-muted);">
+                    Đơn vị tiền tệ: <strong style="color:var(--crm-text);">VNĐ</strong> | Sắp xếp: Dự kiến cao nhất
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="crm-table" id="forecastTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px; text-align: center;">STT</th>
+                            <th id="thName" style="min-width: 170px;">Họ tên nhân viên</th>
+                            <th style="min-width: 150px;">Phòng / Nhóm</th>
+                            <th style="text-align: right; min-width: 130px;">Chỉ tiêu (Target)</th>
+                            <th style="text-align: right; min-width: 130px;">Đã chốt (Won)</th>
+                            <th style="text-align: right; min-width: 80px;">Số deal</th>
+                            <th style="text-align: right; min-width: 130px;">Pipeline mở</th>
+                            <th style="text-align: right; min-width: 130px;">Dự báo trọng số</th>
+                            <th style="text-align: right; min-width: 140px; font-weight: 700; color: var(--crm-primary);">Tổng dự kiến</th>
+                            <th style="min-width: 160px;">Tiến độ đạt (%)</th>
+                            <th style="text-align: center; min-width: 130px;">Đánh giá</th>
+                        </tr>
+                    </thead>
+                    <tbody id="breakdownTbody">
+                        <tr>
+                            <td colspan="11" style="text-align: center; padding: 40px; color: var(--crm-muted);">
+                                Đang tính toán dữ liệu dự báo...
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot id="breakdownTfoot"></tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- Section 4: Lost Reason Analysis (By Category & By Competitor) -->
+        <div class="loss-analysis-section">
+            <div class="loss-section-title">
+                <span>📉</span> Phân tích Lý do thua (Lost Deal Analysis) & Đối thủ cạnh tranh
+            </div>
+
+            <div class="loss-grid">
+                <!-- Card Left: Lost by Category -->
+                <div class="loss-card">
+                    <div class="loss-card-header">
+                        <div class="loss-card-title">
+                            <span>🏷️</span> Thua theo Danh mục lý do
+                        </div>
+                        <span id="badgeLossCatTotal" style="font-size: 12.5px; color: #dc2626; font-weight: 600;">0 deal thua</span>
+                    </div>
+                    <div id="lossCategoryContainer">
+                        <div style="text-align: center; padding: 30px; color: var(--crm-muted);">Đang tải phân tích lý do...</div>
+                    </div>
+                </div>
+
+                <!-- Card Right: Lost by Competitor -->
+                <div class="loss-card">
+                    <div class="loss-card-header">
+                        <div class="loss-card-title">
+                            <span>⚔️</span> Thua vào tay Đối thủ cạnh tranh
+                        </div>
+                        <span id="badgeLossCompTotal" style="font-size: 12.5px; color: #7c3aed; font-weight: 600;">0 đối thủ</span>
+                    </div>
+                    <div id="lossCompetitorContainer">
+                        <div style="text-align: center; padding: 30px; color: var(--crm-muted);">Đang tải phân tích đối thủ...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<script src="js/shared-shell.js"></script>
+<script src="js/pages/forecast-report.js?v=20261019_2"></script>
+<script src="js/page-transition.js"></script>
+
+</body>
+</html>

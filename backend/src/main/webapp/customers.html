@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<script>
+(function () {
+    try {
+        var theme =
+            localStorage.getItem("crm_ui_theme");
+
+        document.documentElement.setAttribute(
+            "data-theme",
+            theme === "dark"
+                ? "dark"
+                : "light"
+        );
+
+        document.documentElement.removeAttribute(
+            "data-crm-theme"
+        );
+    } catch (e) {
+        document.documentElement.setAttribute(
+            "data-theme",
+            "light"
+        );
+    }
+})();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>Khách hàng / Lead</title>
+
+<link rel="stylesheet" href="css/design-system.css">
+<link rel="stylesheet" href="css/app-shell.css">
+<link rel="stylesheet" href="css/pages/customers.css?v=20261019_pro_actions">
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="css/animations.css">
+</head>
+
+<body class="crm-private">
+
+<aside class="crm-sidebar">
+
+    <div class="crm-brand">
+        <div class="crm-brand-mark">C</div>
+        <span class="crm-brand-name">Corporate CRM</span>
+    </div>
+
+    <nav class="crm-nav">
+
+        <div class="crm-nav-section">
+            Không gian làm việc
+        </div>
+
+        <a href="dashboard" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+            <span class="crm-nav-label">Tổng quan</span>
+        </a>
+
+        <a href="customers" class="crm-nav-item active">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
+            <span class="crm-nav-label">Khách hàng</span>
+        </a>
+
+        <a href="#" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 9-8 9-8-9 8-9Z"/></svg></span>
+            <span class="crm-nav-label">Cơ hội</span>
+        </a>
+
+        <a href="#" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4m8-4v4M3 10h18"/></svg></span>
+            <span class="crm-nav-label">Lịch</span>
+        </a>
+
+        <div class="crm-nav-section">
+            Quản lý
+        </div>
+
+        <a href="products" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4-8 4-8-4 8-4ZM4 7v10l8 4 8-4V7M12 11v10"/></svg></span>
+            <span class="crm-nav-label">Sản phẩm</span>
+        </a>
+
+        <a href="custom-fields" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18M3 12h18"/></svg></span>
+            <span class="crm-nav-label">Trường tùy chỉnh</span>
+        </a>
+
+    </nav>
+
+    
+
+</aside>
+
+
+<header class="crm-topbar">
+
+    <div class="crm-search">
+
+        <svg viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="7"/>
+            <path d="m20 20-4-4"/>
+        </svg>
+
+        <input
+            id="globalSearch"
+            type="search"
+            placeholder="Tìm kiếm khách hàng, cơ hội..."
+        >
+
+        <kbd>Ctrl K</kbd>
+
+    </div>
+
+
+    <div class="crm-top-actions">
+
+        <button class="crm-icon-btn" type="button">
+            <svg viewBox="0 0 24 24">
+                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
+                <path d="M10 21h4"/>
+            </svg>
+            <span class="crm-notification-dot"></span>
+        </button>
+
+        <div class="crm-user">
+
+            <button
+                id="userButton"
+                class="crm-user-button"
+                type="button"
+            >
+                <div class="crm-avatar">U</div>
+
+                <div class="crm-user-copy">
+                    <span class="crm-user-name">Người dùng</span>
+                    <span class="crm-user-role">Vai trò</span>
+                </div>
+
+                <span><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
+            </button>
+
+            <div
+                id="userDropdown"
+                class="crm-user-dropdown"
+            >
+                <a href="#">Hồ sơ cá nhân</a>
+                <a href="#">Đổi mật khẩu</a>
+                <button type="button">Đăng xuất</button>
+            </div>
+
+        </div>
+
+    </div>
+
+</header>
+
+
+<main class="crm-main customer-page">
+
+    <section class="customer-page-head">
+        <div class="customer-head-left">
+            <a
+                href="lead-reports"
+                id="btnGoLeadReports"
+                class="crm-btn crm-btn-secondary"
+                title="Báo cáo hiệu quả từng nguồn lead và chiến dịch Marketing (Doanh thu & ROI)"
+            >
+                📈 Báo cáo Nguồn Lead
+            </a>
+
+            <a
+                href="import-leads"
+                id="btnGoImportLead"
+                class="crm-btn crm-btn-secondary"
+                title="Nhập lead hàng loạt từ tệp Excel thu thập từ sự kiện / hội thảo"
+            >
+                📊 Nhập Lead từ Excel
+            </a>
+
+            <button
+                id="btnExportExcel"
+                class="crm-btn crm-btn-secondary"
+                type="button"
+                title="Xuất danh sách khách hàng ra file Excel bao gồm trường tùy chỉnh"
+            >
+                📥 Xuất Excel
+            </button>
+
+            <button
+                id="btnDuplicateAlerts"
+                class="crm-btn crm-btn-secondary crm-btn-duplicate-alert"
+                type="button"
+                style="display:none;"
+                title="Xem danh sách khách hàng trùng lặp số điện thoại hoặc email"
+            >
+                ⚠️ Khách hàng trùng (<span id="dupCountBadge">0</span>)
+            </button>
+        </div>
+
+        <div class="customer-head-right">
+            <button
+                id="btnOpenManualLeadModal"
+                class="crm-btn crm-btn-lead-quick"
+                type="button"
+                title="Tạo khách hàng tiềm năng thủ công từ sự kiện hoặc danh thiếp"
+            >
+                📇 + Thêm Lead (Sự kiện / Danh thiếp)
+            </button>
+
+            <button
+                id="openCustomerDrawer"
+                class="crm-btn crm-btn-primary"
+                type="button"
+            >
+                + Thêm khách hàng
+            </button>
+        </div>
+    </section>
+
+
+    <!-- ================= KHU VỰC TÌM KIẾM & BỘ LỌC TẬP TRUNG (UNIFIED COMPACT FILTER PANEL) ================= -->
+    <section class="customer-filter-panel crm-card">
+        <!-- Hàng 1: Dải Tab Bộ lọc hay dùng (Saved Views) -->
+        <div class="filter-tabs-bar">
+            <div class="filter-tabs-scroll" id="savedFilterChips">
+                <!-- Dynamic saved filter chips rendered here -->
+            </div>
+            <button
+                id="btnOpenSaveFilterModal"
+                type="button"
+                class="crm-btn btn-save-view"
+                title="Lưu các tiêu chí lọc hiện tại thành bộ lọc nhanh"
+            >
+                💾 Lưu bộ lọc
+            </button>
+        </div>
+
+        <!-- Hàng 2: Thanh tìm kiếm & Bộ lọc chính (Primary Filters) -->
+        <div class="filter-primary-row">
+            <div class="search-input-wrap">
+                <input
+                    id="customerSearch"
+                    class="crm-input"
+                    type="search"
+                    placeholder="🔍 Tìm theo tên công ty, mã số thuế, email..."
+                >
+            </div>
+
+            <div class="phone-input-wrap">
+                <input
+                    id="contactPhoneFilter"
+                    class="crm-input"
+                    type="search"
+                    placeholder="📞 SĐT liên hệ..."
+                    title="Tìm nhanh theo số điện thoại người liên hệ"
+                >
+            </div>
+
+            <div class="filter-select-wrap">
+                <select id="statusFilter" class="crm-input" title="Lọc theo trạng thái">
+                    <option value="">🏷️ Tất cả trạng thái</option>
+                    <option value="MOI">Mới (Lead)</option>
+                    <option value="TIEM_NANG">Tiềm năng</option>
+                    <option value="DANG_CHAM_SOC">📞 Đang chăm sóc</option>
+                    <option value="KHACH_HANG">🏢 Khách hàng</option>
+                    <option value="CONVERTED">👑 Đã chuyển đổi</option>
+                    <option value="NGUNG_HOAT_DONG">Ngừng hoạt động</option>
+                </select>
+            </div>
+
+            <div class="filter-select-wrap">
+                <select id="leadSourceFilter" class="crm-input" title="Lọc theo nguồn Lead">
+                    <option value="">🌐 Tất cả nguồn Lead</option>
+                    <option value="HOI_THAO">🎪 Hội thảo & Sự kiện</option>
+                    <option value="WEBSITE">🌐 Website Form</option>
+                    <option value="FACEBOOK">📱 Facebook Lead Ads</option>
+                    <option value="GOOGLE_ADS">🔍 Google Search Ads</option>
+                    <option value="TIKTOK">🎵 TikTok Ads</option>
+                    <option value="LINKEDIN">💼 LinkedIn B2B</option>
+                    <option value="EMAIL_MARKETING">📧 Email Marketing</option>
+                    <option value="GIOI_THIEU">🤝 Khách hàng giới thiệu</option>
+                    <option value="DANH_THIEP">📇 Danh thiếp / Trực tiếp</option>
+                    <option value="KHAC">✨ Nguồn khác</option>
+                </select>
+            </div>
+
+            <div class="filter-quick-actions">
+                <button
+                    id="btnSortByScore"
+                    type="button"
+                    class="quick-pill-btn btn-pill-hot"
+                    title="Sắp xếp lead theo thứ tự điểm tiềm năng cao nhất lên đầu danh sách"
+                >
+                    🔥 Hot nhất
+                </button>
+
+                <button
+                    id="btnSlaBreachedFilter"
+                    type="button"
+                    class="quick-pill-btn btn-pill-sla"
+                    title="Lọc các lead bị quá hạn SLA phản hồi chưa được tiếp nhận"
+                >
+                    🚨 Quá SLA
+                </button>
+
+                <button
+                    id="btnToggleAdvancedFilters"
+                    type="button"
+                    class="quick-pill-btn btn-pill-advanced"
+                    title="Mở thêm các bộ lọc chuyên sâu (Ngành nghề, Quy mô, Khu vực, Thời gian...)"
+                >
+                    <span id="advancedFilterIcon">⚡</span>
+                    <span>Bộ lọc khác</span>
+                    <span id="advancedFilterBadge" class="filter-count-badge" style="display:none;">0</span>
+                </button>
+
+                <button
+                    id="btnResetFilters"
+                    type="button"
+                    class="quick-pill-btn btn-pill-reset"
+                    title="Xóa tất cả điều kiện lọc và quay về mặc định"
+                >
+                    🔄 Đặt lại
+                </button>
+            </div>
+        </div>
+
+        <!-- Hàng 3: Bảng Bộ lọc nâng cao (Collapsible Advanced Filters Panel) -->
+        <div id="advancedFiltersPanel" class="filter-advanced-panel" style="display: none;">
+            <div class="advanced-filters-grid">
+                <div class="filter-group">
+                    <label class="filter-label">Ngành nghề</label>
+                    <select id="industryFilter" class="crm-input">
+                        <option value="">🏢 Tất cả ngành nghề</option>
+                        <option value="1">CNTT & Viễn thông</option>
+                        <option value="2">Bất động sản & Xây dựng</option>
+                        <option value="3">Bán lẻ & TMĐT</option>
+                        <option value="4">Tài chính - Ngân hàng</option>
+                        <option value="5">Y tế & Dược phẩm</option>
+                        <option value="6">Sản xuất & Chế tạo</option>
+                        <option value="7">Giáo dục & Đào tạo</option>
+                        <option value="8">Du lịch & Khách sạn</option>
+                        <option value="9">Vận tải & Logistics</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">Quy mô doanh nghiệp</label>
+                    <select id="companySizeFilter" class="crm-input">
+                        <option value="">👥 Tất cả quy mô</option>
+                        <option value="10">Dưới 20 nhân sự</option>
+                        <option value="11">20 - 50 nhân sự</option>
+                        <option value="12">50 - 200 nhân sự</option>
+                        <option value="13">200 - 500 nhân sự</option>
+                        <option value="14">Trên 500 nhân sự</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">Khu vực địa lý</label>
+                    <select id="regionFilter" class="crm-input">
+                        <option value="">📍 Tất cả khu vực</option>
+                        <option value="22">Khu vực Hà Nội</option>
+                        <option value="26">Khu vực TP. Hồ Chí Minh</option>
+                        <option value="24">Khu vực Đà Nẵng</option>
+                        <option value="21">Khu vực Miền Bắc</option>
+                        <option value="23">Khu vực Miền Trung</option>
+                        <option value="25">Khu vực Miền Nam</option>
+                        <option value="20">Toàn quốc</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">Người sở hữu / Phụ trách</label>
+                    <select id="ownerFilter" class="crm-input">
+                        <option value="">👤 Người sở hữu</option>
+                        <option value="MINE">⭐️ Do tôi phụ trách</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">Phân loại nhiệt độ</label>
+                    <select id="scoreGradeFilter" class="crm-input">
+                        <option value="">🎯 Phân loại Lead</option>
+                        <option value="HOT">🔥 Lead NÓNG</option>
+                        <option value="WARM">☀️ Lead ẤM</option>
+                        <option value="COLD">❄️ Lead LẠNH</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">Trạng thái phân bổ</label>
+                    <select id="assignmentStatusFilter" class="crm-input">
+                        <option value="">📌 Phân bổ</option>
+                        <option value="UNASSIGNED">⏳ Chờ phân bổ</option>
+                        <option value="ASSIGNED">✅ Đã phân bổ</option>
+                    </select>
+                </div>
+
+                <div class="filter-group filter-group-date">
+                    <label class="filter-label">Thời gian tạo lead</label>
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <select id="leadDatePresetFilter" class="crm-input" style="flex: 1;">
+                            <option value="">📅 Thời gian tạo</option>
+                            <option value="TODAY">🌅 Tạo hôm nay</option>
+                            <option value="LAST_7_DAYS">🗓️ 7 ngày qua</option>
+                            <option value="THIS_MONTH">📆 Tháng này</option>
+                            <option value="CUSTOM">⏱️ Tùy chọn ngày...</option>
+                        </select>
+                        <input id="leadCreatedFrom" class="crm-input" type="date" title="Từ ngày tạo" style="display:none; width: 120px; padding: 6px 8px; font-size: 12px;">
+                        <input id="leadCreatedTo" class="crm-input" type="date" title="Đến ngày tạo" style="display:none; width: 120px; padding: 6px 8px; font-size: 12px;">
+                    </div>
+                </div>
+
+                <div class="filter-group filter-group-custom">
+                    <label class="filter-label">Trường tùy chỉnh</label>
+                    <div id="customFieldFilterWrap" style="display: flex; gap: 6px; align-items: center;">
+                        <select id="customFieldSelectFilter" class="crm-input" style="flex: 1;">
+                            <option value="">✨ Chọn trường...</option>
+                        </select>
+                        <input id="customFieldValueFilter" class="crm-input" type="text" placeholder="Nhập giá trị..." style="flex: 1; display: none;">
+                        <select id="customFieldSelectValueFilter" class="crm-input" style="flex: 1; display: none;">
+                            <option value="">-- Chọn --</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hàng 4: Tóm tắt kết quả & Thẻ lọc đang kích hoạt -->
+        <div id="filterSummaryBar" class="filter-summary-row">
+            <span id="filterResultCount">Hiển thị 0 khách hàng</span>
+            <div id="activeFilterTags" class="active-filter-tags-wrap"></div>
+        </div>
+    </section>
+
+
+    <section class="customer-table-card crm-card">
+
+        <div class="table-scroll">
+
+            <table class="customer-table">
+
+                <thead>
+                <tr>
+                    <th class="checkbox-col">
+                        <input type="checkbox" disabled>
+                    </th>
+
+                    <th style="min-width: 220px;">
+                        Tên Khách hàng / Lead & MST
+                    </th>
+
+                    <th style="min-width: 210px;">
+                        📞 Người liên hệ (Gọi ngay)
+                    </th>
+
+                    <th style="min-width: 160px;">
+                        Ngành nghề & Quy mô
+                    </th>
+
+                    <th style="min-width: 130px;">
+                        Khu vực
+                    </th>
+
+                    <th>
+                        Trạng thái
+                    </th>
+
+                    <th style="min-width: 140px;">
+                        🎯 Điểm Lead
+                    </th>
+
+                    <th style="min-width: 135px;">
+                        ⏱️ SLA Phản hồi
+                    </th>
+
+                    <th>
+                        Người sở hữu
+                    </th>
+
+                    <th class="action-col" style="min-width: 285px; text-align: right; padding-right: 18px;">
+                        Hành động
+                    </th>
+                </tr>
+                </thead>
+
+                <tbody id="customerTableBody"></tbody>
+
+            </table>
+
+        </div>
+
+
+        <div
+            id="customerEmpty"
+            class="customer-empty"
+        >
+            <div class="empty-icon">
+                <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            </div>
+
+            <strong>
+                Chưa có khách hàng
+            </strong>
+
+            <span>
+                Bấm “Thêm khách hàng” để bắt đầu dựng giao diện.
+            </span>
+        </div>
+
+        <footer id="customerPagination" class="crm-pagination" style="display: none;">
+            <div class="crm-pagination-info">
+                <span id="custPaginationRange">Hiển thị 0 - 0 / 0 khách hàng</span>
+                <label class="crm-pagination-size-select">
+                    <span>Số dòng:</span>
+                    <select id="custPageSizeSelect">
+                        <option value="10" selected>10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </label>
+            </div>
+            <div id="custPaginationControls" class="crm-pagination-controls"></div>
+        </footer>
+
+    </section>
+
+
+    <section
+        id="customerMobileList"
+        class="customer-mobile-list"
+    ></section>
+
+</main>
+
+
+<!-- ================= DRAWER ================= -->
+
+<div
+    id="customerDrawerOverlay"
+    class="customer-drawer-overlay"
+></div>
+
+<aside
+    id="customerDrawer"
+    class="customer-drawer"
+>
+
+    <header class="customer-drawer-head">
+
+        <div>
+            <strong id="drawerTitle">
+                Thêm mới Khách hàng / Lead
+            </strong>
+
+            <span>
+                Thông tin doanh nghiệp
+            </span>
+        </div>
+
+        <button
+            id="closeCustomerDrawer"
+            type="button"
+            class="drawer-close"
+        >
+            <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+
+    </header>
+
+    <!-- CẢNH BÁO TRÙNG LẶP REALTIME KHI NHẬP FORM -->
+    <div id="drawerDuplicateAlert" style="display:none; margin:16px 20px 0; padding:12px 14px; border-radius:8px; background:#fffbeb; border:1.5px solid #f59e0b; font-size:12.5px; color:#92400e; box-shadow:0 1px 3px rgba(245,158,11,0.1);">
+        <div style="display:flex; align-items:flex-start; gap:8px;">
+            <span style="font-size:18px;">⚠️</span>
+            <div style="flex:1;">
+                <strong id="drawerDupTitle" style="color:#b45309; font-size:13px;">Phát hiện khách hàng nghi vấn trùng lặp!</strong>
+                <div id="drawerDupDesc" style="margin-top:3px; line-height:1.4;"></div>
+                <button type="button" id="btnDrawerOpenCompare" style="margin-top:8px; background:#d97706; color:#fff; border:0; padding:5px 12px; border-radius:5px; font-size:11.5px; font-weight:650; cursor:pointer;">
+                    🔍 So sánh cạnh nhau & Gộp
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <form
+        id="customerForm"
+        class="customer-form"
+        novalidate
+    >
+
+        <input
+            id="editingIndex"
+            type="hidden"
+            value=""
+        >
+
+
+        <div class="field-group">
+
+            <label for="companyName">
+                Tên công ty
+                <em>*</em>
+            </label>
+
+            <input
+                id="companyName"
+                class="crm-input"
+                type="text"
+            >
+
+            <small
+                id="companyNameError"
+                class="field-error"
+            ></small>
+
+        </div>
+
+
+        <div class="two-cols">
+
+            <div class="field-group">
+
+                <label for="taxCode">
+                    Mã số thuế
+                </label>
+
+                <input
+                    id="taxCode"
+                    class="crm-input"
+                    type="text"
+                >
+
+            </div>
+
+
+            <div class="field-group">
+
+                <label for="customerStatus">
+                    Trạng thái
+                </label>
+
+                <select
+                    id="customerStatus"
+                    class="crm-input"
+                >
+                    <option>Tiềm năng</option>
+                    <option>Đang giao dịch</option>
+                    <option>Khách hàng</option>
+                    <option>Ngừng hợp tác</option>
+                </select>
+
+            </div>
+
+        </div>
+
+
+        <div class="two-cols">
+
+            <div class="field-group">
+
+                <label for="customerEmail">
+                    Email
+                </label>
+
+                <input
+                    id="customerEmail"
+                    class="crm-input"
+                    type="email"
+                >
+
+            </div>
+
+            <div class="field-group">
+
+                <label for="customerPhone">
+                    Số điện thoại
+                </label>
+
+                <input
+                    id="customerPhone"
+                    class="crm-input"
+                    type="tel"
+                >
+
+            </div>
+
+        </div>
+
+
+        <div class="two-cols">
+
+            <div class="field-group">
+
+                <label for="industry">
+                    Ngành nghề
+                </label>
+
+                <input
+                    id="industry"
+                    class="crm-input"
+                    type="text"
+                >
+
+            </div>
+
+            <div class="field-group">
+
+                <label for="companySize">
+                    Quy mô
+                </label>
+
+                <input
+                    id="companySize"
+                    class="crm-input"
+                    type="text"
+                >
+
+            </div>
+
+        </div>
+
+
+        <div class="field-group">
+
+            <label for="website">
+                Website
+            </label>
+
+            <input
+                id="website"
+                class="crm-input"
+                type="text"
+            >
+
+        </div>
+
+
+        <div class="field-group">
+
+            <label for="address">
+                Địa chỉ
+            </label>
+
+            <textarea
+                id="address"
+                class="customer-textarea"
+                rows="3"
+            ></textarea>
+
+        </div>
+
+
+        <div class="field-group">
+
+            <label for="owner">
+                Người sở hữu
+            </label>
+
+            <input
+                id="owner"
+                class="crm-input"
+                type="text"
+            >
+
+        </div>
+
+        <!-- Dynamic Custom Fields Section -->
+        <div id="customerCustomFieldsSection" style="margin-top: 16px; border-top: 1px dashed var(--crm-border); padding-top: 16px;">
+            <div style="font-weight: 600; font-size: 13px; color: var(--crm-muted); text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                <span>✨ Trường tuỳ chỉnh</span>
+            </div>
+            <div id="customerCustomFieldsContainer" style="display: flex; flex-direction: column; gap: 12px;">
+                <!-- Dynamically loaded fields will be rendered here -->
+            </div>
+        </div>
+
+
+        <footer class="customer-drawer-footer">
+
+            <button
+                id="cancelCustomer"
+                class="crm-btn crm-btn-secondary"
+                type="button"
+            >
+                Hủy
+            </button>
+
+            <button
+                class="crm-btn crm-btn-primary"
+                type="submit"
+            >
+                Lưu
+            </button>
+
+        </footer>
+
+    </form>
+
+</aside>
+
+
+<!-- ================= MOBILE SHELL ================= -->
+
+<header class="crm-mobile-header">
+
+    <button
+        id="mobileMenuButton"
+        class="crm-mobile-menu"
+        type="button"
+    >
+        <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+
+    <div class="crm-avatar">
+        U
+    </div>
+
+</header>
+
+
+<div
+    id="drawerOverlay"
+    class="crm-drawer-overlay"
+></div>
+
+
+<aside
+    id="mobileDrawer"
+    class="crm-mobile-drawer"
+>
+
+    <div class="crm-drawer-header">
+
+        <div class="crm-avatar">
+            U
+        </div>
+
+        <div class="crm-drawer-user">
+            <strong>Người dùng</strong>
+            <span>Vai trò</span>
+        </div>
+
+    </div>
+
+    <nav class="crm-nav">
+
+        <a href="dashboard" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+            <span class="crm-nav-label">Tổng quan</span>
+        </a>
+
+        <a href="customers" class="crm-nav-item active">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
+            <span class="crm-nav-label">Khách hàng</span>
+        </a>
+
+        <a href="#" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 9-8 9-8-9 8-9Z"/></svg></span>
+            <span class="crm-nav-label">Cơ hội</span>
+        </a>
+
+        <a href="#" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4m8-4v4M3 10h18"/></svg></span>
+            <span class="crm-nav-label">Lịch</span>
+        </a>
+
+        <a href="#" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4-8 4-8-4 8-4ZM4 7v10l8 4 8-4V7M12 11v10"/></svg></span>
+            <span class="crm-nav-label">Sản phẩm</span>
+        </a>
+
+        <a href="#" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m9 3 6 0 1 4 4 1 1 6-4 2-1 4-6 1-2-4-4-1-1-6 4-2 1-4Z"/></svg></span>
+            <span class="crm-nav-label">Cấu hình</span>
+        </a>
+
+    </nav>
+
+</aside>
+
+
+<nav class="crm-bottom-nav">
+
+    <a
+        href="dashboard"
+        class="crm-bottom-item"
+    >
+        <span>
+            <svg class="crm-inline-icon"
+                 viewBox="0 0 24 24"
+                 aria-hidden="true">
+                <rect x="3" y="3" width="7" height="7" rx="1"/>
+                <rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/>
+                <rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+        </span>
+
+        <span>Tổng quan</span>
+    </a>
+
+
+    <a
+        href="customers"
+        class="crm-bottom-item active"
+    >
+        <span>
+            <svg class="crm-inline-icon"
+                 viewBox="0 0 24 24"
+                 aria-hidden="true">
+                <circle cx="12" cy="8" r="4"/>
+                <path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/>
+            </svg>
+        </span>
+
+        <span>Khách hàng</span>
+    </a>
+
+
+    <a
+        href="pipeline"
+        class="crm-bottom-item"
+    >
+        <span>
+            <svg class="crm-inline-icon"
+                 viewBox="0 0 24 24"
+                 aria-hidden="true">
+                <path d="m12 3 8 9-8 9-8-9 8-9Z"/>
+            </svg>
+        </span>
+
+        <span>Cơ hội</span>
+    </a>
+
+
+    <a
+        href="calendar"
+        class="crm-bottom-item"
+    >
+        <span>
+            <svg class="crm-inline-icon"
+                 viewBox="0 0 24 24"
+                 aria-hidden="true">
+                <rect x="3" y="5" width="18" height="16" rx="2"/>
+                <path d="M8 3v4m8-4v4M3 10h18"/>
+            </svg>
+        </span>
+
+        <span>Lịch</span>
+    </a>
+
+<!-- ================= MODAL: DANH SÁCH KHÁCH HÀNG TRÙNG LẶP ================= -->
+<div id="duplicatesModalOverlay" class="duplicates-modal-overlay"></div>
+<section id="duplicatesModal" class="duplicates-modal">
+    <header class="dup-modal-head">
+        <div>
+            <strong style="font-size:16px; color:var(--crm-text);">⚠️ Cảnh báo khách hàng trùng lặp tiềm năng</strong>
+            <div style="font-size:12px; color:var(--crm-muted); margin-top:2px;">
+                Phát hiện theo mã số thuế, tên công ty gần giống và website để tránh nhân viên chào trùng.
+            </div>
+        </div>
+        <button id="closeDuplicatesModal" type="button" class="crm-icon-btn">
+            <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+    </header>
+
+    <div id="duplicatesListContainer" class="dup-modal-body"></div>
+
+    <div id="duplicatesEmptyState" class="customer-mobile-empty" style="display:none; margin:20px;">
+        <span style="font-size:13px; color:#10b981; font-weight:600;">✅ Hiện tại không phát hiện khách hàng nào bị trùng lặp.</span>
+    </div>
+</section>
+
+
+<!-- ================= MODAL: SO SÁNH CẠNH NHAU & GỘP DỮ LIỆU ================= -->
+<div id="comparisonModalOverlay" class="duplicates-modal-overlay"></div>
+<section id="comparisonModal" class="duplicates-modal comparison-modal">
+    <header class="dup-modal-head">
+        <div>
+            <strong style="font-size:16.5px; color:var(--crm-text);">🔍 So sánh khách hàng cạnh nhau & Gộp dữ liệu</strong>
+            <div style="font-size:12px; color:var(--crm-muted); margin-top:2px;">
+                Kiểm tra thông tin chi tiết trước khi gộp. Dữ liệu con của cả 2 sẽ được bảo lưu trọn vẹn.
+            </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <button id="btnSwapSides" type="button" class="crm-btn crm-btn-secondary" style="font-size:12px; padding:6px 12px;">
+                ⇄ Đổi bản ghi chính
+            </button>
+            <button id="closeComparisonModal" type="button" class="crm-icon-btn">
+                <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <div class="dup-modal-body">
+        <!-- Điểm trùng khớp -->
+        <div id="comparisonMatchPoints" style="background:#fffbeb; border:1px solid #fcd34d; border-radius:8px; padding:10px 14px; font-size:12.5px; color:#92400e;">
+            <strong>Lý do phát hiện trùng:</strong> <span id="matchPointsText"></span>
+        </div>
+
+        <!-- Bảng 2 cột so sánh cạnh nhau -->
+        <div class="comparison-grid">
+            <!-- CỘT TRÁI: MASTER (GIỮ LẠI) -->
+            <div class="side-column master" id="colMaster">
+                <div class="side-header-badge">
+                    <span class="side-tag master-tag">👑 Bản ghi chính (Giữ lại)</span>
+                    <span id="masterCustId" style="font-size:12px; font-weight:700; color:#15803d;">#12</span>
+                </div>
+                <div class="side-field">
+                    <span class="side-field-label">Tên công ty</span>
+                    <span class="side-field-value" id="masterName">—</span>
+                </div>
+                <div class="side-field">
+                    <span class="side-field-label">Mã số thuế</span>
+                    <span class="side-field-value" id="masterTax">—</span>
+                </div>
+                <div class="side-field">
+                    <span class="side-field-label">Website</span>
+                    <span class="side-field-value" id="masterWeb">—</span>
+                </div>
+                <div class="side-field">
+                    <span class="side-field-label">Số điện thoại / Email</span>
+                    <span class="side-field-value" id="masterContact">—</span>
+                </div>
+                <div class="side-field">
+                    <span class="side-field-label">Địa chỉ</span>
+                    <span class="side-field-value" id="masterAddress">—</span>
+                </div>
+                <div class="side-field">
+                    <span class="side-field-label">Người sở hữu / Nhân viên</span>
+                    <span class="side-field-value" id="masterOwner" style="color:#2563eb;">—</span>
+                </div>
+
+                <div class="side-metrics-box">
+                    <div class="side-metric-item">
+                        <strong id="masterCntContacts">0</strong>
+                        <span>Người liên hệ</span>
+                    </div>
+                    <div class="side-metric-item">
+                        <strong id="masterCntOpps">0</strong>
+                        <span>Cơ hội</span>
+                    </div>
+                    <div class="side-metric-item">
+                        <strong id="masterCntActs">0</strong>
+                        <span>Hoạt động</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CỘT PHẢI: DUPLICATE (SẼ GỘP VÀO) -->
+            <div class="side-column duplicate" id="colDuplicate">
+                <div class="side-header-badge">
+                    <span class="side-tag dup-tag">⚠️ Bản ghi trùng (Sẽ gộp vào)</span>
+                    <span id="dupCustId" style="font-size:12px; font-weight:700; color:#b45309;">#13</span>
+                </div>
+                <div class="side-field">
+                    <span class="side-field-label">Tên công ty</span>
+                    <span class="side-field-value" id="dupName">—</span>
+                </div>
+                <div class="side-field">
+                    <span class="side-field-label">Mã số thuế</span>
+                    <span class="side-field-value" id="dupTax">—</span>
+                </div>
+                <div class="side-field">
+                    <span class="side-field-label">Website</span>
+                    <span class="side-field-value" id="dupWeb">—</span>
+                </div>
+                <div class="side-field">
+                    <span class="side-field-label">Số điện thoại / Email</span>
+                    <span class="side-field-value" id="dupContact">—</span>
+                </div>
+                <div class="side-field">
+                    <span class="side-field-label">Địa chỉ</span>
+                    <span class="side-field-value" id="dupAddress">—</span>
+                </div>
+                <div class="side-field">
+                    <span class="side-field-label">Người sở hữu / Nhân viên</span>
+                    <span class="side-field-value" id="dupOwner" style="color:#d97706;">—</span>
+                </div>
+
+                <div class="side-metrics-box">
+                    <div class="side-metric-item">
+                        <strong id="dupCntContacts">0</strong>
+                        <span>Người liên hệ</span>
+                    </div>
+                    <div class="side-metric-item">
+                        <strong id="dupCntOpps">0</strong>
+                        <span>Cơ hội</span>
+                    </div>
+                    <div class="side-metric-item">
+                        <strong id="dupCntActs">0</strong>
+                        <span>Hoạt động</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TỔNG HỢP SAU KHI GỘP (GIỮ LẠI TOÀN BỘ) -->
+        <div class="merge-summary-banner">
+            <strong>📦 Kết quả sau khi gộp (Bảo lưu toàn bộ dữ liệu cả 2 bản ghi):</strong>
+            <div class="merge-summary-list">
+                <span>👥 Người liên hệ: <span id="summarySumContacts" style="color:#059669; font-weight:700;">0</span></span>
+                <span>💼 Cơ hội bán hàng: <span id="summarySumOpps" style="color:#2563eb; font-weight:700;">0</span></span>
+                <span>⏱️ Lịch sử hoạt động: <span id="summarySumActs" style="color:#7c3aed; font-weight:700;">0</span></span>
+                <span>📎 Tệp đính kèm: <span id="summarySumAtts" style="color:#0891b2; font-weight:700;">0</span></span>
+            </div>
+        </div>
+
+        <!-- CẢNH BÁO QUYỀN HẠN CHO SALES REP -->
+        <div id="mergeRoleWarning" class="merge-permission-notice" style="display:none;">
+            <span>🔒</span>
+            <span>Chỉ <strong>Trưởng nhóm kinh doanh</strong> trở lên mới có quyền thực hiện gộp khách hàng. Vui lòng liên hệ Trưởng nhóm để duyệt gộp bản ghi này.</span>
+        </div>
+    </div>
+
+    <footer class="modal-footer" style="padding:14px 24px; border-top:1px solid var(--crm-border); display:flex; justify-content:flex-end; gap:10px;">
+        <button id="btnCancelMerge" type="button" class="crm-btn crm-btn-secondary">
+            Hủy
+        </button>
+        <button id="btnConfirmMerge" type="button" class="crm-btn crm-btn-primary" style="background:#059669; border-color:#059669;">
+            ✅ Xác nhận gộp khách hàng
+        </button>
+    </footer>
+</section>
+
+<!-- ================= MODAL LƯU BỘ LỌC HAY DÙNG ================= -->
+<div id="saveFilterModalOverlay" class="customer-drawer-overlay" style="z-index: 1040;"></div>
+<div id="saveFilterModal" class="crm-card" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 480px; z-index: 1050; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2), 0 10px 10px -5px rgba(0,0,0,0.1); border-radius: 12px; background: #fff;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--crm-text); display: flex; align-items: center; gap: 8px;">
+            💾 Lưu bộ lọc hay dùng
+        </h3>
+        <button id="btnCloseSaveFilterModal" type="button" style="font-size: 18px; line-height: 1; border: none; background: transparent; cursor: pointer; color: #94a3b8;">✕</button>
+    </div>
+
+    <p style="font-size: 13px; color: var(--crm-muted); margin-bottom: 16px;">
+        Đặt tên cho bộ lọc hiện tại để bạn có thể truy cập nhanh chỉ bằng 1 cú click mỗi khi cần dựng danh sách gọi trong tuần.
+    </p>
+
+    <div style="margin-bottom: 16px;">
+        <label for="saveFilterNameInput" style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--crm-text);">
+            Tên bộ lọc <span style="color: red;">*</span>
+        </label>
+        <input
+            id="saveFilterNameInput"
+            type="text"
+            class="crm-input"
+            placeholder="Ví dụ: Khách cần gọi thứ 2, Tiềm năng BĐS Hà Nội..."
+            style="width: 100%; box-sizing: border-box;"
+        >
+    </div>
+
+    <div style="background: #f8fafc; border: 1px solid var(--crm-border); border-radius: 8px; padding: 12px; margin-bottom: 20px;">
+        <span style="font-size: 12px; font-weight: 600; color: #64748b; display: block; margin-bottom: 6px;">
+            Các tiêu chí đang áp dụng:
+        </span>
+        <div id="saveFilterCriteriaPreview" style="font-size: 12.5px; color: var(--crm-text); line-height: 1.5;">
+            (Chưa có điều kiện lọc nào)
+        </div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button id="btnCancelSaveFilter" type="button" class="crm-btn crm-btn-secondary">
+            Hủy
+        </button>
+        <button id="btnSubmitSaveFilter" type="button" class="crm-btn crm-btn-primary">
+            Lưu bộ lọc
+        </button>
+    </div>
+</div>
+
+<!-- ================= MODAL NHẬP LEAD THỦ CÔNG (SỰ KIỆN / DANH THIẾP) ================= -->
+<div id="manualLeadModalOverlay" class="crm-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:9999; backdrop-filter:blur(3px); align-items:center; justify-content:center; padding:16px;">
+    <div class="crm-modal-content crm-card" style="width:100%; max-width:640px; max-height:90vh; overflow-y:auto; background:var(--crm-card-bg, #fff); border-radius:14px; box-shadow:0 20px 40px rgba(0,0,0,0.25); border:1px solid var(--crm-border);">
+        <header style="display:flex; align-items:center; justify-content:space-between; padding:18px 24px; border-bottom:1px solid var(--crm-border); background:#f8fafc; border-top-left-radius:14px; border-top-right-radius:14px;">
+            <div>
+                <strong style="font-size:17px; color:var(--crm-text, #0f172a); display:flex; align-items:center; gap:8px;">
+                    📇 Thêm mới Lead thủ công (Sự kiện / Danh thiếp)
+                </strong>
+                <span style="font-size:12.5px; color:var(--crm-muted, #64748b); display:block; margin-top:2px;">
+                    Nhập nhanh thông tin danh thiếp hoặc khách gặp trực tiếp tại hội thảo
+                </span>
+            </div>
+            <button id="btnCloseManualLeadModal" type="button" class="drawer-close" style="background:none; border:none; font-size:22px; cursor:pointer; color:#64748b;">
+                ✕
+            </button>
+        </header>
+
+        <form id="manualLeadForm" style="padding:20px 24px; display:flex; flex-direction:column; gap:14px;" novalidate>
+            <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:10px 14px; font-size:12.5px; color:#1e40af; display:flex; align-items:center; gap:8px;">
+                <span>💡</span>
+                <span><strong>Quy định nghiệp vụ (SCRUM-64):</strong> Mọi lead nhập vào hệ thống bắt buộc phải chọn <strong>Nguồn Lead</strong>. Lead được tạo sẽ mang trạng thái <strong>Mới (MOI)</strong>.</span>
+            </div>
+
+            <!-- Họ và tên & Chức danh -->
+            <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:12px;">
+                <div class="field-group">
+                    <label for="mlFullName" style="font-weight:600; font-size:13px;">Họ và tên người liên hệ <em style="color:#dc2626;">*</em></label>
+                    <input id="mlFullName" class="crm-input" type="text" placeholder="VD: Nguyễn Hoàng Nam" required style="margin-top:4px;">
+                    <small id="mlFullNameError" class="field-error" style="color:#dc2626; font-size:11.5px; display:none;"></small>
+                </div>
+                <div class="field-group">
+                    <label for="mlTitle" style="font-weight:600; font-size:13px;">Chức danh / Vị trí</label>
+                    <input id="mlTitle" class="crm-input" type="text" placeholder="VD: Trưởng phòng Mua hàng" style="margin-top:4px;">
+                </div>
+            </div>
+
+            <!-- Công ty -->
+            <div class="field-group">
+                <label for="mlCompany" style="font-weight:600; font-size:13px;">Công ty / Đơn vị công tác</label>
+                <input id="mlCompany" class="crm-input" type="text" placeholder="VD: Tập đoàn Xây dựng Nam Long (bỏ trống nếu cá nhân)" style="margin-top:4px;">
+            </div>
+
+            <!-- Số điện thoại & Email -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="field-group">
+                    <label for="mlPhone" style="font-weight:600; font-size:13px;">Số điện thoại <em style="color:#dc2626;">*</em></label>
+                    <input id="mlPhone" class="crm-input" type="tel" placeholder="VD: 0912345678" required style="margin-top:4px;">
+                    <small id="mlPhoneError" class="field-error" style="color:#dc2626; font-size:11.5px; display:none;"></small>
+                </div>
+                <div class="field-group">
+                    <label for="mlEmail" style="font-weight:600; font-size:13px;">Email <em style="color:#dc2626;">*</em></label>
+                    <input id="mlEmail" class="crm-input" type="email" placeholder="VD: hoangnam@namlong.vn" required style="margin-top:4px;">
+                    <small id="mlEmailError" class="field-error" style="color:#dc2626; font-size:11.5px; display:none;"></small>
+                </div>
+            </div>
+
+            <!-- BANNER CẢNH BÁO TRÙNG LẶP & GỢI Ý GẮN VÀO KHÁCH HÀNG ĐÃ CÓ (SCRUM) -->
+            <div id="mlDuplicateWarning" style="display:none; background:#fffbeb; border:1.5px solid #f59e0b; border-radius:10px; padding:12px 14px; margin-bottom:4px;">
+                <div style="display:flex; align-items:flex-start; gap:10px;">
+                    <span style="font-size:20px;">⚠️</span>
+                    <div style="flex:1;">
+                        <div style="font-weight:700; color:#92400e; font-size:13.5px;" id="mlDupTitle">Phát hiện trùng lặp với Khách hàng trong hệ thống!</div>
+                        <div style="font-size:12.5px; color:#78350f; margin-top:2px;" id="mlDupMessage"></div>
+                        <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+                            <button type="button" id="mlBtnLinkToExisting" class="crm-btn crm-btn-secondary" style="font-size:12px; padding:5px 12px; background:#fef3c7; border-color:#fcd34d; color:#92400e; font-weight:700;">
+                                🔗 Gắn thành Người liên hệ của khách hàng này
+                            </button>
+                            <a id="mlBtnViewExisting" href="#" target="_blank" class="crm-btn crm-btn-secondary" style="font-size:12px; padding:5px 10px; text-decoration:none;">
+                                👁️ Mở Khách hàng (#<span id="mlDupCustId"></span>)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nguồn Lead (BẮT BUỘC) -->
+            <div class="field-group" style="background:#fef2f2; border:1px solid #fecaca; padding:12px; border-radius:8px;">
+                <label for="mlLeadSource" style="font-weight:700; font-size:13px; color:#991b1b; display:flex; justify-content:space-between;">
+                    <span>Nguồn Lead <em style="color:#dc2626;">*</em></span>
+                    <span style="font-size:11px; font-weight:600; background:#fee2e2; color:#b91c1c; padding:1px 6px; border-radius:4px;">BẮT BUỘC THEO QUY ĐỊNH</span>
+                </label>
+                <select id="mlLeadSource" class="crm-input" required style="margin-top:6px; font-weight:600; border-color:#f87171;">
+                    <option value="">-- Vui lòng chọn nguồn Lead --</option>
+                    <option value="Sự kiện / Hội nghị" selected>Sự kiện / Hội nghị</option>
+                    <option value="Danh thiếp / Gặp gỡ trực tiếp">Danh thiếp / Gặp gỡ trực tiếp</option>
+                    <option value="Hội thảo / Triển lãm ngành">Hội thảo / Triển lãm ngành</option>
+                    <option value="Người quen giới thiệu">Người quen giới thiệu</option>
+                    <option value="Telesales / Tiếp cận trực tiếp">Telesales / Tiếp cận trực tiếp</option>
+                </select>
+                <small id="mlLeadSourceError" class="field-error" style="color:#dc2626; font-size:11.5px; display:none;"></small>
+            </div>
+
+            <!-- Chiến dịch Marketing (Tùy chọn) -->
+            <div class="field-group">
+                <label for="mlCampaignId" style="font-weight:600; font-size:13px;">Chiến dịch Marketing (Liên kết đo lường ROI)</label>
+                <select id="mlCampaignId" class="crm-input" style="margin-top:4px;">
+                    <option value="">-- Không gắn chiến dịch cụ thể --</option>
+                </select>
+            </div>
+
+            <!-- Tên sự kiện / Nơi gặp gỡ -->
+            <div class="field-group">
+                <label for="mlEventName" style="font-weight:600; font-size:13px;">Tên sự kiện / Nơi gặp gỡ đối tác</label>
+                <input id="mlEventName" class="crm-input" type="text" placeholder="VD: Triển lãm VietBuild 2026, Diễn đàn Doanh nghiệp VCCI..." style="margin-top:4px;">
+            </div>
+
+            <!-- Nhu cầu quan tâm / Ghi chú ban đầu -->
+            <div class="field-group">
+                <label for="mlInterest" style="font-weight:600; font-size:13px;">Nhu cầu quan tâm / Ghi chú trao đổi</label>
+                <textarea id="mlInterest" class="crm-input" rows="3" placeholder="VD: Khách quan tâm giải pháp CRM quản lý dự án cho 30 nhân sự, hẹn gọi lại vào sáng thứ Hai..." style="margin-top:4px; resize:vertical;"></textarea>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:8px; padding-top:14px; border-top:1px solid var(--crm-border);">
+                <button id="btnCancelManualLead" type="button" class="crm-btn crm-btn-secondary" style="padding:9px 18px;">
+                    Hủy bỏ
+                </button>
+                <button id="btnSubmitManualLead" type="submit" class="crm-btn crm-btn-primary" style="padding:9px 22px; font-weight:700; background:#059669; border-color:#059669;">
+                    💾 Lưu Lead vào hệ thống
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ================= MODAL TỪ CHỐI NHẬN LEAD ================= -->
+<div id="rejectLeadModalOverlay" class="crm-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:9999; backdrop-filter:blur(3px); align-items:center; justify-content:center; padding:16px;">
+    <div class="crm-modal-content crm-card" style="width:100%; max-width:520px; background:var(--crm-card-bg, #fff); border-radius:14px; box-shadow:0 20px 40px rgba(0,0,0,0.25); border:1px solid var(--crm-border);">
+        <header style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--crm-border); background:#fef2f2; border-top-left-radius:14px; border-top-right-radius:14px;">
+            <div>
+                <strong style="font-size:16px; color:#b91c1c; display:flex; align-items:center; gap:8px;">
+                    ❌ Từ chối tiếp nhận Lead
+                </strong>
+                <span id="rejectLeadSubtitle" style="font-size:12px; color:#991b1b; display:block; margin-top:2px;">
+                    Lead sẽ quay lại hàng chờ để Trưởng nhóm phân bổ lại
+                </span>
+            </div>
+            <button id="btnCloseRejectModal" type="button" style="background:none; border:none; font-size:20px; cursor:pointer; color:#64748b;">✕</button>
+        </header>
+
+        <form id="rejectLeadForm" style="padding:18px 20px; display:flex; flex-direction:column; gap:14px;" novalidate>
+            <input type="hidden" id="rejectLeadId">
+
+            <div style="background:#fffbeb; border:1px solid #fef3c7; border-radius:8px; padding:10px 12px; font-size:12.5px; color:#92400e;">
+                ⚠️ <strong>Quy định phản hồi SLA:</strong> Từ chối lead <strong>bắt buộc phải ghi rõ lý do</strong>. Dữ liệu này được lưu vào nhật ký phân bổ để phục vụ kiểm tra chất lượng và đánh giá năng lực phân bổ.
+            </div>
+
+            <div class="field-group">
+                <label for="rejectReasonSelect" style="font-weight:600; font-size:13px;">Chọn nhóm lý do nhanh</label>
+                <select id="rejectReasonSelect" class="crm-input" style="margin-top:4px;">
+                    <option value="">-- Chọn lý do thường gặp --</option>
+                    <option value="Sai địa bàn / Khu vực phụ trách">Sai địa bàn / Khu vực phụ trách</option>
+                    <option value="Không thuộc ngành nghề chuyên môn">Không thuộc ngành nghề chuyên môn</option>
+                    <option value="Trùng khách hàng cũ đang theo dõi">Trùng khách hàng cũ đang theo dõi</option>
+                    <option value="Khách hàng không đúng đối tượng / SĐT không liên lạc được">Khách hàng không đúng đối tượng / SĐT không liên lạc được</option>
+                    <option value="Đang quá tải khối lượng công việc chăm sóc">Đang quá tải khối lượng công việc chăm sóc</option>
+                    <option value="OTHER">Lý do khác (chi tiết bên dưới)</option>
+                </select>
+            </div>
+
+            <div class="field-group">
+                <label for="rejectReasonText" style="font-weight:600; font-size:13px;">Chi tiết lý do từ chối <em style="color:#dc2626;">*</em></label>
+                <textarea id="rejectReasonText" class="crm-input" rows="3" placeholder="Nhập lý do cụ thể bạn không thể tiếp nhận lead này..." required style="margin-top:4px; resize:vertical;"></textarea>
+                <small id="rejectReasonError" style="color:#dc2626; font-size:11.5px; display:none; margin-top:2px;"></small>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:6px; padding-top:12px; border-top:1px solid var(--crm-border);">
+                <button id="btnCancelRejectModal" type="button" class="crm-btn crm-btn-secondary" style="padding:8px 16px;">Hủy bỏ</button>
+                <button type="submit" class="crm-btn" style="padding:8px 18px; font-weight:700; background:#dc2626; color:#fff; border:none; box-shadow:0 3px 10px rgba(220,38,38,0.25);">❌ Xác nhận Từ chối</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ================= MODAL CHUYỂN ĐỔI LEAD THÀNH KHÁCH HÀNG & CƠ HỘI ================= -->
+<div id="convertLeadModalOverlay" class="crm-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:9999; backdrop-filter:blur(3px); align-items:center; justify-content:center; padding:16px;">
+    <div class="crm-modal-content crm-card" style="width:100%; max-width:760px; max-height:92vh; overflow-y:auto; background:var(--crm-card-bg, #fff); border-radius:14px; box-shadow:0 25px 50px rgba(0,0,0,0.25); border:1px solid var(--crm-border);">
+        <header style="display:flex; align-items:center; justify-content:space-between; padding:18px 24px; border-bottom:1px solid var(--crm-border); background:#fdf4ff; border-top-left-radius:14px; border-top-right-radius:14px;">
+            <div>
+                <strong style="font-size:17px; color:#7e22ce; display:flex; align-items:center; gap:8px;">
+                    ⚡ Chuyển đổi Lead thành Khách hàng & Cơ hội bán hàng
+                </strong>
+                <span id="convertLeadSubtitle" style="font-size:12.5px; color:#6b21a8; display:block; margin-top:2px;">
+                    Một thao tác sinh đồng thời Khách hàng doanh nghiệp, Người liên hệ và Cơ hội bán hàng
+                </span>
+            </div>
+            <button id="btnCloseConvertModal" type="button" style="background:none; border:none; font-size:22px; cursor:pointer; color:#64748b;">✕</button>
+        </header>
+
+        <form id="convertLeadForm" style="padding:20px 24px; display:flex; flex-direction:column; gap:16px;" novalidate>
+            <input type="hidden" id="convertLeadId">
+
+            <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:10px 14px; font-size:12.5px; color:#166534; display:flex; align-items:center; gap:8px;">
+                <span>✨</span>
+                <span id="convertActivitiesBadge">Toàn bộ thông tin lead và lịch sử hoạt động chăm sóc trước đó sẽ được tự động chuyển sang Khách hàng & Cơ hội mới. Lead gốc sẽ khóa chỉnh sửa để bảo đảm lịch sử.</span>
+            </div>
+
+            <!-- PHẦN 1: KHÁCH HÀNG DOANH NGHIỆP -->
+            <div style="background:#f8fafc; border:1px solid var(--crm-border); border-radius:10px; padding:14px 16px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                    <h4 style="margin:0; font-size:14px; color:#0f172a; display:flex; align-items:center; gap:6px;">
+                        🏢 1. Khách hàng Doanh nghiệp
+                    </h4>
+                    <div style="display:flex; gap:14px; font-size:12px;">
+                        <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
+                            <input type="radio" name="custMode" id="custModeNew" value="NEW" checked> Tạo công ty mới
+                        </label>
+                        <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
+                            <input type="radio" name="custMode" id="custModeExist" value="EXISTING"> Gộp vào công ty có sẵn
+                        </label>
+                    </div>
+                </div>
+
+                <div id="wrapCustNew">
+                    <div style="display:grid; grid-template-columns:1.5fr 1fr; gap:10px;">
+                        <div class="field-group">
+                            <label for="cvCustName" style="font-weight:600; font-size:12.5px;">Tên công ty / Doanh nghiệp <em style="color:#dc2626;">*</em></label>
+                            <input id="cvCustName" class="crm-input" type="text" required style="margin-top:3px;">
+                        </div>
+                        <div class="field-group">
+                            <label for="cvCustTaxCode" style="font-weight:600; font-size:12.5px;">Mã số thuế</label>
+                            <input id="cvCustTaxCode" class="crm-input" type="text" placeholder="VD: 0101234567" style="margin-top:3px;">
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:8px;">
+                        <div class="field-group">
+                            <label for="cvCustPhone" style="font-weight:600; font-size:12.5px;">Số điện thoại</label>
+                            <input id="cvCustPhone" class="crm-input" type="text" style="margin-top:3px;">
+                        </div>
+                        <div class="field-group">
+                            <label for="cvCustEmail" style="font-weight:600; font-size:12.5px;">Email doanh nghiệp</label>
+                            <input id="cvCustEmail" class="crm-input" type="email" style="margin-top:3px;">
+                        </div>
+                        <div class="field-group">
+                            <label for="cvCustWebsite" style="font-weight:600; font-size:12.5px;">Website</label>
+                            <input id="cvCustWebsite" class="crm-input" type="text" placeholder="https://..." style="margin-top:3px;">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="wrapCustExist" style="display:none; margin-top:8px;">
+                    <label for="cvExistingCustomerId" style="font-weight:600; font-size:12.5px;">Chọn khách hàng doanh nghiệp hiện có <em style="color:#dc2626;">*</em></label>
+                    <select id="cvExistingCustomerId" class="crm-input" style="margin-top:4px;">
+                        <option value="">-- Đang tải danh sách khách hàng... --</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- PHẦN 2: NGƯỜI LIÊN HỆ -->
+            <div style="background:#f8fafc; border:1px solid var(--crm-border); border-radius:10px; padding:14px 16px;">
+                <h4 style="margin:0 0 10px; font-size:14px; color:#0f172a; display:flex; align-items:center; gap:6px;">
+                    👤 2. Người liên hệ chính (Contact)
+                </h4>
+                <div style="display:grid; grid-template-columns:1.4fr 1fr; gap:10px;">
+                    <div class="field-group">
+                        <label for="cvContactName" style="font-weight:600; font-size:12.5px;">Họ và tên người liên hệ <em style="color:#dc2626;">*</em></label>
+                        <input id="cvContactName" class="crm-input" type="text" required style="margin-top:3px;">
+                    </div>
+                    <div class="field-group">
+                        <label for="cvContactTitle" style="font-weight:600; font-size:12.5px;">Chức vụ / Vị trí</label>
+                        <input id="cvContactTitle" class="crm-input" type="text" placeholder="VD: Giám đốc, Trưởng phòng..." style="margin-top:3px;">
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:8px;">
+                    <div class="field-group">
+                        <label for="cvContactPhone" style="font-weight:600; font-size:12.5px;">Số điện thoại</label>
+                        <input id="cvContactPhone" class="crm-input" type="text" style="margin-top:3px;">
+                    </div>
+                    <div class="field-group">
+                        <label for="cvContactEmail" style="font-weight:600; font-size:12.5px;">Email cá nhân</label>
+                        <input id="cvContactEmail" class="crm-input" type="email" style="margin-top:3px;">
+                    </div>
+                    <div class="field-group">
+                        <label for="cvBuyingRole" style="font-weight:600; font-size:12.5px;">Vai trò mua hàng</label>
+                        <select id="cvBuyingRole" class="crm-input" style="margin-top:3px;">
+                            <option value="DECISION_MAKER">👑 Quyết định (Decision Maker)</option>
+                            <option value="INFLUENCER" selected>💡 Ảnh hưởng (Influencer)</option>
+                            <option value="END_USER">👤 Người dùng cuối (End User)</option>
+                            <option value="BLOCKER">🛑 Người cản trở (Blocker)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PHẦN 3: CƠ HỘI BÁN HÀNG -->
+            <div style="background:#f8fafc; border:1px solid var(--crm-border); border-radius:10px; padding:14px 16px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                    <h4 style="margin:0; font-size:14px; color:#0f172a; display:flex; align-items:center; gap:6px;">
+                        💼 3. Cơ hội bán hàng (Opportunity)
+                    </h4>
+                    <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; cursor:pointer;">
+                        <input type="checkbox" id="cvCreateOpportunity" checked> Sinh cơ hội bán hàng ngay
+                    </label>
+                </div>
+
+                <div id="wrapOppFields">
+                    <div style="display:grid; grid-template-columns:1.8fr 1fr; gap:10px;">
+                        <div class="field-group">
+                            <label for="cvOppName" style="font-weight:600; font-size:12.5px;">Tên cơ hội kinh doanh <em style="color:#dc2626;">*</em></label>
+                            <input id="cvOppName" class="crm-input" type="text" style="margin-top:3px;">
+                        </div>
+                        <div class="field-group">
+                            <label for="cvOppAmount" style="font-weight:600; font-size:12.5px;">Giá trị dự kiến (VND)</label>
+                            <input id="cvOppAmount" class="crm-input" type="number" min="0" step="500000" placeholder="0" style="margin-top:3px;">
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px;">
+                        <div class="field-group">
+                            <label for="cvStageId" style="font-weight:600; font-size:12.5px;">Giai đoạn pipeline ban đầu</label>
+                            <select id="cvStageId" class="crm-input" style="margin-top:3px;">
+                                <option value="1">Mới tiếp cận (10%)</option>
+                                <option value="2">Đủ điều kiện (30%)</option>
+                                <option value="3">Gửi báo giá (60%)</option>
+                                <option value="4">Thương lượng (80%)</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="cvExpectedCloseDate" style="font-weight:600; font-size:12.5px;">Ngày dự kiến chốt hợp đồng</label>
+                            <input id="cvExpectedCloseDate" class="crm-input" type="date" style="margin-top:3px;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:8px; padding-top:14px; border-top:1px solid var(--crm-border);">
+                <button id="btnCancelConvertModal" type="button" class="crm-btn crm-btn-secondary" style="padding:9px 18px;">Hủy bỏ</button>
+                <button type="submit" class="crm-btn" style="padding:9px 24px; font-weight:700; background:#7c3aed; color:#fff; border:none; box-shadow:0 4px 12px rgba(124,58,237,0.3);">
+                    ⚡ Xác nhận Chuyển đổi Lead
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="js/pages/customers.js?v=20261019_convert_reject_ready"></script>
+
+<script src="js/page-transition.js"></script>
+
+
+
+
+<script src="js/theme.js"></script>
+<script src="js/shared-shell.js"></script>
+<script src="js/ui-core.js"></script>
+<script src="js/ui-effects.js"></script>
+</body>
+</html>

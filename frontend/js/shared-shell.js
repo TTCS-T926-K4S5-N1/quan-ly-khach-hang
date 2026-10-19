@@ -10,8 +10,9 @@
         window.location.pathname
             .split("/")
             .pop()
+            .replace(/\.html$/, "")
         ||
-        "dashboard.html";
+        "dashboard";
 
 
     let currentSession = null;
@@ -31,6 +32,15 @@
 
             customer:
                 `<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>`,
+
+            form:
+                `<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>`,
+
+            campaign:
+                `<svg viewBox="0 0 24 24"><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07M3 11v2a2 2 0 0 0 2 2h2l5 4V5L7 9H5a2 2 0 0 0-2 2Z"/></svg>`,
+
+            routing:
+                `<svg viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>`,
 
             opportunity:
                 `<svg viewBox="0 0 24 24"><path d="m12 3 7 7-7 7-7-7 7-7Z"/><path d="M12 17v4"/></svg>`,
@@ -74,11 +84,20 @@
             settings:
                 `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.5 1A7 7 0 0 0 15 6l-.4-2.7h-4L10 6a7 7 0 0 0-1.4.8l-2.5-1-2 3.4L6 11a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.5-1A7 7 0 0 0 10 18l.5 2.7h4L15 18a7 7 0 0 0 1.4-.8l2.5 1 2-3.4L19 13a7 7 0 0 0 0-1Z"/></svg>`,
 
+            mail:
+                `<svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>`,
+
             bell:
                 `<svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>`,
 
             moon:
                 `<svg viewBox="0 0 24 24"><path d="M20 15a8 8 0 1 1-11-11 7 7 0 0 0 11 11Z"/></svg>`,
+
+            report:
+                `<svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/><circle cx="19" cy="9" r="1.5"/></svg>`,
+
+            "pie-chart":
+                `<svg viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>`,
 
             sun:
                 `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`
@@ -175,16 +194,36 @@
                 </button>
 
 
-                <button
-                    id="notificationButton"
-                    class="crm-shell-icon-button crm-notification-button"
-                    type="button"
-                    title="Thông báo"
-                >
-                    ${icon("bell")}
+                <div class="crm-notification-wrapper" style="position: relative;">
+                    <button
+                        id="notificationButton"
+                        class="crm-shell-icon-button crm-notification-button"
+                        type="button"
+                        title="Thông báo"
+                    >
+                        ${icon("bell")}
+                        <span id="shellNotificationBadge" class="crm-notification-badge" style="display:none;">0</span>
+                    </button>
 
-                    <span class="crm-notification-dot"></span>
-                </button>
+                    <div id="crmNotificationPanel" class="crm-notification-dropdown" style="display:none;">
+                        <div class="notif-dropdown-header">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span style="font-weight:700; font-size:14px; color:var(--crm-text);">Thông báo</span>
+                                <span id="notifUnreadBadgePill" class="notif-unread-pill" style="display:none;">0 mới</span>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <button id="btnNotifPreferences" class="notif-settings-btn" type="button" title="Cài đặt thông báo cá nhân">⚙️</button>
+                                <button id="btnMarkAllNotifsRead" class="notif-read-all-btn" type="button">Đánh dấu tất cả đã đọc</button>
+                            </div>
+                        </div>
+                        <div id="notifListContainer" class="notif-list-container">
+                            <div class="notif-empty-state">Đang tải thông báo...</div>
+                        </div>
+                        <div class="notif-dropdown-footer">
+                            <a href="activities" style="text-decoration:none; color:var(--crm-primary); font-size:12px; font-weight:600;">Xem tất cả công việc & hoạt động →</a>
+                        </div>
+                    </div>
+                </div>
 
 
                 <div class="crm-user">
@@ -240,11 +279,15 @@
                             Nhóm: ...
                         </div>
 
-                        <a href="profile.html">
+                        <a href="profile">
                             Hồ sơ cá nhân
                         </a>
 
-                        <a href="change-password.html">
+                        <a href="javascript:void(0)" id="shellOpenNotifSettings">
+                            ⚙️ Cài đặt thông báo
+                        </a>
+
+                        <a href="change-password">
                             Đổi mật khẩu
                         </a>
 
@@ -372,7 +415,7 @@
         ) {
 
             window.location.href =
-                "login.html";
+                "login";
 
             throw new Error(
                 "Chưa đăng nhập"
@@ -469,8 +512,10 @@
 
     function navigationItemHtml(item) {
 
+        const itemClean = (item.path || "").replace(/\.html$/, "");
+        const currentClean = (currentPage || "").replace(/\.html$/, "");
         const active =
-            currentPage === item.path
+            currentClean === itemClean
             ?
             " active"
             :
@@ -479,7 +524,7 @@
 
         return `
             <a
-                href="${escapeHtml(item.path)}"
+                href="${escapeHtml(itemClean)}"
                 class="crm-nav-item${active}"
                 title="${escapeHtml(item.label)}"
             >
@@ -894,7 +939,7 @@
                     sessionStorage.clear();
 
                     window.location.href =
-                        "login.html";
+                        "login";
                 }
             }
         );
@@ -1100,7 +1145,7 @@
                     "Tổng quan",
 
                 path:
-                    "dashboard.html",
+                    "dashboard",
 
                 icon:
                     "dashboard"
@@ -1718,15 +1763,57 @@
                 );
 
             if (notificationButton) {
-
                 event.preventDefault();
                 event.stopImmediatePropagation();
-
                 toggleNotifications();
-
                 return;
             }
 
+            const notifItem = event.target.closest(".notif-item");
+            if (notifItem) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                const id = notifItem.dataset.id;
+                const link = notifItem.dataset.link;
+                markNotificationAsReadAndNavigate(id, link);
+                return;
+            }
+
+            const btnMarkAll = event.target.closest("#btnMarkAllNotifsRead");
+            if (btnMarkAll) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                markAllNotificationsRead();
+                return;
+            }
+
+            const btnNotifPref = event.target.closest("#btnNotifPreferences") || event.target.closest("#shellOpenNotifSettings");
+            if (btnNotifPref) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                const panel = document.getElementById("crmNotificationPanel");
+                if (panel) panel.style.display = "none";
+                const uDrop = document.getElementById("userDropdown");
+                if (uDrop) uDrop.style.display = "none";
+                openNotifPreferencesModal();
+                return;
+            }
+
+            const btnClosePref = event.target.closest(".btn-close-notif-pref");
+            if (btnClosePref) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                closeNotifPreferencesModal();
+                return;
+            }
+
+            const btnSavePref = event.target.closest("#btnSaveNotifPreferences");
+            if (btnSavePref) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                saveNotifPreferences();
+                return;
+            }
 
             const userButton =
                 event.target.closest(
@@ -1734,15 +1821,11 @@
                 );
 
             if (userButton) {
-
                 event.preventDefault();
                 event.stopImmediatePropagation();
-
                 toggleUserDropdown();
-
                 return;
             }
-
 
             const searchResult =
                 event.target.closest(
@@ -1750,45 +1833,370 @@
                 );
 
             if (searchResult) {
-
                 const href =
                     searchResult.dataset
                         .searchHref;
-
                 if (href) {
-
-                    window.location.href =
-                        href;
+                    window.location.href = href;
                 }
-
                 return;
             }
 
-
             if (
-                !event.target.closest(
-                    ".crm-user"
-                )
-                &&
-                !event.target.closest(
-                    "#crmNotificationPanel"
-                )
-                &&
-                !event.target.closest(
-                    ".crm-search"
-                )
-                &&
-                !event.target.closest(
-                    "#crmSearchPanel"
-                )
+                !event.target.closest(".crm-user")
+                && !event.target.closest("#crmNotificationPanel")
+                && !event.target.closest(".crm-notification-wrapper")
+                && !event.target.closest(".crm-search")
+                && !event.target.closest("#crmSearchPanel")
             ) {
-
                 closeShellPanels();
+                const notifPanel = document.getElementById("crmNotificationPanel");
+                if (notifPanel) notifPanel.style.display = "none";
             }
-
         },
         true
     );
+
+    /* =====================================================
+       IN-APP NOTIFICATIONS ENGINE
+    ===================================================== */
+    let notificationState = {
+        notifications: [],
+        unreadCount: 0,
+        isOpen: false,
+        loaded: false
+    };
+
+    async function fetchNotificationCount() {
+        try {
+            const res = await fetch("/crm/api/notifications/unread-count", { credentials: "same-origin" });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success && data.data) {
+                    updateNotificationBadge(data.data.unreadCount || 0);
+                }
+            }
+        } catch (e) {}
+    }
+
+    async function loadNotifications() {
+        try {
+            const res = await fetch("/crm/api/notifications?limit=25", { credentials: "same-origin" });
+            if (res.ok) {
+                const json = await res.json();
+                if (json.success && json.data) {
+                    notificationState.notifications = json.data.notifications || [];
+                    notificationState.unreadCount = json.data.unreadCount || 0;
+                    notificationState.loaded = true;
+                    updateNotificationBadge(notificationState.unreadCount);
+                    renderNotificationList();
+                }
+            }
+        } catch (e) {
+            console.error("Lỗi tải thông báo:", e);
+        }
+    }
+
+    function updateNotificationBadge(count) {
+        notificationState.unreadCount = count;
+        const badge = document.getElementById("shellNotificationBadge");
+        const pill = document.getElementById("notifUnreadBadgePill");
+        if (badge) {
+            if (count > 0) {
+                badge.textContent = count > 99 ? "99+" : count;
+                badge.style.display = "inline-block";
+            } else {
+                badge.style.display = "none";
+            }
+        }
+        if (pill) {
+            if (count > 0) {
+                pill.textContent = count + " mới";
+                pill.style.display = "inline-block";
+            } else {
+                pill.style.display = "none";
+            }
+        }
+    }
+
+    function renderNotificationList() {
+        const container = document.getElementById("notifListContainer");
+        if (!container) return;
+
+        const list = notificationState.notifications;
+        if (!list || list.length === 0) {
+            container.innerHTML = `
+                <div class="notif-empty-state">
+                    <div style="font-size:24px; margin-bottom:6px;">🔔</div>
+                    <div style="font-weight:600;">Không có thông báo mới</div>
+                    <div style="font-size:12px; color:var(--crm-muted); margin-top:2px;">Bạn đã xem hết các thông báo quan trọng.</div>
+                </div>
+            `;
+            return;
+        }
+
+        let html = "";
+        list.forEach(n => {
+            let iconType = "task";
+            let iconChar = "📋";
+            if (n.type === "LEAD_ASSIGNED") {
+                iconType = "lead";
+                iconChar = "👤";
+            } else if (n.type === "QUOTE_APPROVAL_REQUEST" || n.type === "QUOTE_RESPONSE") {
+                iconType = "quote";
+                iconChar = "📄";
+            } else if (n.type === "OPPORTUNITY_STAGNANT") {
+                iconType = "stagnant";
+                iconChar = "⚠️";
+            } else if (n.type === "AUTOMATION_ACTION") {
+                iconType = "automation";
+                iconChar = "⚡";
+            }
+
+            const isUnread = !n.read;
+            html += `
+                <div class="notif-item ${isUnread ? 'unread' : ''}" data-id="${n.id}" data-link="${n.link || 'dashboard'}">
+                    <div class="notif-icon ${iconType}">${iconChar}</div>
+                    <div class="notif-content-box">
+                        <div class="notif-title">
+                            <span>${escapeHtml(n.title)}</span>
+                            ${isUnread ? '<span class="notif-dot"></span>' : ''}
+                        </div>
+                        <div class="notif-snippet">${escapeHtml(n.content || '')}</div>
+                        <div class="notif-time">${escapeHtml(n.timeAgo || '')}</div>
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
+    function toggleNotifications() {
+        const panel = document.getElementById("crmNotificationPanel");
+        if (!panel) return;
+
+        if (panel.style.display === "none" || !panel.style.display) {
+            const userDropdown = document.getElementById("userDropdown");
+            if (userDropdown) userDropdown.style.display = "none";
+            panel.style.display = "flex";
+            notificationState.isOpen = true;
+            loadNotifications();
+        } else {
+            panel.style.display = "none";
+            notificationState.isOpen = false;
+        }
+    }
+
+    async function markNotificationAsReadAndNavigate(id, link) {
+        try {
+            await fetch(`/crm/api/notifications/${id}/read`, { method: "POST", credentials: "same-origin" });
+        } catch (e) {}
+        window.location.href = link;
+    }
+
+    async function markAllNotificationsRead() {
+        try {
+            const res = await fetch("/crm/api/notifications/read-all", { method: "POST", credentials: "same-origin" });
+            if (res.ok) {
+                notificationState.notifications.forEach(n => n.read = true);
+                updateNotificationBadge(0);
+                renderNotificationList();
+            }
+        } catch (e) {
+            console.error("Lỗi đánh dấu đã đọc:", e);
+        }
+    }
+
+    /* =====================================================
+       PERSONAL NOTIFICATION PREFERENCES MODAL
+    ===================================================== */
+    let userNotifPreferences = [];
+
+    function ensureNotifPrefModal() {
+        let modal = document.getElementById("crmNotifPrefModal");
+        if (modal) return modal;
+
+        modal = document.createElement("div");
+        modal.id = "crmNotifPrefModal";
+        modal.className = "crm-modal-backdrop";
+        modal.style.cssText = "display:none; position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:99999; align-items:center; justify-content:center; padding:16px; backdrop-filter:blur(3px);";
+        modal.innerHTML = `
+            <div class="crm-modal-card" style="background:var(--crm-surface,#ffffff); border-radius:14px; width:100%; max-width:660px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); overflow:hidden; border:1px solid var(--crm-border,#e2e8f0); animation:modalSlideUp 0.2s ease-out;">
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:18px 24px; border-bottom:1px solid var(--crm-border,#e2e8f0); background:var(--crm-bg,#f8fafc);">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <div style="width:38px; height:38px; border-radius:10px; background:#eff6ff; display:flex; align-items:center; justify-content:center; font-size:18px;">⚙️</div>
+                        <div>
+                            <h3 style="margin:0; font-size:16px; font-weight:700; color:var(--crm-text,#0f172a);">Cài đặt thông báo cá nhân</h3>
+                            <p style="margin:2px 0 0; font-size:12.5px; color:var(--crm-muted,#64748b);">Tùy chỉnh nhận thông báo cho riêng bạn theo kênh trong ứng dụng và email</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close-notif-pref" style="background:none; border:none; font-size:20px; cursor:pointer; color:#64748b; padding:4px 8px; border-radius:6px;">✕</button>
+                </div>
+                <div style="padding:20px 24px; max-height:460px; overflow-y:auto;" id="notifPrefTableContainer">
+                    <div style="text-align:center; padding:30px; color:#64748b;">Đang tải cài đặt thông báo...</div>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 24px; border-top:1px solid var(--crm-border,#e2e8f0); background:var(--crm-bg,#f8fafc);">
+                    <div style="font-size:12px; color:#64748b; display:flex; align-items:center; gap:6px;">
+                        <span>🔒</span> <em>Thông báo bắt buộc không thể tắt trong ứng dụng</em>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button type="button" class="btn-close-notif-pref" style="padding:9px 16px; border-radius:8px; border:1px solid #cbd5e1; background:#ffffff; color:#334155; font-size:13px; font-weight:600; cursor:pointer;">Đóng</button>
+                        <button type="button" id="btnSaveNotifPreferences" style="padding:9px 20px; border-radius:8px; border:none; background:#2563eb; color:#ffffff; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:6px;">
+                            <span>💾</span> Lưu cài đặt
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        return modal;
+    }
+
+    async function openNotifPreferencesModal() {
+        const modal = ensureNotifPrefModal();
+        modal.style.display = "flex";
+        await loadNotifPreferences();
+    }
+
+    function closeNotifPreferencesModal() {
+        const modal = document.getElementById("crmNotifPrefModal");
+        if (modal) modal.style.display = "none";
+    }
+
+    async function loadNotifPreferences() {
+        const container = document.getElementById("notifPrefTableContainer");
+        if (!container) return;
+
+        try {
+            const res = await fetch("/crm/api/notifications/preferences", { credentials: "same-origin" });
+            const json = await res.json();
+            if (json.success && Array.isArray(json.data)) {
+                userNotifPreferences = json.data;
+                renderNotifPreferencesTable(userNotifPreferences);
+            } else {
+                container.innerHTML = `<div style="color:#ef4444; padding:20px; text-align:center;">Không thể tải cấu hình thông báo.</div>`;
+            }
+        } catch (e) {
+            console.error("Lỗi tải cài đặt thông báo:", e);
+            container.innerHTML = `<div style="color:#ef4444; padding:20px; text-align:center;">Lỗi kết nối khi tải cài đặt.</div>`;
+        }
+    }
+
+    function renderNotifPreferencesTable(items) {
+        const container = document.getElementById("notifPrefTableContainer");
+        if (!container) return;
+
+        let html = `
+            <table class="notif-pref-table">
+                <thead>
+                    <tr>
+                        <th style="width:58%;">Loại sự kiện</th>
+                        <th style="width:21%; text-align:center;">Trong ứng dụng</th>
+                        <th style="width:21%; text-align:center;">Email</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        items.forEach(item => {
+            const isMandatory = item.mandatory || item.notificationType === "QUOTE_APPROVAL_REQUEST";
+            html += `
+                <tr data-type="${escapeHtml(item.notificationType)}">
+                    <td>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <strong style="color:var(--crm-text,#0f172a); font-size:13.5px;">${escapeHtml(item.typeLabel || item.notificationType)}</strong>
+                            ${isMandatory ? `<span style="font-size:10.5px; padding:2px 7px; border-radius:4px; background:#fee2e2; color:#b91c1c; font-weight:700;">🔒 BẮT BUỘC</span>` : ''}
+                        </div>
+                        <div style="font-size:12px; color:var(--crm-muted,#64748b); margin-top:3px; line-height:1.4;">${escapeHtml(item.description || '')}</div>
+                    </td>
+                    <td style="text-align:center;">
+                        <label class="notif-pref-switch">
+                            <input type="checkbox" class="pref-in-app" data-type="${escapeHtml(item.notificationType)}"
+                                ${item.inAppEnabled ? 'checked' : ''}
+                                ${isMandatory ? 'disabled title="Thông báo bắt buộc không thể tắt"' : ''}>
+                            <span class="notif-pref-slider"></span>
+                        </label>
+                    </td>
+                    <td style="text-align:center;">
+                        <label class="notif-pref-switch">
+                            <input type="checkbox" class="pref-email" data-type="${escapeHtml(item.notificationType)}"
+                                ${item.emailEnabled ? 'checked' : ''}>
+                            <span class="notif-pref-slider"></span>
+                        </label>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += `
+                </tbody>
+            </table>
+        `;
+        container.innerHTML = html;
+    }
+
+    async function saveNotifPreferences() {
+        const btnSave = document.getElementById("btnSaveNotifPreferences");
+        if (btnSave) {
+            btnSave.disabled = true;
+            btnSave.innerHTML = `<span>⏳</span> Đang lưu...`;
+        }
+
+        const rows = document.querySelectorAll("#notifPrefTableContainer tr[data-type]");
+        const payload = [];
+
+        rows.forEach(row => {
+            const type = row.getAttribute("data-type");
+            const inAppInput = row.querySelector(".pref-in-app");
+            const emailInput = row.querySelector(".pref-email");
+
+            const isMandatory = type === "QUOTE_APPROVAL_REQUEST";
+            payload.push({
+                notificationType: type,
+                inAppEnabled: isMandatory ? true : (inAppInput ? inAppInput.checked : true),
+                emailEnabled: emailInput ? emailInput.checked : true
+            });
+        });
+
+        try {
+            const res = await fetch("/crm/api/notifications/preferences", {
+                method: "POST",
+                headers: { "Content-Type": "application/json; charset=utf-8" },
+                body: JSON.stringify(payload),
+                credentials: "same-origin"
+            });
+            const json = await res.json();
+            if (json.success) {
+                userNotifPreferences = json.data;
+                alert("Đã lưu cài đặt thông báo cá nhân thành công!");
+                closeNotifPreferencesModal();
+            } else {
+                alert("Lỗi khi lưu cài đặt: " + (json.message || "Không xác định"));
+            }
+        } catch (e) {
+            console.error("Lỗi khi lưu cài đặt thông báo:", e);
+            alert("Lỗi kết nối khi lưu cài đặt thông báo.");
+        } finally {
+            if (btnSave) {
+                btnSave.disabled = false;
+                btnSave.innerHTML = `<span>💾</span> Lưu cài đặt`;
+            }
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return "";
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // Tự động kiểm tra thông báo định kỳ mỗi 30 giây
+    setTimeout(fetchNotificationCount, 500);
+    setInterval(fetchNotificationCount, 30000);
 
 
     /* =====================================================
@@ -1902,7 +2310,7 @@
             .split("/")
             .pop()
             ||
-            "dashboard.html";
+            "dashboard";
     }
 
 
@@ -2001,7 +2409,7 @@
         const items = [
             {
                 path:
-                    "dashboard.html",
+                    "dashboard",
                 label:
                     "Tổng quan",
                 icon:

@@ -4,7 +4,9 @@ const API_BASE = "http://localhost:8080/crm";
 
 let lines = [];
 let currentId = null;
-let currentStatus = "draft";
+let currentOpportunityId = null;
+let currentCustomerId = null;
+let currentQuote = null;
 let availableProducts = [];
 let availableCustomers = [];
 
@@ -35,7 +37,7 @@ async function api(path, options = {}) {
 
     if (response.status === 401) {
         localStorage.removeItem("crm_ui_session");
-        window.location.href = "login.html";
+        window.location.href = "login";
         throw new Error("Phiên đăng nhập đã hết hạn.");
     }
 
@@ -54,25 +56,63 @@ async function api(path, options = {}) {
 ========================================================= */
 const params = new URLSearchParams(window.location.search);
 currentId = params.get("id");
+currentOpportunityId = params.get("opportunityId");
+
+document.addEventListener("DOMContentLoaded", () => {
+    initQuoteEditor();
+});
 
 async function initQuoteEditor() {
     await Promise.all([loadProducts(), loadCustomers()]);
 
+    // Set default validUntil date (30 days from now)
+    const validUntilInput = document.getElementById("quoteValidUntil");
+    if (validUntilInput && !validUntilInput.value) {
+        const d = new Date();
+        d.setDate(d.getDate() + 30);
+        validUntilInput.value = d.toISOString().split("T")[0];
+    }
+
+    // Default terms
+    if (!document.getElementById("paymentTerms").value) {
+        document.getElementById("paymentTerms").value = "Đợt 1: Tạm ứng 40% ngay khi ký hợp đồng.\nĐợt 2: Thanh toán 60% còn lại sau khi nghiệm thu bàn giao.";
+    }
+    if (!document.getElementById("deliveryTerms").value) {
+        document.getElementById("deliveryTerms").value = "Bàn giao giải pháp và triển khai đào tạo trong vòng 15 ngày làm việc.";
+    }
+    if (!document.getElementById("termsAndConditions").value) {
+        document.getElementById("termsAndConditions").value = "Bảo hành tiêu chuẩn 12 tháng. Hỗ trợ kỹ thuật 24/7 theo cam kết SLA.";
+    }
+
     if (currentId) {
+        // Load existing quote
         await loadExistingQuote(currentId);
+    } else if (currentOpportunityId) {
+        // Inherit from opportunity (Story 1)
+        await loadFromOpportunity(currentOpportunityId);
     } else {
-        if (!lines.length) {
-            lines.push({
-                productId: availableProducts[0]?.id || null,
-                product: availableProducts[0]?.name || "",
-                quantity: 1,
-                price: Number(availableProducts[0]?.listPrice || 0),
-                floorPrice: Number(availableProducts[0]?.floorPrice || 0),
-                discount: 0
-            });
+        // Empty quote with 1 default line
+        if (!lines.length && availableProducts.length) {
+            lines.push(createEmptyLine(availableProducts[0]));
             renderLines();
         }
     }
+
+    bindEvents();
+}
+
+function createEmptyLine(p) {
+    return {
+        productId: p?.id || null,
+        productName: p?.name || "",
+        quantity: 1,
+        unitPrice: Number(p?.listPrice || 0),
+        floorPrice: Number(p?.floorPrice || 0),
+        discountType: "PERCENT",
+        discountPercent: 0,
+        discountAmount: 0,
+        notes: ""
+    };
 }
 
 async function loadProducts() {
@@ -136,321 +176,42 @@ function buildCustomerDatalist() {
 }
 
 /* =========================================================
-   EVENT HANDLERS
+   STORY 1: KẾ THỪA TỪ CƠ HỘI
 ========================================================= */
-document.getElementById("addQuoteLine")?.addEventListener("click", () => {
-    lines.push({
-        productId: availableProducts[0]?.id || null,
-        product: "",
-        quantity: 1,
-        price: 0,
-        floorPrice: 0,
-        discount: 0
-    });
-    renderLines();
-});
-
-document.getElementById("saveDraftButton")?.addEventListener("click", () => {
-    currentStatus = "draft";
-    saveQuote();
-});
-
-document.getElementById("submitApprovalButton")?.addEventListener("click", () => {
-    currentStatus = "pending";
-    saveQuote();
-});
-
-document.getElementById("approveQuote")?.addEventListener("click", async () => {
-    currentStatus = "approved";
-    if (currentId && !isNaN(Number(currentId))) {
-        try {
-            await api(`/api/quotes/${currentId}/status`, {
-                method: "POST",
-                body: JSON.stringify({ status: "APPROVED" })
-            });
-            alert("Báo giá đã được phê duyệt thành công!");
-            window.location.href = "quotations.html";
-            return;
-        } catch (err) {
-            alert("Lỗi duyệt báo giá: " + err.message);
-            return;
-        }
-    }
-    saveQuote();
-});
-
-document.getElementById("rejectQuote")?.addEventListener("click", async () => {
-    currentStatus = "rejected";
-    if (currentId && !isNaN(Number(currentId))) {
-        try {
-            await api(`/api/quotes/${currentId}/status`, {
-                method: "POST",
-                body: JSON.stringify({ status: "REJECTED" })
-            });
-            alert("Báo giá đã bị từ chối!");
-            window.location.href = "quotations.html";
-            return;
-        } catch (err) {
-            alert("Lỗi từ chối báo giá: " + err.message);
-            return;
-        }
-    }
-    saveQuote();
-});
-
-lineBody?.addEventListener("input", event => {
-    const input = event.target.closest("[data-line-field]");
-    if (!input) return;
-
-    const index = Number(input.dataset.index);
-    const field = input.dataset.lineField;
-    if (!lines[index]) return;
-
-    if (field === "product") {
-        lines[index][field] = input.value;
-        const matched = availableProducts.find(p => p.name.toLowerCase() === input.value.trim().toLowerCase());
-        if (matched) {
-            lines[index].productId = matched.id;
-            lines[index].price = Number(matched.listPrice || 0);
-            lines[index].floorPrice = Number(matched.floorPrice || 0);
-            renderLines();
-            return;
-        }
-    } else {
-        lines[index][field] = Math.max(0, Number(input.value) || 0);
-        if (field === "discount") {
-            lines[index][field] = Math.min(100, lines[index][field]);
-        }
-    }
-
-    updateSummary();
-    updateLineTotal(index);
-});
-
-lineBody?.addEventListener("click", event => {
-    const remove = event.target.closest("[data-remove-line]");
-    if (!remove) return;
-    lines.splice(Number(remove.dataset.removeLine), 1);
-    renderLines();
-});
-
-/* =========================================================
-   RENDER & SUMMARY
-========================================================= */
-function renderLines() {
-    if (!lineBody) return;
-    lineBody.innerHTML = "";
-    if (lineEmpty) lineEmpty.style.display = lines.length ? "none" : "flex";
-
-    lines.forEach((line, index) => {
-        const tr = document.createElement("tr");
-        const isBelowFloor = line.floorPrice > 0 && line.price < line.floorPrice;
-
-        tr.innerHTML = `
-            <td class="line-product">
-                <input
-                    type="text"
-                    list="quoteProductDatalist"
-                    value="${escapeAttribute(line.product)}"
-                    placeholder="Chọn hoặc nhập sản phẩm..."
-                    data-line-field="product"
-                    data-index="${index}"
-                >
-                ${isBelowFloor ? `<small style="color:#ef4444;display:block;font-size:11px;">⚠️ Dưới giá sàn (${money(line.floorPrice)}) - Cần duyệt</small>` : ''}
-            </td>
-            <td class="line-qty">
-                <input
-                    type="number"
-                    min="1"
-                    value="${line.quantity}"
-                    data-line-field="quantity"
-                    data-index="${index}"
-                >
-            </td>
-            <td class="line-price">
-                <input
-                    type="number"
-                    min="0"
-                    value="${line.price}"
-                    data-line-field="price"
-                    data-index="${index}"
-                    style="${isBelowFloor ? 'border-color:#ef4444;color:#ef4444;' : ''}"
-                >
-            </td>
-            <td class="line-discount">
-                <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value="${line.discount}"
-                    data-line-field="discount"
-                    data-index="${index}"
-                >
-            </td>
-            <td class="line-total" id="lineTotal${index}">
-                ${money(lineAmount(line))}
-            </td>
-            <td>
-                <button type="button" class="remove-line" data-remove-line="${index}">×</button>
-            </td>
-        `;
-        lineBody.appendChild(tr);
-    });
-
-    updateSummary();
-}
-
-function updateLineTotal(index) {
-    const cell = document.getElementById(`lineTotal${index}`);
-    if (cell && lines[index]) {
-        cell.textContent = money(lineAmount(lines[index]));
-    }
-}
-
-function lineAmount(line) {
-    const raw = Number(line.quantity || 0) * Number(line.price || 0);
-    return raw * (1 - Number(line.discount || 0) / 100);
-}
-
-function updateSummary() {
-    let subtotal = 0;
-    let total = 0;
-    let hasFloorPriceViolation = false;
-
-    for (const line of lines) {
-        const raw = Number(line.quantity || 0) * Number(line.price || 0);
-        subtotal += raw;
-        total += lineAmount(line);
-        if (line.floorPrice > 0 && line.price < line.floorPrice) {
-            hasFloorPriceViolation = true;
-        }
-    }
-
-    const discount = subtotal - total;
-    const discountPercent = subtotal > 0 ? (discount / subtotal) * 100 : 0;
-
-    const subEl = document.getElementById("subtotalText");
-    const discEl = document.getElementById("discountText");
-    const totEl = document.getElementById("totalText");
-    const warnEl = document.getElementById("approvalWarning");
-
-    if (subEl) subEl.textContent = money(subtotal);
-    if (discEl) discEl.textContent = money(discount);
-    if (totEl) totEl.textContent = money(total);
-
-    // Warning if discount > 15% OR price < floor price (CRM-44 & CRM-39)
-    if (warnEl) {
-        const needsApproval = discountPercent > 15 || hasFloorPriceViolation;
-        warnEl.hidden = !needsApproval;
-        if (hasFloorPriceViolation) {
-            warnEl.textContent = "⚠️ Chú ý: Đơn giá thấp hơn Giá sàn. Báo giá bắt buộc phải có Giám đốc/Quản lý phê duyệt.";
-        } else if (discountPercent > 15) {
-            warnEl.textContent = "⚠️ Chú ý: Mức chiết khấu vượt quá 15%. Báo giá cần Quản lý phê duyệt.";
-        }
-    }
-}
-
-function calculateSummary() {
-    let subtotal = 0;
-    let total = 0;
-    let hasFloorViolation = false;
-
-    for (const line of lines) {
-        const raw = Number(line.quantity || 0) * Number(line.price || 0);
-        subtotal += raw;
-        total += lineAmount(line);
-        if (line.floorPrice > 0 && line.price < line.floorPrice) {
-            hasFloorViolation = true;
-        }
-    }
-
-    const discount = subtotal - total;
-    return {
-        subtotal,
-        total,
-        discount,
-        discountPercent: subtotal ? (discount / subtotal) * 100 : 0,
-        hasFloorViolation
-    };
-}
-
-/* =========================================================
-   SAVE QUOTE
-========================================================= */
-async function saveQuote() {
-    const code = value("quoteCode") || `BG-${Date.now().toString().slice(-4)}`;
-    const custName = value("quoteCustomer");
-
-    if (!custName) {
-        alert("Vui lòng nhập hoặc chọn khách hàng.");
-        document.getElementById("quoteCustomer")?.focus();
-        return;
-    }
-
-    if (!lines.length) {
-        alert("Vui lòng thêm ít nhất một dòng sản phẩm.");
-        return;
-    }
-
-    const summary = calculateSummary();
-    const matchedCustomer = availableCustomers.find(c => c.name.toLowerCase() === custName.trim().toLowerCase());
-    const customerId = matchedCustomer ? matchedCustomer.id : (availableCustomers[0]?.id || 1);
-
-    const itemsPayload = lines.map(l => {
-        let pId = l.productId;
-        if (!pId) {
-            const matched = availableProducts.find(p => p.name.toLowerCase() === (l.product || "").trim().toLowerCase());
-            pId = matched ? matched.id : (availableProducts[0]?.id || 1);
-        }
-        return {
-            productId: pId,
-            quantity: Number(l.quantity || 1),
-            unitPrice: Number(l.price || 0),
-            discountPercent: Number(l.discount || 0)
-        };
-    });
-
-    const payload = {
-        title: `${code} - ${custName}`,
-        customerId: customerId,
-        discountPercent: summary.discountPercent,
-        items: itemsPayload
-    };
-
+async function loadFromOpportunity(oppId) {
     try {
-        const saved = await api("/api/quotes", {
-            method: "POST",
-            body: JSON.stringify(payload)
-        });
+        const data = await api(`/api/quotes/from-opportunity/${oppId}`);
+        if (!data) return;
 
-        if (saved && saved.requiresApproval) {
-            alert(`Báo giá ${code} đã được tạo! Do giá thấp hơn Giá sàn hoặc chiết khấu > 15%, trạng thái là CHỜ DUYỆT (PENDING_APPROVAL).`);
-        } else {
-            alert(`Báo giá ${code} đã được lưu thành công!`);
+        document.getElementById("editorPageTitle").textContent = "Soạn Báo Giá Từ Cơ Hội";
+        document.getElementById("oppInheritAlert").style.display = "flex";
+        document.getElementById("inheritedOppName").textContent = data.opportunityName || `#${oppId}`;
+
+        document.getElementById("quoteTitle").value = `Báo giá - ${data.opportunityName || "Cơ hội #" + oppId}`;
+        document.getElementById("quoteCustomer").value = data.customerName || "";
+        currentCustomerId = data.customerId;
+        document.getElementById("quoteOpportunity").value = data.opportunityName || `Cơ hội #${oppId}`;
+
+        // Populate lines from opportunity items
+        if (Array.isArray(data.items) && data.items.length) {
+            lines = data.items.map(it => ({
+                productId: it.productId,
+                productName: it.productName,
+                quantity: it.quantity || 1,
+                unitPrice: Number(it.unitPrice || it.listPrice || 0),
+                floorPrice: Number(it.floorPrice || 0),
+                discountType: it.discountType || "PERCENT",
+                discountPercent: Number(it.discountPercent || 0),
+                discountAmount: Number(it.discountAmount || 0),
+                notes: it.notes || ""
+            }));
+        } else if (availableProducts.length) {
+            lines = [createEmptyLine(availableProducts[0])];
         }
 
-        // Cache sync
-        try {
-            const raw = localStorage.getItem("crm_ui_quotes");
-            const list = raw ? JSON.parse(raw) : [];
-            list.unshift({
-                id: saved.id,
-                code: saved.quoteNumber || code,
-                customer: custName,
-                total: summary.total,
-                subtotal: summary.subtotal,
-                discountPercent: summary.discountPercent,
-                status: saved.status ? saved.status.toLowerCase() : currentStatus,
-                requiresApproval: saved.requiresApproval,
-                validUntil: value("quoteValidUntil") || todayString(),
-                lines
-            });
-            localStorage.setItem("crm_ui_quotes", JSON.stringify(list));
-        } catch (_) {}
-
-        window.location.href = "quotations.html";
+        renderLines();
     } catch (err) {
-        alert("Lỗi khi lưu báo giá: " + err.message);
+        alert("Lỗi khi tải dữ liệu từ cơ hội: " + err.message);
     }
 }
 
@@ -459,59 +220,430 @@ async function saveQuote() {
 ========================================================= */
 async function loadExistingQuote(id) {
     try {
-        let quote = null;
-        if (!isNaN(Number(id))) {
-            quote = await api(`/api/quotes/${id}`);
+        const q = await api(`/api/quotes/${id}`);
+        if (!q) return;
+
+        currentQuote = q;
+        currentCustomerId = q.customerId;
+        currentOpportunityId = q.opportunityId;
+
+        document.getElementById("editorPageTitle").textContent = `Chỉnh sửa Báo giá ${q.quoteNumber || ""}`;
+        document.getElementById("quoteCode").value = q.quoteNumber || "";
+        document.getElementById("quoteTitle").value = q.title || "";
+        document.getElementById("quoteCustomer").value = q.customerName || "";
+        document.getElementById("quoteOpportunity").value = q.opportunityName || (q.opportunityId ? `Cơ hội #${q.opportunityId}` : "");
+        if (q.validUntil) document.getElementById("quoteValidUntil").value = q.validUntil;
+        if (q.paymentTerms) document.getElementById("paymentTerms").value = q.paymentTerms;
+        if (q.deliveryTerms) document.getElementById("deliveryTerms").value = q.deliveryTerms;
+        if (q.termsAndConditions) document.getElementById("termsAndConditions").value = q.termsAndConditions;
+        if (q.discountPercent) document.getElementById("headerDiscountInput").value = q.discountPercent;
+
+        // Version badge (Story 3)
+        const verBadge = document.getElementById("quoteVersionBadge");
+        if (verBadge) {
+            verBadge.style.display = "inline-flex";
+            const ver = q.version || 1;
+            verBadge.textContent = `v${ver}${q.isActiveVersion ? " (Hiệu lực)" : " (Lịch sử)"}`;
+            verBadge.className = `version-badge ${q.isActiveVersion ? "badge-active" : "badge-inactive"}`;
         }
 
-        if (!quote) {
-            const cached = JSON.parse(localStorage.getItem("crm_ui_quotes") || "[]");
-            quote = cached.find(item => String(item.id) === String(id));
+        // Status badge
+        const stBadge = document.getElementById("quoteStatusBadge");
+        if (stBadge) {
+            stBadge.style.display = "inline-flex";
+            stBadge.textContent = statusLabel(q.status);
+            stBadge.className = `quote-status ${String(q.status).toLowerCase()}`;
         }
 
-        if (!quote) return;
+        // If SENT quote, display notice banner & button to clone (Story 3)
+        if ("SENT".equalsIgnoreCase(q.status)) {
+            document.getElementById("sentNoticeBanner").style.display = "flex";
+            document.getElementById("btnCreateNewVersion").style.display = "inline-flex";
+        }
 
-        document.getElementById("editorPageTitle").textContent = "Chỉnh sửa Báo giá";
-        setValue("quoteCode", quote.quoteNumber || quote.code);
-        setValue("quoteCustomer", quote.customerName || quote.customer);
-        setValue("quoteOpportunity", quote.opportunityId || quote.opportunity);
-        setValue("quoteValidUntil", quote.validUntil || (quote.createdAt ? quote.createdAt.split("T")[0] : ""));
-        setValue("paymentTerms", quote.paymentTerms);
-        setValue("deliveryTerms", quote.deliveryTerms);
-
-        currentStatus = (quote.status || "draft").toLowerCase();
-
-        if (Array.isArray(quote.items) && quote.items.length) {
-            lines = quote.items.map(it => ({
+        // Load items
+        if (Array.isArray(q.items) && q.items.length) {
+            lines = q.items.map(it => ({
                 productId: it.productId,
-                product: it.productName || it.productCode || "",
-                quantity: it.quantity,
-                price: Number(it.unitPrice || 0),
+                productName: it.productName,
+                quantity: it.quantity || 1,
+                unitPrice: Number(it.unitPrice || 0),
                 floorPrice: Number(it.floorPrice || 0),
-                discount: Number(it.discountPercent || 0)
+                discountType: it.discountType || "PERCENT",
+                discountPercent: Number(it.discountPercent || 0),
+                discountAmount: Number(it.discountAmount || 0),
+                notes: it.notes || ""
             }));
-        } else if (Array.isArray(quote.lines)) {
-            lines = quote.lines;
         }
 
         renderLines();
     } catch (err) {
-        console.warn("Could not load quote details:", err);
+        alert("Lỗi khi tải thông tin báo giá: " + err.message);
     }
 }
 
 /* =========================================================
-   HELPERS
+   LINE ITEMS RENDERING & CALCULATION (STORY 1 & 2)
 ========================================================= */
-function value(id) {
-    return (document.getElementById(id)?.value || "").trim();
+function renderLines() {
+    if (!lineBody) return;
+    lineBody.innerHTML = "";
+    if (lineEmpty) lineEmpty.style.display = lines.length ? "none" : "flex";
+
+    lines.forEach((line, index) => {
+        const tr = document.createElement("tr");
+
+        const qty = Math.max(1, Number(line.quantity || 1));
+        const price = Math.max(0, Number(line.unitPrice || 0));
+        const lineGross = qty * price;
+
+        let discAmt = 0;
+        let discPct = 0;
+
+        if (line.discountType === "AMOUNT") {
+            discAmt = Math.min(lineGross, Math.max(0, Number(line.discountAmount || 0)));
+            discPct = lineGross > 0 ? (discAmt / lineGross) * 100 : 0;
+        } else {
+            discPct = Math.min(100, Math.max(0, Number(line.discountPercent || 0)));
+            discAmt = lineGross * (discPct / 100);
+        }
+
+        const lineNet = lineGross - discAmt;
+        const netUnitPrice = qty > 0 ? lineNet / qty : price;
+
+        const isBelowFloor = line.floorPrice > 0 && (price < line.floorPrice || netUnitPrice < line.floorPrice);
+
+        tr.innerHTML = `
+            <td class="line-product">
+                <input
+                    type="text"
+                    list="quoteProductDatalist"
+                    value="${escapeHtml(line.productName)}"
+                    placeholder="Chọn sản phẩm..."
+                    data-line-field="productName"
+                    data-index="${index}"
+                    style="font-weight: 600;"
+                >
+                ${isBelowFloor
+                    ? `<div style="color:#ef4444;font-size:11px;font-weight:600;margin-top:2px;">
+                        ⚠️ Dưới giá sàn (${money(line.floorPrice)}) ➔ Giám đốc duyệt
+                       </div>`
+                    : (line.floorPrice > 0 ? `<div style="color:#64748b;font-size:10.5px;margin-top:1px;">Giá sàn: ${money(line.floorPrice)}</div>` : '')}
+            </td>
+            <td class="line-qty">
+                <input
+                    type="number"
+                    min="1"
+                    value="${qty}"
+                    data-line-field="quantity"
+                    data-index="${index}"
+                    style="text-align: center;"
+                >
+            </td>
+            <td class="line-price">
+                <input
+                    type="number"
+                    min="0"
+                    step="1000"
+                    value="${price}"
+                    data-line-field="unitPrice"
+                    data-index="${index}"
+                    style="${isBelowFloor ? 'border-color:#ef4444;color:#ef4444;background:#fff5f5;' : ''} text-align: right;"
+                >
+            </td>
+            <td style="width: 75px;">
+                <select class="disc-type-select" data-line-field="discountType" data-index="${index}">
+                    <option value="PERCENT" ${line.discountType === 'PERCENT' ? 'selected' : ''}>%</option>
+                    <option value="AMOUNT" ${line.discountType === 'AMOUNT' ? 'selected' : ''}>₫</option>
+                </select>
+            </td>
+            <td style="width: 110px;">
+                <input
+                    type="number"
+                    min="0"
+                    ${line.discountType === 'PERCENT' ? 'max="100" step="0.5"' : 'step="1000"'}
+                    value="${line.discountType === 'AMOUNT' ? Number(line.discountAmount || 0) : Number(line.discountPercent || 0)}"
+                    data-line-field="discountValue"
+                    data-index="${index}"
+                    style="text-align: right;"
+                >
+            </td>
+            <td style="width: 120px; font-size: 12px; color: #dc2626; text-align: right;" id="lineDiscAmt${index}">
+                -${money(discAmt)}
+            </td>
+            <td class="line-total" style="text-align: right;" id="lineTotal${index}">
+                ${money(lineNet)}
+            </td>
+            <td>
+                <button type="button" class="remove-line" data-remove-line="${index}" title="Xóa dòng">×</button>
+            </td>
+        `;
+        lineBody.appendChild(tr);
+    });
+
+    updateSummary();
 }
 
-function setValue(id, val) {
-    const el = document.getElementById(id);
-    if (el) el.value = val || "";
+/* =========================================================
+   SUMMARY & REAL-TIME APPROVAL TIERS (STORY 1 & 2)
+========================================================= */
+function updateSummary() {
+    let grossTotal = 0;
+    let lineSubtotal = 0;
+    let floorPriceViolated = false;
+
+    lines.forEach(line => {
+        const qty = Math.max(1, Number(line.quantity || 1));
+        const price = Math.max(0, Number(line.unitPrice || 0));
+        const lineGross = qty * price;
+        grossTotal += lineGross;
+
+        let discAmt = 0;
+        if (line.discountType === "AMOUNT") {
+            discAmt = Math.min(lineGross, Math.max(0, Number(line.discountAmount || 0)));
+        } else {
+            const discPct = Math.min(100, Math.max(0, Number(line.discountPercent || 0)));
+            discAmt = lineGross * (discPct / 100);
+        }
+
+        const lineNet = lineGross - discAmt;
+        lineSubtotal += lineNet;
+
+        const netUnitPrice = qty > 0 ? lineNet / qty : price;
+        if (line.floorPrice > 0 && (price < line.floorPrice || netUnitPrice < line.floorPrice)) {
+            floorPriceViolated = true;
+        }
+    });
+
+    const headerDiscPct = Math.min(100, Math.max(0, Number(document.getElementById("headerDiscountInput")?.value || 0)));
+    const headerDiscAmt = lineSubtotal * (headerDiscPct / 100);
+    const finalTotal = lineSubtotal - headerDiscAmt;
+
+    const lineDiscountTotal = grossTotal - lineSubtotal;
+    const totalDiscountValue = grossTotal - finalTotal;
+    const overallDiscountPct = grossTotal > 0 ? (totalDiscountValue / grossTotal) * 100 : 0;
+
+    // Display numbers
+    document.getElementById("grossTotalText").textContent = money(grossTotal);
+    document.getElementById("lineDiscountText").textContent = money(lineDiscountTotal);
+    document.getElementById("totalDiscountText").innerHTML = `${money(totalDiscountValue)} (<span id="totalDiscountPctText">${overallDiscountPct.toFixed(1)}%</span>)`;
+    document.getElementById("totalText").textContent = money(finalTotal);
+
+    // Dynamic Approval Tier Box (Story 2)
+    const tierBox = document.getElementById("approvalTierBox");
+    const tierTitle = document.getElementById("tierTitle");
+    const tierDesc = document.getElementById("tierDesc");
+
+    if (floorPriceViolated) {
+        tierBox.className = "tier-card tier-director";
+        tierTitle.innerHTML = "⛔ Bắt buộc Giám đốc kinh doanh duyệt (Dưới giá sàn)";
+        tierDesc.textContent = "Phát hiện có sản phẩm được bán dưới Giá sàn niêm yết. Theo chính sách, báo giá bắt buộc phải do Giám đốc kinh doanh phê duyệt.";
+    } else if (overallDiscountPct > 20) {
+        tierBox.className = "tier-card tier-director";
+        tierTitle.innerHTML = `⛔ Bắt buộc Giám đốc kinh doanh duyệt (CK ${overallDiscountPct.toFixed(1)}% > 20%)`;
+        tierDesc.textContent = `Tổng mức chiết khấu toàn đơn đạt ${overallDiscountPct.toFixed(1)}% (vượt ngưỡng 20%). Bắt buộc Giám đốc kinh doanh phê duyệt.`;
+    } else if (overallDiscountPct > 10) {
+        tierBox.className = "tier-card tier-team-lead";
+        tierTitle.innerHTML = `⚠️ Cần Trưởng nhóm kinh doanh duyệt (CK ${overallDiscountPct.toFixed(1)}%)`;
+        tierDesc.textContent = `Mức chiết khấu nằm trong khoảng 10% - 20%. Báo giá sẽ được chuyển đến Trưởng nhóm kinh doanh để phê duyệt.`;
+    } else {
+        tierBox.className = "tier-card tier-none";
+        tierTitle.innerHTML = `✅ Tự động phê duyệt (CK ${overallDiscountPct.toFixed(1)}% ≤ 10%)`;
+        tierDesc.textContent = `Mức chiết khấu nằm trong hạn mức tiêu chuẩn (≤ 10%) và trên giá sàn. Báo giá sẽ tự động duyệt ngay khi gửi.`;
+    }
 }
 
+/* =========================================================
+   EVENT HANDLERS
+========================================================= */
+function bindEvents() {
+    document.getElementById("addQuoteLine")?.addEventListener("click", () => {
+        lines.push(createEmptyLine(availableProducts[0]));
+        renderLines();
+    });
+
+    document.getElementById("headerDiscountInput")?.addEventListener("input", () => {
+        updateSummary();
+    });
+
+    lineBody?.addEventListener("input", event => {
+        const input = event.target.closest("[data-line-field]");
+        if (!input) return;
+
+        const index = Number(input.dataset.index);
+        const field = input.dataset.lineField;
+        if (!lines[index]) return;
+
+        if (field === "productName") {
+            lines[index].productName = input.value;
+            const matched = availableProducts.find(p => p.name.toLowerCase() === input.value.trim().toLowerCase());
+            if (matched) {
+                lines[index].productId = matched.id;
+                lines[index].unitPrice = Number(matched.listPrice || 0);
+                lines[index].floorPrice = Number(matched.floorPrice || 0);
+                renderLines();
+                return;
+            }
+        } else if (field === "quantity") {
+            lines[index].quantity = Math.max(1, Number(input.value) || 1);
+        } else if (field === "unitPrice") {
+            lines[index].unitPrice = Math.max(0, Number(input.value) || 0);
+        } else if (field === "discountValue") {
+            const val = Math.max(0, Number(input.value) || 0);
+            if (lines[index].discountType === "AMOUNT") {
+                lines[index].discountAmount = val;
+            } else {
+                lines[index].discountPercent = Math.min(100, val);
+            }
+        }
+
+        renderLines();
+    });
+
+    lineBody?.addEventListener("change", event => {
+        const sel = event.target.closest("select[data-line-field='discountType']");
+        if (sel) {
+            const index = Number(sel.dataset.index);
+            if (lines[index]) {
+                lines[index].discountType = sel.value;
+                renderLines();
+            }
+        }
+    });
+
+    lineBody?.addEventListener("click", event => {
+        const remove = event.target.closest("[data-remove-line]");
+        if (!remove) return;
+        lines.splice(Number(remove.dataset.removeLine), 1);
+        renderLines();
+    });
+
+    // Save Draft
+    document.getElementById("saveDraftButton")?.addEventListener("click", () => {
+        saveQuote("DRAFT");
+    });
+
+    // Submit for approval
+    document.getElementById("submitApprovalButton")?.addEventListener("click", () => {
+        saveQuote("SUBMIT");
+    });
+
+    // Create new version explicitly (Story 3)
+    document.getElementById("btnCreateNewVersion")?.addEventListener("click", async () => {
+        if (!currentId) return;
+        if (confirm("Tạo phiên bản mới (vN+1) từ báo giá này để điều chỉnh và giữ nguyên phiên bản cũ?")) {
+            try {
+                const res = await api(`/api/quotes/${currentId}/create-version`, { method: "POST" });
+                alert(`Đã tạo phiên bản mới v${res.version} (${res.quoteNumber}) thành công!`);
+                window.location.href = `quote-editor?id=${res.id}`;
+            } catch (err) {
+                alert("Lỗi tạo phiên bản mới: " + err.message);
+            }
+        }
+    });
+}
+
+/* =========================================================
+   SAVE QUOTE (DRAFT OR SUBMIT)
+========================================================= */
+async function saveQuote(action) {
+    const title = document.getElementById("quoteTitle")?.value?.trim();
+    const custName = document.getElementById("quoteCustomer")?.value?.trim();
+    const validUntil = document.getElementById("quoteValidUntil")?.value;
+
+    if (!title) {
+        alert("Vui lòng nhập Tiêu đề báo giá.");
+        document.getElementById("quoteTitle")?.focus();
+        return;
+    }
+
+    if (!custName) {
+        alert("Vui lòng chọn hoặc nhập Khách hàng.");
+        document.getElementById("quoteCustomer")?.focus();
+        return;
+    }
+
+    if (!validUntil) {
+        alert("Vui lòng chọn ngày Hiệu lực báo giá đến.");
+        document.getElementById("quoteValidUntil")?.focus();
+        return;
+    }
+
+    if (!lines.length) {
+        alert("Vui lòng thêm ít nhất một dòng sản phẩm.");
+        return;
+    }
+
+    // Match or resolve customer
+    let customerId = currentCustomerId;
+    if (!customerId) {
+        const matched = availableCustomers.find(c => c.name.toLowerCase() === custName.toLowerCase());
+        customerId = matched ? matched.id : 1;
+    }
+
+    const headerDisc = Number(document.getElementById("headerDiscountInput")?.value || 0);
+
+    const itemsPayload = lines.map(l => {
+        let pId = l.productId;
+        if (!pId) {
+            const matched = availableProducts.find(p => p.name.toLowerCase() === (l.productName || "").trim().toLowerCase());
+            pId = matched ? matched.id : (availableProducts[0]?.id || 1);
+        }
+        return {
+            productId: pId,
+            quantity: Number(l.quantity || 1),
+            unitPrice: Number(l.unitPrice || 0),
+            discountType: l.discountType || "PERCENT",
+            discountPercent: Number(l.discountPercent || 0),
+            discountAmount: Number(l.discountAmount || 0),
+            notes: l.notes || ""
+        };
+    });
+
+    const payload = {
+        title,
+        customerId,
+        opportunityId: currentOpportunityId ? Number(currentOpportunityId) : null,
+        discountPercent: headerDisc,
+        validUntil,
+        paymentTerms: document.getElementById("paymentTerms")?.value?.trim() || "",
+        deliveryTerms: document.getElementById("deliveryTerms")?.value?.trim() || "",
+        termsAndConditions: document.getElementById("termsAndConditions")?.value?.trim() || "",
+        action: action,
+        items: itemsPayload
+    };
+
+    const isUpdate = currentId && !isNaN(Number(currentId));
+    const url = isUpdate ? `/api/quotes/${currentId}` : "/api/quotes";
+    const method = isUpdate ? "PUT" : "POST";
+
+    try {
+        const res = await api(url, {
+            method: method,
+            body: JSON.stringify(payload)
+        });
+
+        if (action === "DRAFT") {
+            alert(`Đã lưu nháp báo giá ${res.quoteNumber || ""} thành công!`);
+        } else {
+            if (res.status === "APPROVED") {
+                alert(`Báo giá ${res.quoteNumber || ""} đã được TỰ ĐỘNG PHÊ DUYỆT thành công (chiết khấu ≤ 10%)! Bạn có thể gửi cho khách hàng.`);
+            } else if (res.approvalLevel === "DIRECTOR") {
+                alert(`Báo giá ${res.quoteNumber || ""} đã được gửi duyệt! Bắt buộc Giám đốc kinh doanh phê duyệt do chiết khấu > 20% hoặc có sản phẩm dưới giá sàn.`);
+            } else {
+                alert(`Báo giá ${res.quoteNumber || ""} đã được gửi duyệt thành công! Báo giá đang chờ Trưởng nhóm kinh doanh phê duyệt.`);
+            }
+        }
+
+        window.location.href = "quotations";
+    } catch (err) {
+        alert("Lỗi khi lưu báo giá: " + err.message);
+    }
+}
+
+/* =========================================================
+   UTILS
+========================================================= */
 function money(val) {
     return new Intl.NumberFormat("vi-VN", {
         style: "currency",
@@ -520,18 +652,25 @@ function money(val) {
     }).format(Number(val) || 0);
 }
 
-function escapeAttribute(val) {
-    return String(val ?? "")
-        .replace(/&/g,"&amp;")
-        .replace(/"/g,"&quot;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;");
+function escapeHtml(str) {
+    return String(str ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
-function todayString() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+function statusLabel(st) {
+    switch (String(st || "").toUpperCase()) {
+        case "APPROVED": return "Đã duyệt";
+        case "PENDING_APPROVAL": return "Chờ duyệt";
+        case "REJECTED": return "Từ chối";
+        case "CHANGES_REQUESTED": return "Yêu cầu sửa";
+        case "SENT": return "Đã gửi khách";
+        default: return "Nháp";
+    }
 }
-
-// Start
-initQuoteEditor();
+String.prototype.equalsIgnoreCase = function(other) {
+    return String(this).toLowerCase() === String(other).toLowerCase();
+};

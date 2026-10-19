@@ -32,7 +32,7 @@
 
 <link rel="stylesheet" href="css/design-system.css">
 <link rel="stylesheet" href="css/app-shell.css">
-<link rel="stylesheet" href="css/pages/activities.css">
+<link rel="stylesheet" href="css/pages/activities.css?v=20261019_pro_ui">
 
 
 
@@ -61,32 +61,32 @@
             Không gian làm việc
         </div>
 
-        <a href="dashboard.html" class="crm-nav-item">
+        <a href="dashboard" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
             <span class="crm-nav-label">Tổng quan</span>
         </a>
 
-        <a href="customers.html" class="crm-nav-item">
+        <a href="customers" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
             <span class="crm-nav-label">Khách hàng</span>
         </a>
 
-        <a href="pipeline.html" class="crm-nav-item">
+        <a href="pipeline" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 9-8 9-8-9 8-9Z"/></svg></span>
             <span class="crm-nav-label">Cơ hội</span>
         </a>
 
-        <a href="activities.html" class="crm-nav-item active">
+        <a href="activities" class="crm-nav-item active">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m7 12 3 3 7-7"/></svg></span>
             <span class="crm-nav-label">Hoạt động</span>
         </a>
 
-        <a href="tasks.html" class="crm-nav-item">
+        <a href="tasks" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>
             <span class="crm-nav-label">Công việc</span>
         </a>
 
-        <a href="calendar.html" class="crm-nav-item">
+        <a href="calendar" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4m8-4v4M3 10h18"/></svg></span>
             <span class="crm-nav-label">Lịch</span>
         </a>
@@ -148,7 +148,7 @@
                 id="userDropdown"
                 class="crm-user-dropdown"
             >
-                <a href="profile.html">
+                <a href="profile">
                     Hồ sơ cá nhân
                 </a>
 
@@ -179,128 +179,234 @@
             </h1>
 
             <span>
-                Ghi nhận cuộc gọi, email, cuộc họp, ghi chú và công việc.
+                Ghi nhận cuộc gọi, email, cuộc họp, công việc và kiểm tra mức độ chăm sóc khách của thành viên.
             </span>
 
         </div>
 
-        <button
-            id="createActivity"
-            class="crm-btn crm-btn-primary"
-            type="button"
-        >
-            + Tạo hoạt động
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <button
+                id="btnOpenQuickCall"
+                class="crm-btn"
+                style="background: #10b981; color: #fff; border: none; display: inline-flex; align-items: center; gap: 6px; font-weight: 600;"
+                type="button"
+            >
+                ⚡ Ghi nhanh cuộc gọi
+            </button>
+
+            <button
+                id="createActivity"
+                class="crm-btn crm-btn-primary"
+                type="button"
+            >
+                + Tạo hoạt động
+            </button>
+        </div>
+
+    </section>
+
+    <!-- VIEW TABS (Segmented Control) -->
+    <div class="activities-view-tabs">
+        <button id="tabActivitiesList" class="view-tab-btn active" type="button">
+            <svg class="tab-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/></svg>
+            <span>Danh sách hoạt động</span>
         </button>
+        <button id="tabTeamReport" class="view-tab-btn" type="button">
+            <svg class="tab-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>Báo cáo theo thành viên (Trưởng nhóm)</span>
+            <span class="badge-pill" id="badgeTeamMemberCount">Nhóm</span>
+        </button>
+    </div>
 
-    </section>
+    <!-- ENHANCED UNIFIED FILTER TOOLBAR -->
+    <section class="activity-filter-box crm-card">
+        <div class="activity-filter-toolbar">
+            <!-- Ô tìm kiếm thông minh -->
+            <div class="activity-search-wrap">
+                <svg class="activity-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input
+                    id="activitySearch"
+                    class="crm-input activity-search-input"
+                    type="search"
+                    placeholder="Tìm theo tiêu đề, khách hàng, nội dung..."
+                >
+            </div>
 
+            <!-- Loại hoạt động -->
+            <div class="activity-select-wrap">
+                <select id="activityTypeFilter" class="crm-input activity-filter-select" title="Lọc theo loại hoạt động">
+                    <option value="">🎯 Tất cả loại hoạt động</option>
+                    <option value="call">📞 Cuộc gọi (Call)</option>
+                    <option value="email">✉️ Email</option>
+                    <option value="meeting">🤝 Cuộc họp (Meeting)</option>
+                    <option value="task">✅ Công việc (Task)</option>
+                    <option value="note">📝 Ghi chú (Note)</option>
+                </select>
+            </div>
 
-    <section class="activity-summary">
+            <!-- Thành viên phụ trách -->
+            <div class="activity-select-wrap">
+                <select id="activityMemberFilter" class="crm-input activity-filter-select" title="Lọc theo thành viên phụ trách">
+                    <option value="">👥 Tất cả thành viên</option>
+                </select>
+            </div>
 
-        <article class="crm-card summary-card">
-            <span>Tổng hoạt động</span>
-            <strong id="totalActivity">0</strong>
-        </article>
+            <!-- Phím chọn nhanh thời gian (Date Presets) -->
+            <div class="filter-date-presets" id="quickDatePresets">
+                <span class="date-presets-label">Thời gian:</span>
+                <button type="button" class="filter-chip-btn active" data-preset="all">Tất cả</button>
+                <button type="button" class="filter-chip-btn" data-preset="today">Hôm nay</button>
+                <button type="button" class="filter-chip-btn" data-preset="week">7 ngày qua</button>
+                <button type="button" class="filter-chip-btn" data-preset="month">Tháng này</button>
+                <button type="button" class="filter-chip-btn" data-preset="custom" id="btnToggleCustomDate" title="Chọn khoảng ngày tùy chọn">📅 Tùy chọn...</button>
+            </div>
 
-        <article class="crm-card summary-card">
-            <span>Đang mở</span>
-            <strong id="openActivity">0</strong>
-        </article>
+            <!-- Khoảng ngày tùy chọn (hiển thị khi nhấn Tùy chọn...) -->
+            <div id="customDateRangeWrap" class="activity-custom-date-wrap" style="display: none;">
+                <input id="activityFromDate" class="crm-input date-range-input" type="date" title="Từ ngày">
+                <span class="date-range-sep">–</span>
+                <input id="activityToDate" class="crm-input date-range-input" type="date" title="Đến ngày">
+            </div>
 
-        <article class="crm-card summary-card">
-            <span>Hoàn thành</span>
-            <strong id="doneActivity">0</strong>
-        </article>
-
-        <article class="crm-card summary-card">
-            <span>Quá hạn</span>
-            <strong id="lateActivity">0</strong>
-        </article>
-
-    </section>
-
-
-    <section class="crm-card activity-filter">
-
-        <input
-            id="activitySearch"
-            class="crm-input"
-            type="search"
-            placeholder="Tìm tiêu đề, khách hàng..."
-        >
-
-        <select
-            id="activityTypeFilter"
-            class="crm-input"
-        >
-            <option value="">
-                Tất cả loại
-            </option>
-
-            <option value="call">
-                Cuộc gọi
-            </option>
-
-            <option value="email">
-                Email
-            </option>
-
-            <option value="meeting">
-                Cuộc họp
-            </option>
-
-            <option value="task">
-                Công việc
-            </option>
-
-            <option value="note">
-                Ghi chú
-            </option>
-        </select>
-
-        <select
-            id="activityStatusFilter"
-            class="crm-input"
-        >
-            <option value="">
-                Tất cả trạng thái
-            </option>
-
-            <option value="open">
-                Đang mở
-            </option>
-
-            <option value="done">
-                Hoàn thành
-            </option>
-        </select>
-
-    </section>
-
-
-    <section class="crm-card activities-panel">
-
-        <div
-            id="activityList"
-            class="activity-list"
-        ></div>
-
-        <div
-            id="activityEmpty"
-            class="activity-empty"
-        >
-            <div><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m7 12 3 3 7-7"/></svg></div>
-
-            <strong>
-                Chưa có hoạt động
-            </strong>
-
-            <span>
-                Tạo hoạt động đầu tiên để bắt đầu theo dõi.
-            </span>
+            <!-- Nút đặt lại -->
+            <div class="activity-filter-actions">
+                <button
+                    id="btnResetFilters"
+                    class="activity-reset-btn"
+                    type="button"
+                    title="Đặt lại toàn bộ bộ lọc"
+                >
+                    <svg class="reset-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                    <span>Đặt lại</span>
+                </button>
+            </div>
         </div>
 
+        <!-- Thanh thông tin kết quả nhỏ gọn phía dưới -->
+        <div class="activity-filter-subbar">
+            <div class="filter-status-tag" id="filterResultNotice">
+                <span class="status-dot"></span>
+                <span>Đang hiển thị toàn bộ hoạt động</span>
+            </div>
+        </div>
     </section>
+
+    <!-- VIEW 1: DANH SÁCH HOẠT ĐỘNG -->
+    <div id="viewActivitiesList">
+        <section class="activity-summary">
+            <article class="crm-card summary-card">
+                <span>Tổng hoạt động</span>
+                <strong id="totalActivity">0</strong>
+            </article>
+
+            <article class="crm-card summary-card">
+                <span>Đang mở</span>
+                <strong id="openActivity">0</strong>
+            </article>
+
+            <article class="crm-card summary-card">
+                <span>Hoàn thành</span>
+                <strong id="doneActivity">0</strong>
+            </article>
+
+            <article class="crm-card summary-card">
+                <span>Quá hạn</span>
+                <strong id="lateActivity">0</strong>
+            </article>
+        </section>
+
+        <section class="crm-card activities-panel">
+            <div
+                id="activityList"
+                class="activity-list"
+            ></div>
+
+            <div
+                id="activityEmpty"
+                class="activity-empty"
+            >
+                <div><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m7 12 3 3 7-7"/></svg></div>
+                <strong>
+                    Chưa có hoạt động phù hợp
+                </strong>
+                <span>
+                    Tạo hoạt động mới hoặc điều chỉnh bộ lọc để xem kết quả.
+                </span>
+            </div>
+        </section>
+    </div>
+
+    <!-- VIEW 2: BÁO CÁO HOẠT ĐỘNG NHÓM (Story 3) -->
+    <div id="viewTeamReport" style="display: none;">
+        <!-- KPI Cards -->
+        <div class="team-stats-summary">
+            <div class="team-kpi-card emerald">
+                <div class="team-kpi-label">Tổng hoạt động chăm sóc</div>
+                <div class="team-kpi-val" id="kpiTotalActivities">0</div>
+                <div class="team-kpi-sub">Trong khoảng thời gian đã chọn</div>
+            </div>
+
+            <div class="team-kpi-card purple">
+                <div class="team-kpi-label">Thành viên tích cực nhất</div>
+                <div class="team-kpi-val" style="font-size: 20px;" id="kpiTopMember">-</div>
+                <div class="team-kpi-sub" id="kpiTopMemberSub">0 hoạt động</div>
+            </div>
+
+            <div class="team-kpi-card">
+                <div class="team-kpi-label">Cuộc gọi &amp; Họp trực tiếp</div>
+                <div class="team-kpi-val" id="kpiCallsMeetings">0</div>
+                <div class="team-kpi-sub">Tương tác trực tiếp khách hàng</div>
+            </div>
+
+            <div class="team-kpi-card rose">
+                <div class="team-kpi-label">Công việc quá hạn của nhóm</div>
+                <div class="team-kpi-val" id="kpiTeamOverdue">0</div>
+                <div class="team-kpi-sub">Cần trưởng nhóm đốc thúc xử lý</div>
+            </div>
+        </div>
+
+        <!-- Team Members Report Table -->
+        <div class="team-report-panel">
+            <div class="team-report-header">
+                <div class="team-report-title">
+                    <svg style="width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    Bảng theo dõi mức độ chăm sóc khách của từng thành viên
+                </div>
+                <div style="font-size: 12px; color: #64748b;">
+                    Hiển thị tổng số hoạt động và phân bổ loại tương tác của từng thành viên
+                </div>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table class="team-members-table">
+                    <thead>
+                        <tr>
+                            <th>Thành viên</th>
+                            <th style="text-align: center;">Tổng HĐ</th>
+                            <th style="text-align: center;">Cuộc gọi 📞</th>
+                            <th style="text-align: center;">Cuộc họp 🤝</th>
+                            <th style="text-align: center;">Email ✉️</th>
+                            <th style="text-align: center;">Công việc ✅</th>
+                            <th style="text-align: center;">Quá hạn ⚠️</th>
+                            <th>Cơ cấu tương tác</th>
+                            <th>Mức độ chăm sóc</th>
+                            <th style="text-align: right;">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="teamStatsTableBody">
+                        <tr>
+                            <td colspan="10" style="text-align: center; color: #94a3b8; padding: 30px;">
+                                Đang tải số liệu hoạt động thành viên...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
 </main>
 
@@ -448,13 +554,35 @@
         </label>
 
 
-        <label>
-            Nội dung
+        <div class="activity-two-cols">
+            <label>
+                Thời lượng (phút)
+                <input
+                    id="activityDuration"
+                    class="crm-input"
+                    type="number"
+                    min="0"
+                    value="30"
+                >
+            </label>
 
+            <label>
+                Kết quả / Thống nhất tiếp theo
+                <input
+                    id="activityOutcome"
+                    class="crm-input"
+                    type="text"
+                    placeholder="VD: Khách quan tâm, Cần báo giá..."
+                >
+            </label>
+        </div>
+
+        <label>
+            Nội dung trao đổi
             <textarea
                 id="activityDescription"
-                rows="5"
-                placeholder="Ghi chú chi tiết..."
+                rows="4"
+                placeholder="Ghi chú chi tiết nội dung cuộc gọi/họp/email..."
             ></textarea>
         </label>
 
@@ -499,11 +627,103 @@
 
 </aside>
 
+    <!-- 📞 FLOATING ACTION BUTTON (FAB) GHI NHANH CUỘC GỌI <= 3 CHẠM (Story 2) -->
+    <button type="button" id="fabQuickCall" class="quick-call-fab" title="Ghi nhanh cuộc gọi trên điện thoại">
+        <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true" style="width:20px;height:20px;fill:currentColor;"><path d="M5 3h4l2 5-3 2c2 3 3 4 6 6l2-3 5 2v4c0 2-2 3-4 2C9 19 5 15 3 7 2 5 3 3 5 3Z"/></svg>
+        <span>Ghi nhanh cuộc gọi</span>
+    </button>
 
+    <!-- MODAL GHI NHANH CUỘC GỌI (TỐI ƯU <= 3 CHẠM TRÊN ĐIỆN THOẠI) (Story 2) -->
+    <div id="quickCallOverlay" class="crm-modal-backdrop" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:9998; backdrop-filter:blur(2px);"></div>
+    <div id="quickCallModal" class="crm-modal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:90%; max-width:480px; z-index:9999; background:#fff; border-radius:16px; box-shadow:0 20px 40px rgba(0,0,0,0.2); overflow:hidden;">
+        <div style="background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:#fff; padding:16px 20px; display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:20px;">📞</span>
+                <strong style="font-size:16px;">Ghi nhanh cuộc gọi (3 chạm)</strong>
+            </div>
+            <button type="button" id="closeQuickCallModal" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer; line-height:1;">&times;</button>
+        </div>
 
+        <form id="quickCallForm" style="padding:18px 20px; display:flex; flex-direction:column; gap:14px; max-height:80vh; overflow-y:auto;">
+            <!-- CHẠM 1: CHỌN KHÁCH HÀNG -->
+            <div>
+                <label style="font-size:12.5px; font-weight:700; color:#334155; display:block; margin-bottom:6px;">
+                    1. Khách hàng <span style="color:#ef4444;">*</span>
+                </label>
+                <select id="quickCallCustomerSelect" class="crm-input" style="width:100%; height:40px; font-size:13.5px; border-radius:8px;" required>
+                    <option value="">-- Chọn khách hàng vừa gọi --</option>
+                </select>
+                <div id="quickCallLinkedOppNotice" style="display:none; font-size:12px; color:#15803d; background:#dcfce7; padding:6px 10px; border-radius:6px; margin-top:6px; border:1px solid #bbf7d0;">
+                    🔗 Tự động gắn vào cơ hội mở gần nhất: <strong id="quickCallOppName">—</strong>
+                </div>
+            </div>
 
+            <!-- CHẠM 2: KẾT QUẢ CUỘC GỌI -->
+            <div>
+                <label style="font-size:12.5px; font-weight:700; color:#334155; display:block; margin-bottom:6px;">
+                    2. Kết quả cuộc gọi (Chạm 1 nút) <span style="color:#ef4444;">*</span>
+                </label>
+                <div class="quick-call-touch-grid">
+                    <button type="button" class="touch-btn active" data-outcome="Nghe máy - Quan tâm">
+                        <span style="font-size:18px;">👍</span>
+                        <span>Quan tâm</span>
+                    </button>
+                    <button type="button" class="touch-btn outcome-call-back" data-outcome="Hẹn gọi lại">
+                        <span style="font-size:18px;">📅</span>
+                        <span>Hẹn gọi lại</span>
+                    </button>
+                    <button type="button" class="touch-btn" data-outcome="Không nghe máy">
+                        <span style="font-size:18px;">📵</span>
+                        <span>Không nghe</span>
+                    </button>
+                    <button type="button" class="touch-btn" data-outcome="Máy bận">
+                        <span style="font-size:18px;">⏳</span>
+                        <span>Máy bận</span>
+                    </button>
+                    <button type="button" class="touch-btn outcome-reject" data-outcome="Từ chối">
+                        <span style="font-size:18px;">❌</span>
+                        <span>Từ chối</span>
+                    </button>
+                </div>
+                <input type="hidden" id="quickCallOutcome" value="Nghe máy - Quan tâm">
+            </div>
 
-<script src="js/pages/activities.js"></script>
+            <!-- GHI CHÚ NHANH -->
+            <div>
+                <label style="font-size:12.5px; font-weight:700; color:#334155; display:block; margin-bottom:6px;">
+                    Ghi chú ngắn
+                </label>
+                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
+                    <button type="button" class="quick-tag-chip" data-tag="Đã gửi báo giá">Đã gửi báo giá</button>
+                    <button type="button" class="quick-tag-chip" data-tag="Khách hẹn tuần sau">Khách hẹn tuần sau</button>
+                    <button type="button" class="quick-tag-chip" data-tag="Cần tư vấn thêm">Cần tư vấn thêm</button>
+                    <button type="button" class="quick-tag-chip" data-tag="Hỏi chiết khấu">Hỏi chiết khấu</button>
+                </div>
+                <input type="text" id="quickCallNotes" class="crm-input" placeholder="Nhập ghi chú nhanh..." style="width:100%; height:38px; border-radius:8px; font-size:13px;">
+            </div>
+
+            <!-- CHẠM 3: ĐẶT LỊCH GỌI LẠI -->
+            <div>
+                <label style="font-size:12.5px; font-weight:700; color:#334155; display:block; margin-bottom:6px;">
+                    3. Đặt lịch gọi lại (Tự động tạo task nhắc nhở)
+                </label>
+                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
+                    <button type="button" class="quick-tag-chip callback-chip" data-cb="none">Không hẹn</button>
+                    <button type="button" class="quick-tag-chip callback-chip" data-cb="2h">+2 giờ nữa</button>
+                    <button type="button" class="quick-tag-chip callback-chip active" data-cb="tomorrow">Sáng mai 09:00</button>
+                    <button type="button" class="quick-tag-chip callback-chip" data-cb="next_monday">Thứ Hai tới</button>
+                </div>
+                <input type="hidden" id="quickCallCallback" value="tomorrow">
+            </div>
+
+            <!-- SUBMIT BUTTON -->
+            <button type="submit" id="btnSubmitQuickCall" class="crm-btn crm-btn-primary" style="margin-top:6px; height:46px; font-size:14.5px; font-weight:700; background:linear-gradient(135deg, #10b981 0%, #059669 100%); border:none; border-radius:10px; box-shadow:0 4px 12px rgba(16,185,129,0.3); display:flex; align-items:center; justify-content:center; gap:8px;">
+                <span>⚡ LƯU NHANH CUỘC GỌI</span>
+            </button>
+        </form>
+    </div>
+
+<script src="js/pages/activities.js?v=20261019_pro_ui"></script>
 
 <script src="js/page-transition.js"></script>
 

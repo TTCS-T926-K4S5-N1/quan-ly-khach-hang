@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quy tắc Tự động hoá (Khi – Thì) | Corporate CRM</title>
+    <link rel="stylesheet" href="css/app-shell.css">
+    <link rel="stylesheet" href="css/pages/automation-rules.css">
+</head>
+<body>
+    <!-- App Shell Containers (Rendered by shared-shell.js) -->
+    <header class="crm-topbar"></header>
+    <aside class="crm-sidebar"></aside>
+
+    <main class="crm-main auto-rules-page">
+        <!-- Header & Breadcrumbs -->
+        <div style="font-size:12.5px; color:var(--crm-muted); margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+            <a href="dashboard" style="color:var(--crm-muted); text-decoration:none;">Trang chủ</a>
+            <span>›</span>
+            <span>Cài đặt & Tự động hoá</span>
+            <span>›</span>
+            <span style="color:var(--crm-text); font-weight:600;">Quy tắc Khi – Thì</span>
+        </div>
+
+        <section class="auto-header-panel">
+            <div class="auto-title-group">
+                <h1>
+                    <span>⚡</span> Quy tắc Tự động hoá Bán hàng (Khi – Thì)
+                </h1>
+                <p>Khai báo các kịch bản tự động hóa đơn giản để quy trình bán hàng tự chạy thay vì phải nhắc nhân viên từng bước.</p>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <button type="button" id="btnOpenTestModal" class="crm-btn crm-btn-secondary" style="font-size:13px; padding:8px 14px; display:inline-flex; align-items:center; gap:6px;">
+                    ▶ Chạy thử nghiệm
+                </button>
+                <button type="button" id="btnOpenCreateRuleModal" class="crm-btn crm-btn-primary" style="font-size:13px; padding:8px 16px; display:inline-flex; align-items:center; gap:6px;">
+                    + Tạo quy tắc mới
+                </button>
+            </div>
+        </section>
+
+        <!-- Stats Bar -->
+        <section class="auto-stats-grid">
+            <div class="auto-stat-card">
+                <div class="auto-stat-icon" style="background:#eff6ff; color:#2563eb;">⚡</div>
+                <div>
+                    <div class="auto-stat-val" id="statTotalRules">0</div>
+                    <div class="auto-stat-lbl">Tổng số quy tắc</div>
+                </div>
+            </div>
+            <div class="auto-stat-card">
+                <div class="auto-stat-icon" style="background:#f0fdf4; color:#16a34a;">✔</div>
+                <div>
+                    <div class="auto-stat-val" id="statActiveRules" style="color:#16a34a;">0</div>
+                    <div class="auto-stat-lbl">Đang kích hoạt</div>
+                </div>
+            </div>
+            <div class="auto-stat-card">
+                <div class="auto-stat-icon" style="background:#fef2f2; color:#dc2626;">⏸</div>
+                <div>
+                    <div class="auto-stat-val" id="statInactiveRules" style="color:#dc2626;">0</div>
+                    <div class="auto-stat-lbl">Đang tạm dừng</div>
+                </div>
+            </div>
+            <div class="auto-stat-card">
+                <div class="auto-stat-icon" style="background:#f5f3ff; color:#7c3aed;">📊</div>
+                <div>
+                    <div class="auto-stat-val" id="statTotalRuns" style="color:#7c3aed;">0</div>
+                    <div class="auto-stat-lbl">Lượt thực thi thành công</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Navigation Tabs -->
+        <nav class="auto-tabs-nav">
+            <button type="button" class="auto-tab-btn active" data-tab="rules" id="tabRulesBtn">
+                📋 Danh sách Quy tắc Tự động
+            </button>
+            <button type="button" class="auto-tab-btn" data-tab="logs" id="tabLogsBtn">
+                📜 Nhật ký thực thi (Execution Logs)
+            </button>
+        </nav>
+
+        <!-- TAB 1: RULES LIST -->
+        <section id="tabRulesContent">
+            <div id="rulesListContainer" class="auto-rules-grid">
+                <div style="text-align:center; padding:40px; color:var(--crm-muted);">Đang tải danh sách quy tắc...</div>
+            </div>
+        </section>
+
+        <!-- TAB 2: EXECUTION LOGS -->
+        <section id="tabLogsContent" style="display:none;">
+            <div class="crm-card" style="padding:0; overflow:hidden;">
+                <div style="padding:14px 20px; border-bottom:1px solid var(--crm-border); display:flex; justify-content:space-between; align-items:center; background:var(--crm-bg);">
+                    <strong style="font-size:13.5px; color:var(--crm-text);">Lịch sử chạy tự động gần đây</strong>
+                    <button type="button" id="btnRefreshLogs" class="crm-btn crm-btn-secondary" style="font-size:12px; padding:5px 10px;">
+                        🔄 Làm mới
+                    </button>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="dash-table" style="margin:0;">
+                        <thead>
+                            <tr>
+                                <th style="width:160px;">Thời gian</th>
+                                <th>Quy tắc kích hoạt</th>
+                                <th>Đối tượng áp dụng</th>
+                                <th>Hành động thực thi</th>
+                                <th style="width:120px; text-align:center;">Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logsTbody">
+                            <tr>
+                                <td colspan="5" style="text-align:center; padding:30px; color:var(--crm-muted);">Chưa có lượt thực thi nào được ghi nhận.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODAL: TẠO / SỬA QUY TẮC -->
+    <div id="ruleModal" class="crm-modal-backdrop">
+        <div class="crm-modal-box">
+            <div class="crm-modal-header">
+                <strong id="modalTitle" style="font-size:16px; color:var(--crm-text);">Khai báo Quy tắc Tự động hoá (Khi – Thì)</strong>
+                <button type="button" id="btnCloseRuleModal" style="background:none; border:none; font-size:20px; cursor:pointer; color:var(--crm-muted);">✕</button>
+            </div>
+            <form id="ruleForm">
+                <input type="hidden" id="ruleId">
+                <div class="crm-modal-body">
+                    <div class="form-group">
+                        <label class="form-label" for="ruleName">Tên quy tắc tự động <span style="color:#ef4444;">*</span></label>
+                        <input type="text" id="ruleName" class="form-control" placeholder="VD: Nhắc gọi lại sau 3 ngày gửi báo giá" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="ruleDescription">Mô tả mục đích quy tắc</label>
+                        <textarea id="ruleDescription" class="form-control" rows="2" placeholder="Giải thích ngắn gọn quy trình này giúp ích gì cho đội ngũ..."></textarea>
+                    </div>
+
+                    <!-- KHỐI KHI NÀO (TRIGGER) -->
+                    <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:16px;">
+                        <div style="font-weight:700; color:#1e40af; font-size:13.5px; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+                            <span>🔹</span> ĐIỀU KIỆN KÍCH HOẠT (KHI NÀO?)
+                        </div>
+
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+                            <div class="form-group">
+                                <label class="form-label" for="triggerEvent">Sự kiện kích hoạt</label>
+                                <select id="triggerEvent" class="form-control">
+                                    <option value="STAGE_CHANGED" selected>Khi cơ hội đổi giai đoạn</option>
+                                    <option value="STAGNANT_FLAGGED">Khi cơ hội bị gắn cờ đình trệ</option>
+                                    <option value="STATUS_CHANGED">Khi trạng thái thay đổi</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="triggerEntity">Đối tượng áp dụng</label>
+                                <select id="triggerEntity" class="form-control">
+                                    <option value="OPPORTUNITY" selected>Cơ hội bán hàng (Opportunity)</option>
+                                    <option value="LEAD">Khách hàng tiềm năng (Lead)</option>
+                                    <option value="QUOTE">Báo giá (Quote)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="groupConditionStage">
+                            <label class="form-label" for="conditionStageValue">Giai đoạn kích hoạt (Mục tiêu)</label>
+                            <select id="conditionStageValue" class="form-control">
+                                <option value="1">1 - Mới tiếp cận (New)</option>
+                                <option value="2">2 - Đủ điều kiện (Qualified)</option>
+                                <option value="3" selected>3 - Gửi báo giá (Proposal)</option>
+                                <option value="4">4 - Thương lượng (Negotiation)</option>
+                                <option value="5">5 - Thành công (Won)</option>
+                                <option value="6">6 - Thất bại (Lost)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- KHỐI THÌ LÀM GÌ (ACTION) -->
+                    <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:16px;">
+                        <div style="font-weight:700; color:#166534; font-size:13.5px; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+                            <span>🔸</span> HÀNH ĐỘNG THỰC THI (THÌ LÀM GÌ?)
+                        </div>
+
+                        <div class="form-group" style="margin-bottom:12px;">
+                            <label class="form-label" for="actionType">Loại hành động tự động</label>
+                            <select id="actionType" class="form-control">
+                                <option value="CREATE_TASK" selected>Tự động tạo công việc nhắc nhở (Create Task)</option>
+                                <option value="SEND_NOTIFICATION">Gửi thông báo trong ứng dụng (In-App Notification)</option>
+                                <option value="CHANGE_OWNER">Đổi người phụ trách / sở hữu (Change Owner)</option>
+                            </select>
+                        </div>
+
+                        <!-- Param fields for CREATE_TASK -->
+                        <div id="fieldsCreateTask" style="display:flex; flex-direction:column; gap:10px;">
+                            <div class="form-group">
+                                <label class="form-label" for="taskSubject">Tiêu đề công việc cần làm</label>
+                                <input type="text" id="taskSubject" class="form-control" value="Gọi lại kiểm tra phản hồi sau báo giá">
+                            </div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                                <div class="form-group">
+                                    <label class="form-label" for="taskType">Loại hoạt động</label>
+                                    <select id="taskType" class="form-control">
+                                        <option value="CALL" selected>📞 Cuộc gọi (Call)</option>
+                                        <option value="MEETING">🤝 Cuộc gặp (Meeting)</option>
+                                        <option value="EMAIL">✉️ Gửi Email</option>
+                                        <option value="TASK">📋 Công việc chung</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="taskDueDays">Hạn hoàn thành sau</label>
+                                    <select id="taskDueDays" class="form-control">
+                                        <option value="1">1 ngày sau</option>
+                                        <option value="2">2 ngày sau</option>
+                                        <option value="3" selected>3 ngày sau</option>
+                                        <option value="5">5 ngày sau</option>
+                                        <option value="7">7 ngày sau (1 tuần)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Param fields for SEND_NOTIFICATION -->
+                        <div id="fieldsSendNotification" style="display:none; flex-direction:column; gap:10px;">
+                            <div class="form-group">
+                                <label class="form-label" for="notifTitleInput">Tiêu đề thông báo</label>
+                                <input type="text" id="notifTitleInput" class="form-control" placeholder="VD: Cơ hội đã bước vào giai đoạn quan trọng">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="notifContentInput">Nội dung thông báo</label>
+                                <textarea id="notifContentInput" class="form-control" rows="2" placeholder="Nội dung gửi đến chuông thông báo của nhân sự phụ trách..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Param fields for CHANGE_OWNER -->
+                        <div id="fieldsChangeOwner" style="display:none; flex-direction:column; gap:10px;">
+                            <div class="form-group">
+                                <label class="form-label" for="newOwnerSelect">Chuyển quyền sở hữu cho</label>
+                                <select id="newOwnerSelect" class="form-control">
+                                    <option value="2">Nguyễn Văn Hùng (Giám đốc)</option>
+                                    <option value="3">Trần Thị Thu Hà (Trưởng nhóm Miền Bắc)</option>
+                                    <option value="4">Lê Hoàng Nam (Nhân viên B2B)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:10px; margin-top:4px;">
+                        <label class="crm-switch">
+                            <input type="checkbox" id="ruleActiveCheckbox" checked>
+                            <span class="crm-slider"></span>
+                        </label>
+                        <span style="font-size:13.5px; font-weight:600; color:var(--crm-text);">Kích hoạt quy tắc này ngay sau khi lưu</span>
+                    </div>
+                </div>
+                <div class="crm-modal-footer">
+                    <button type="button" id="btnCancelRuleModal" class="crm-btn crm-btn-secondary">Hủy</button>
+                    <button type="submit" class="crm-btn crm-btn-primary">💾 Lưu quy tắc</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: CHẠY THỬ NGHIỆM (TEST RUN) -->
+    <div id="testModal" class="crm-modal-backdrop">
+        <div class="crm-modal-box">
+            <div class="crm-modal-header">
+                <strong style="font-size:16px; color:var(--crm-text);">▶ Chạy Thử Nghiệm Kịch Bản Khi – Thì</strong>
+                <button type="button" id="btnCloseTestModal" style="background:none; border:none; font-size:20px; cursor:pointer; color:var(--crm-muted);">✕</button>
+            </div>
+            <div class="crm-modal-body">
+                <p style="font-size:13px; color:var(--crm-muted); margin:0;">
+                    Giả lập một sự kiện thay đổi giai đoạn hoặc cờ đình trệ để kiểm tra ngay lập tức xem hệ thống có tự tạo công việc, bắn thông báo và ghi nhật ký hay không.
+                </p>
+
+                <div class="form-group">
+                    <label class="form-label" for="testScenarioSelect">Chọn kịch bản kiểm thử</label>
+                    <select id="testScenarioSelect" class="form-control">
+                        <option value="1">Kịch bản 1: Cơ hội chuyển sang giai đoạn [Báo giá (3)] ➔ Tự tạo việc nhắc gọi lại sau 3 ngày</option>
+                        <option value="2">Kịch bản 2: Cơ hội chuyển sang giai đoạn [Thương lượng (4)] ➔ Bắn thông báo chuông</option>
+                        <option value="3">Kịch bản 3: Cơ hội bị gắn cờ [Đình trệ (Stagnant)] ➔ Tạo việc chăm sóc tái kích hoạt</option>
+                    </select>
+                </div>
+
+                <div id="testResultBox" style="display:none; padding:14px; border-radius:8px; font-size:13px;"></div>
+            </div>
+            <div class="crm-modal-footer">
+                <button type="button" id="btnCancelTestModal" class="crm-btn crm-btn-secondary">Đóng</button>
+                <button type="button" id="btnExecuteTestTrigger" class="crm-btn crm-btn-primary">🚀 Kích hoạt chạy thử</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/shared-shell.js"></script>
+    <script src="js/pages/automation-rules.js"></script>
+</body>
+</html>
