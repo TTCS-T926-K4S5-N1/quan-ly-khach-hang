@@ -35,42 +35,43 @@
 }
 
 .quick-btn {
-    min-width: 86px;
+    min-width: 88px;
     min-height: 48px;
-
     display: flex;
     flex-direction: column;
-
     align-items: center;
     justify-content: center;
-
-    gap: 3px;
-
+    gap: 4px;
     border: 0;
+    border-radius: var(--crm-radius-md, 12px);
+    color: #ffffff;
+    font-size: 15px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    transition: transform var(--crm-transition-fast), box-shadow var(--crm-transition-fast);
+    cursor: pointer;
+}
 
-    border-radius: 9px;
-
-    color: #fff;
-
-    font-size: 16px;
+.quick-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.14);
 }
 
 .quick-btn span {
-    font-size: 12px;
-
+    font-size: 11.5px;
     font-weight: 650;
+    letter-spacing: 0.02em;
 }
 
 .quick-btn.call {
-    background: var(--crm-success);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
 }
 
 .quick-btn.email {
-    background: var(--crm-warning);
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
 }
 
 .quick-btn.note {
-    background: #7c3aed;
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
 }
 
 

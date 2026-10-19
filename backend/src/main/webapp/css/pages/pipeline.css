@@ -813,13 +813,13 @@
 ========================================================= */
 .opportunity-card {
     position: relative;
-    padding: 14px;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
+    padding: 14px 16px;
+    border: 1px solid var(--crm-border);
+    border-radius: var(--crm-radius-md);
     background: #ffffff;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    box-shadow: var(--crm-shadow-xs);
     cursor: grab;
-    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+    transition: transform var(--crm-transition-fast), box-shadow var(--crm-transition-fast), border-color var(--crm-transition-fast);
 }
 
 .opportunity-card:active {
@@ -827,34 +827,34 @@
 }
 
 .opportunity-card:hover {
-    transform: translateY(-2.5px);
-    border-color: #93c5fd;
-    box-shadow: 0 10px 20px -5px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.02);
+    transform: translateY(-2px);
+    border-color: rgba(37, 99, 235, 0.35);
+    box-shadow: var(--crm-shadow-md);
 }
 
 .opportunity-card.dragging {
     opacity: 0.85;
-    transform: rotate(1.5deg) scale(1.02);
-    box-shadow: 0 20px 30px rgba(0, 0, 0, 0.12);
+    transform: rotate(1.2deg) scale(1.02);
+    box-shadow: var(--crm-shadow-xl);
 }
 
 .opportunity-card h3 {
     max-width: calc(100% - 30px);
     margin: 0;
     font-size: 13.5px;
-    font-weight: 700;
-    color: #0f172a;
+    font-weight: 750;
+    color: var(--crm-text);
     line-height: 1.4;
-    transition: color 0.15s ease;
+    transition: color var(--crm-transition-fast);
 }
 
 .opportunity-card:hover h3 {
-    color: #2563eb;
+    color: var(--crm-primary);
 }
 
 .opportunity-customer {
     margin-top: 4px;
-    color: #64748b;
+    color: var(--crm-muted);
     font-size: 12px;
     font-weight: 500;
     display: flex;
@@ -867,8 +867,9 @@
     margin: 8px 0 6px 0;
     font-size: 15px;
     font-weight: 800;
-    color: #0284c7;
-    letter-spacing: -0.01em;
+    color: var(--crm-primary);
+    letter-spacing: -0.015em;
+    font-variant-numeric: tabular-nums;
 }
 
 .opportunity-meta {
