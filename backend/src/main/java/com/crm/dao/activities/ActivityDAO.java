@@ -15,6 +15,20 @@ public class ActivityDAO {
             String type,
             String status
     ) throws SQLException {
+        return search(scope, customerId, opportunityId, type, status, null, null, null, null);
+    }
+
+    public List<Map<String, Object>> search(
+            DataScopeContext scope,
+            Long customerId,
+            Long opportunityId,
+            String type,
+            String status,
+            Long ownerId,
+            Timestamp fromDate,
+            Timestamp toDate,
+            String keyword
+    ) throws SQLException {
         StringBuilder sql = new StringBuilder("""
                 SELECT
                     a.id,
@@ -42,6 +56,11 @@ public class ActivityDAO {
             scope.appendOwnerPredicate("a.owner_user_id", sql, params);
         }
 
+        if (ownerId != null) {
+            sql.append(" AND a.owner_user_id = ?");
+            params.add(ownerId);
+        }
+
         if (customerId != null) {
             sql.append(" AND a.customer_id = ?");
             params.add(customerId);
@@ -53,16 +72,37 @@ public class ActivityDAO {
         }
 
         if (type != null && !type.isBlank()) {
-            sql.append(" AND a.type = ?");
+            sql.append(" AND UPPER(a.type) = UPPER(?)");
             params.add(type.trim());
         }
 
         if (status != null && !status.isBlank()) {
-            sql.append(" AND a.status = ?");
-            params.add(status.trim());
+            String st = status.trim().toUpperCase();
+            if ("DONE".equals(st)) st = "COMPLETED";
+            sql.append(" AND UPPER(a.status) = ?");
+            params.add(st);
         }
 
-        sql.append(" ORDER BY a.id DESC");
+        if (fromDate != null) {
+            sql.append(" AND COALESCE(a.due_date, a.created_at) >= ?");
+            params.add(fromDate);
+        }
+
+        if (toDate != null) {
+            sql.append(" AND COALESCE(a.due_date, a.created_at) <= ?");
+            params.add(toDate);
+        }
+
+        if (keyword != null && !keyword.isBlank()) {
+            sql.append(" AND (LOWER(a.subject) LIKE ? OR LOWER(a.description) LIKE ? OR LOWER(c.name) LIKE ? OR LOWER(u.full_name) LIKE ?)");
+            String kw = "%" + keyword.trim().toLowerCase() + "%";
+            params.add(kw);
+            params.add(kw);
+            params.add(kw);
+            params.add(kw);
+        }
+
+        sql.append(" ORDER BY COALESCE(a.due_date, a.created_at) DESC, a.id DESC");
 
         List<Map<String, Object>> list = new ArrayList<>();
         try (Connection conn = DatabaseConfig.getConnection();
@@ -73,6 +113,161 @@ public class ActivityDAO {
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapActivity(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    public List<Map<String, Object>> findAccessibleMembers(DataScopeContext scope) throws SQLException {
+        StringBuilder sql = new StringBuilder("""
+                SELECT
+                    u.id,
+                    u.full_name,
+                    u.email,
+                    u.status,
+                    u.team_id,
+                    t.name AS team_name
+                FROM users u
+                LEFT JOIN teams t ON t.id = u.team_id
+                WHERE u.status <> 'DELETED'
+                """);
+
+        List<Object> params = new ArrayList<>();
+        if (scope != null) {
+            scope.appendOwnerPredicate("u.id", sql, params);
+        }
+
+        sql.append(" ORDER BY u.full_name ASC");
+
+        List<Map<String, Object>> list = new ArrayList<>();
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                stmt.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> map = new LinkedHashMap<>();
+                    map.put("id", rs.getLong("id"));
+                    map.put("fullName", rs.getString("full_name"));
+                    map.put("email", rs.getString("email"));
+                    map.put("status", rs.getString("status"));
+                    map.put("teamId", rs.getObject("team_id"));
+                    map.put("teamName", rs.getString("team_name"));
+                    list.add(map);
+                }
+            }
+        }
+        return list;
+    }
+
+    public List<Map<String, Object>> getMemberActivitySummary(
+            DataScopeContext scope,
+            Long ownerId,
+            String type,
+            String status,
+            Timestamp fromDate,
+            Timestamp toDate,
+            Long customerId,
+            Long opportunityId
+    ) throws SQLException {
+        StringBuilder sql = new StringBuilder("""
+                SELECT
+                    u.id AS user_id,
+                    u.full_name,
+                    u.email,
+                    t.name AS team_name,
+                    COUNT(a.id) AS total_activities,
+                    SUM(CASE WHEN UPPER(a.type) = 'CALL' THEN 1 ELSE 0 END) AS call_count,
+                    SUM(CASE WHEN UPPER(a.type) = 'EMAIL' THEN 1 ELSE 0 END) AS email_count,
+                    SUM(CASE WHEN UPPER(a.type) = 'MEETING' THEN 1 ELSE 0 END) AS meeting_count,
+                    SUM(CASE WHEN UPPER(a.type) = 'TASK' THEN 1 ELSE 0 END) AS task_count,
+                    SUM(CASE WHEN UPPER(a.type) = 'NOTE' THEN 1 ELSE 0 END) AS note_count,
+                    SUM(CASE WHEN UPPER(a.status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed_count,
+                    SUM(CASE WHEN UPPER(a.status) = 'OPEN' THEN 1 ELSE 0 END) AS open_count,
+                    SUM(CASE WHEN UPPER(a.status) = 'OPEN' AND a.due_date IS NOT NULL AND a.due_date < NOW() THEN 1 ELSE 0 END) AS late_count,
+                    MAX(COALESCE(a.due_date, a.created_at)) AS latest_activity_at
+                FROM users u
+                LEFT JOIN teams t ON t.id = u.team_id
+                LEFT JOIN activities a ON a.owner_user_id = u.id AND a.is_deleted = 0
+                """);
+
+        List<Object> joinParams = new ArrayList<>();
+        if (type != null && !type.isBlank()) {
+            sql.append(" AND UPPER(a.type) = UPPER(?)");
+            joinParams.add(type.trim());
+        }
+
+        if (status != null && !status.isBlank()) {
+            String st = status.trim().toUpperCase();
+            if ("DONE".equals(st)) st = "COMPLETED";
+            sql.append(" AND UPPER(a.status) = ?");
+            joinParams.add(st);
+        }
+
+        if (fromDate != null) {
+            sql.append(" AND COALESCE(a.due_date, a.created_at) >= ?");
+            joinParams.add(fromDate);
+        }
+
+        if (toDate != null) {
+            sql.append(" AND COALESCE(a.due_date, a.created_at) <= ?");
+            joinParams.add(toDate);
+        }
+
+        if (customerId != null) {
+            sql.append(" AND a.customer_id = ?");
+            joinParams.add(customerId);
+        }
+
+        if (opportunityId != null) {
+            sql.append(" AND a.opportunity_id = ?");
+            joinParams.add(opportunityId);
+        }
+
+        sql.append(" WHERE u.status = 'ACTIVE'");
+
+        List<Object> whereParams = new ArrayList<>();
+        if (scope != null) {
+            scope.appendOwnerPredicate("u.id", sql, whereParams);
+        }
+
+        if (ownerId != null) {
+            sql.append(" AND u.id = ?");
+            whereParams.add(ownerId);
+        }
+
+        sql.append(" GROUP BY u.id, u.full_name, u.email, t.name");
+        sql.append(" ORDER BY total_activities DESC, u.full_name ASC");
+
+        List<Object> allParams = new ArrayList<>(joinParams);
+        allParams.addAll(whereParams);
+
+        List<Map<String, Object>> list = new ArrayList<>();
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < allParams.size(); i++) {
+                stmt.setObject(i + 1, allParams.get(i));
+            }
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> map = new LinkedHashMap<>();
+                    map.put("userId", rs.getLong("user_id"));
+                    map.put("fullName", rs.getString("full_name"));
+                    map.put("email", rs.getString("email"));
+                    map.put("teamName", rs.getString("team_name"));
+                    map.put("totalActivities", rs.getLong("total_activities"));
+                    map.put("callCount", rs.getLong("call_count"));
+                    map.put("emailCount", rs.getLong("email_count"));
+                    map.put("meetingCount", rs.getLong("meeting_count"));
+                    map.put("taskCount", rs.getLong("task_count"));
+                    map.put("noteCount", rs.getLong("note_count"));
+                    map.put("completedCount", rs.getLong("completed_count"));
+                    map.put("openCount", rs.getLong("open_count"));
+                    map.put("lateCount", rs.getLong("late_count"));
+                    map.put("latestActivityAt", rs.getTimestamp("latest_activity_at"));
+                    list.add(map);
                 }
             }
         }

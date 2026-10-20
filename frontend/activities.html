@@ -198,82 +198,150 @@
     <section class="activity-summary">
 
         <article class="crm-card summary-card">
-            <span>Tổng hoạt động</span>
+            <div class="summary-card-header">
+                <span>Tổng hoạt động</span>
+                <div class="summary-badge all">Tất cả</div>
+            </div>
             <strong id="totalActivity">0</strong>
+            <small class="summary-sub" id="totalActivitySub">Toàn bộ hoạt động trong kỳ</small>
         </article>
 
         <article class="crm-card summary-card">
-            <span>Đang mở</span>
+            <div class="summary-card-header">
+                <span>Đang mở</span>
+                <div class="summary-badge pending">Cần xử lý</div>
+            </div>
             <strong id="openActivity">0</strong>
+            <small class="summary-sub" id="openActivitySub">Chưa hoàn thành</small>
         </article>
 
         <article class="crm-card summary-card">
-            <span>Hoàn thành</span>
+            <div class="summary-card-header">
+                <span>Hoàn thành</span>
+                <div class="summary-badge success">Đạt chuẩn</div>
+            </div>
             <strong id="doneActivity">0</strong>
+            <small class="summary-sub" id="doneActivitySub">Đã tương tác xong</small>
         </article>
 
         <article class="crm-card summary-card">
-            <span>Quá hạn</span>
+            <div class="summary-card-header">
+                <span>Quá hạn</span>
+                <div class="summary-badge danger">Cảnh báo</div>
+            </div>
             <strong id="lateActivity">0</strong>
+            <small class="summary-sub" id="lateActivitySub">Cần đẩy nhanh tiến độ</small>
         </article>
 
+    </section>
+
+    <!-- SECTION: MỨC ĐỘ CHĂM SÓC KHÁCH THEO THÀNH VIÊN (SCRUM-109) -->
+    <section class="crm-card member-care-section" id="memberCareSection">
+        <header class="member-care-header">
+            <div class="member-care-title-group">
+                <div class="member-care-icon">
+                    <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                </div>
+                <div>
+                    <h2>Mức độ chăm sóc khách theo thành viên</h2>
+                    <span>Kiểm tra tổng số và chi tiết hoạt động chăm sóc khách hàng của từng nhân viên kinh doanh trong nhóm.</span>
+                </div>
+            </div>
+            <div class="member-care-actions">
+                <span class="member-care-count-pill" id="memberCareCountPill">0 thành viên</span>
+                <button type="button" class="crm-btn crm-btn-secondary member-care-toggle-btn" id="toggleMemberCareView">
+                    Thu gọn
+                </button>
+            </div>
+        </header>
+
+        <div id="memberCareGrid" class="member-care-grid"></div>
+
+        <div id="memberCareEmpty" class="member-care-empty" style="display: none;">
+            <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span>Không tìm thấy dữ liệu hoạt động của thành viên theo điều kiện lọc hiện tại.</span>
+        </div>
     </section>
 
 
     <section class="crm-card activity-filter">
 
-        <input
-            id="activitySearch"
-            class="crm-input"
-            type="search"
-            placeholder="Tìm tiêu đề, khách hàng..."
-        >
+        <div class="filter-primary-row">
+            <div class="filter-field filter-search-wrap">
+                <label for="activitySearch">Tìm kiếm</label>
+                <input
+                    id="activitySearch"
+                    class="crm-input"
+                    type="search"
+                    placeholder="Tìm tiêu đề, khách hàng, nội dung..."
+                >
+            </div>
 
-        <select
-            id="activityTypeFilter"
-            class="crm-input"
-        >
-            <option value="">
-                Tất cả loại
-            </option>
+            <div class="filter-field">
+                <label for="activityTypeFilter">Loại hoạt động</label>
+                <select
+                    id="activityTypeFilter"
+                    class="crm-input"
+                >
+                    <option value="">Tất cả loại hoạt động</option>
+                    <option value="call">📞 Cuộc gọi</option>
+                    <option value="email">✉️ Email</option>
+                    <option value="meeting">👥 Cuộc họp</option>
+                    <option value="task">📋 Công việc</option>
+                    <option value="note">📝 Ghi chú</option>
+                </select>
+            </div>
 
-            <option value="call">
-                Cuộc gọi
-            </option>
+            <div class="filter-field">
+                <label for="activityMemberFilter">Người thực hiện</label>
+                <select
+                    id="activityMemberFilter"
+                    class="crm-input"
+                >
+                    <option value="">Tất cả thành viên</option>
+                </select>
+            </div>
 
-            <option value="email">
-                Email
-            </option>
+            <div class="filter-field">
+                <label for="activityStatusFilter">Trạng thái</label>
+                <select
+                    id="activityStatusFilter"
+                    class="crm-input"
+                >
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="open">Đang mở / Chờ xử lý</option>
+                    <option value="done">Đã hoàn thành</option>
+                    <option value="late">Đã quá hạn</option>
+                </select>
+            </div>
+        </div>
 
-            <option value="meeting">
-                Cuộc họp
-            </option>
+        <div class="filter-date-row">
+            <div class="filter-date-presets">
+                <span class="filter-date-label">Thời gian:</span>
+                <button type="button" class="date-preset-btn active" data-preset="all">Tất cả</button>
+                <button type="button" class="date-preset-btn" data-preset="today">Hôm nay</button>
+                <button type="button" class="date-preset-btn" data-preset="7days">7 ngày qua</button>
+                <button type="button" class="date-preset-btn" data-preset="this_month">Tháng này</button>
+                <button type="button" class="date-preset-btn" data-preset="this_quarter">Quý này</button>
+            </div>
 
-            <option value="task">
-                Công việc
-            </option>
+            <div class="filter-custom-dates">
+                <label for="activityStartDate">Từ ngày</label>
+                <input id="activityStartDate" type="date" class="crm-input filter-date-input">
+                <label for="activityEndDate">Đến ngày</label>
+                <input id="activityEndDate" type="date" class="crm-input filter-date-input">
+                <button type="button" id="applyDateBtn" class="crm-btn crm-btn-secondary" title="Áp dụng khoảng thời gian">Lọc</button>
+                <button type="button" id="resetActivityFilter" class="crm-btn crm-btn-ghost" title="Xóa toàn bộ bộ lọc">Đặt lại</button>
+            </div>
+        </div>
 
-            <option value="note">
-                Ghi chú
-            </option>
-        </select>
-
-        <select
-            id="activityStatusFilter"
-            class="crm-input"
-        >
-            <option value="">
-                Tất cả trạng thái
-            </option>
-
-            <option value="open">
-                Đang mở
-            </option>
-
-            <option value="done">
-                Hoàn thành
-            </option>
-        </select>
+        <div id="activeFilterChips" class="active-filter-chips" style="display: none;"></div>
 
     </section>
 
@@ -439,11 +507,15 @@
 
         <label>
             Người phụ trách
-
+            <select
+                id="activityOwnerSelect"
+                class="crm-input"
+            >
+                <option value="">-- Chọn người phụ trách --</option>
+            </select>
             <input
                 id="activityOwner"
-                class="crm-input"
-                type="text"
+                type="hidden"
             >
         </label>
 

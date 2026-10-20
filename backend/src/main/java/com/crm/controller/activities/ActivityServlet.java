@@ -22,7 +22,15 @@ import java.util.NoSuchElementException;
 })
 public class ActivityServlet extends HttpServlet {
 
-    private final ActivityService activityService = new ActivityService();
+    private final ActivityService activityService;
+
+    public ActivityServlet() {
+        this(new ActivityService());
+    }
+
+    public ActivityServlet(ActivityService activityService) {
+        this.activityService = activityService;
+    }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -31,13 +39,56 @@ public class ActivityServlet extends HttpServlet {
             String path = req.getPathInfo();
 
             if (path == null || path.equals("/")) {
+                String summaryParam = req.getParameter("summary");
+                boolean isSummary = "true".equalsIgnoreCase(summaryParam) || "1".equals(summaryParam) || "summary".equalsIgnoreCase(req.getParameter("view"));
+
                 Long customerId = longParam(req, "customerId");
                 Long opportunityId = longParam(req, "opportunityId");
+                Long ownerId = longParam(req, "ownerId");
+                if (ownerId == null) ownerId = longParam(req, "userId");
+                if (ownerId == null) ownerId = longParam(req, "memberId");
+
                 String type = req.getParameter("type");
                 String status = req.getParameter("status");
+                String keyword = req.getParameter("keyword");
+                if (keyword == null) keyword = req.getParameter("search");
 
-                var items = activityService.search(currentUserId, customerId, opportunityId, type, status);
+                Timestamp fromDate = parseDateParam(req, "fromDate", "startDate", false);
+                Timestamp toDate = parseDateParam(req, "toDate", "endDate", true);
+
+                if (isSummary) {
+                    var summary = activityService.getMemberSummary(currentUserId, ownerId, type, status, fromDate, toDate, customerId, opportunityId);
+                    ResponseUtil.json(resp, 200, ApiResponse.success("Lấy tổng số hoạt động theo từng thành viên thành công", summary));
+                    return;
+                }
+
+                var items = activityService.search(currentUserId, customerId, opportunityId, type, status, ownerId, fromDate, toDate, keyword);
                 ResponseUtil.json(resp, 200, ApiResponse.success("Lấy danh sách hoạt động thành công", items));
+                return;
+            }
+
+            if ("/members".equals(path) || "/members/".equals(path)) {
+                var members = activityService.getAccessibleMembers(currentUserId);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Lấy danh sách thành viên thành công", members));
+                return;
+            }
+
+            if ("/summary-by-member".equals(path) || "/summary-by-member/".equals(path)
+                    || "/member-summary".equals(path) || "/member-summary/".equals(path)
+                    || "/stats".equals(path) || "/stats/".equals(path)) {
+                Long customerId = longParam(req, "customerId");
+                Long opportunityId = longParam(req, "opportunityId");
+                Long ownerId = longParam(req, "ownerId");
+                if (ownerId == null) ownerId = longParam(req, "userId");
+                if (ownerId == null) ownerId = longParam(req, "memberId");
+
+                String type = req.getParameter("type");
+                String status = req.getParameter("status");
+                Timestamp fromDate = parseDateParam(req, "fromDate", "startDate", false);
+                Timestamp toDate = parseDateParam(req, "toDate", "endDate", true);
+
+                var summary = activityService.getMemberSummary(currentUserId, ownerId, type, status, fromDate, toDate, customerId, opportunityId);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Lấy tổng số hoạt động theo từng thành viên thành công", summary));
                 return;
             }
 
@@ -76,8 +127,9 @@ public class ActivityServlet extends HttpServlet {
 
             Long customerId = body.get("customerId") != null ? ((Number) body.get("customerId")).longValue() : null;
             Long opportunityId = body.get("opportunityId") != null ? ((Number) body.get("opportunityId")).longValue() : null;
+            Long ownerId = body.get("ownerId") != null ? ((Number) body.get("ownerId")).longValue() : null;
 
-            var created = activityService.create(currentUserId, subject, type, description, status, dueDate, customerId, opportunityId);
+            var created = activityService.create(currentUserId, subject, type, description, status, dueDate, customerId, opportunityId, ownerId);
             ResponseUtil.json(resp, 201, ApiResponse.success("Tạo hoạt động thành công", created));
         } catch (SecurityException e) {
             ResponseUtil.json(resp, 403, ApiResponse.error(e.getMessage(), null));
@@ -175,6 +227,25 @@ public class ActivityServlet extends HttpServlet {
         }
         try {
             return Timestamp.valueOf(str);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private Timestamp parseDateParam(HttpServletRequest req, String param1, String param2, boolean endOfDay) {
+        String val = req.getParameter(param1);
+        if (val == null || val.isBlank()) {
+            val = req.getParameter(param2);
+        }
+        if (val == null || val.isBlank()) return null;
+        val = val.trim().replace('T', ' ');
+        if (val.length() == 10) {
+            val = val + (endOfDay ? " 23:59:59" : " 00:00:00");
+        } else if (val.length() == 16) {
+            val = val + (endOfDay ? ":59" : ":00");
+        }
+        try {
+            return Timestamp.valueOf(val);
         } catch (Exception e) {
             return null;
         }
