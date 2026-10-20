@@ -475,8 +475,9 @@
 
         const itemClean = (item.path || "").replace(/\.html$/, "");
         const currentClean = (currentPage || "").replace(/\.html$/, "");
+        const isDealSubpage = (currentClean === "deal-detail" || currentClean === "deals") && itemClean === "pipeline";
         const active =
-            currentClean === itemClean
+            (currentClean === itemClean || isDealSubpage)
             ?
             " active"
             :

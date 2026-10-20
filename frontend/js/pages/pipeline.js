@@ -131,15 +131,45 @@ async function loadWinLossAndCompetitors() {
     populateWinLossSelects();
 }
 
+const DEFAULT_CUSTOMERS = [
+    { id: 4, name: "Ngân hàng TMCP Việt Nam Thịnh Vượng (VPBank Thăng Long)", code: "KH-004", phone: "02439288888", taxCode: "0100233583" },
+    { id: 5, name: "Chuỗi Bán lẻ Thời trang Nem Fashion", code: "KH-005", phone: "0936112233", taxCode: "0103765432" },
+    { id: 3, name: "Công ty TNHH Dịch vụ & Du lịch Viettravel Sun", code: "KH-003", phone: "0903124578", taxCode: "0108923412" },
+    { id: 6, name: "Công ty Cổ phần Dược phẩm An Sinh Medicare", code: "KH-006", phone: "0977889900", taxCode: "0314567890" },
+    { id: 7, name: "Tập đoàn Sản xuất & Chế tạo Cơ khí Nam Á", code: "KH-007", phone: "02743899222", taxCode: "3701239876" },
+    { id: 8, name: "Hệ thống Trường Quốc tế Á Châu (Asian School)", code: "KH-008", phone: "02838480740", taxCode: "0302456781" },
+    { id: 9, name: "Công ty Cổ phần Giải pháp Logistics LogiTech Việt Nam", code: "KH-009", phone: "0918776655", taxCode: "0201889922" },
+    { id: 10, name: "Chuỗi Cửa hàng Trà sữa TocoToco (Công ty CP Taco)", code: "KH-010", phone: "1900636936", taxCode: "0106489012" },
+    { id: 11, name: "Công ty Cổ phần Đầu tư Công nghệ Xanh GreenTech", code: "KH-011", phone: "0905667788", taxCode: "0401998877" },
+    { id: 12, name: "Tập đoàn Bán buôn & Phân phối Điện tử Đại Phát", code: "KH-012", phone: "0944556677", taxCode: "0105123999" }
+];
+
 async function loadCustomers() {
     try {
         const list = await api("/api/customers");
-        if (Array.isArray(list)) {
+        if (Array.isArray(list) && list.length > 0) {
             customers = list;
+            try {
+                localStorage.setItem("crm_ui_customers", JSON.stringify(customers));
+            } catch (_) {}
         }
     } catch (err) {
-        console.warn("Could not load customers:", err);
+        console.warn("Could not load customers from backend, checking cache:", err);
+        try {
+            const cached = JSON.parse(localStorage.getItem("crm_ui_customers"));
+            if (Array.isArray(cached) && cached.length > 0) {
+                customers = cached;
+            }
+        } catch (_) {}
     }
+
+    if (!customers || customers.length === 0) {
+        customers = [...DEFAULT_CUSTOMERS];
+        try {
+            localStorage.setItem("crm_ui_customers", JSON.stringify(customers));
+        } catch (_) {}
+    }
+
     populateCustomerSelect();
 }
 
@@ -167,7 +197,23 @@ async function loadOpportunities() {
         console.warn("Could not load opportunities from backend, checking cache:", err);
         try {
             const cached = JSON.parse(localStorage.getItem("crm_ui_opportunities"));
-            if (Array.isArray(cached)) opportunities = cached;
+            if (Array.isArray(cached) && cached.length > 0) {
+                opportunities = cached;
+            }
+        } catch (_) {}
+    }
+
+    // Default fallback opportunities if empty
+    if (!opportunities || opportunities.length === 0) {
+        opportunities = [
+            { id: 1, name: "Triển khai CRM Enterprise cho VPBank Thăng Long", customerId: 4, customerName: "VPBank Thăng Long", amount: 185000000, stageId: 4, probability: 80, expectedCloseDate: "2026-11-15", ownerName: "Nguyễn Văn An", status: "OPEN" },
+            { id: 2, name: "Gói CRM Cloud & Đào tạo cho NEM Fashion", customerId: 5, customerName: "NEM Fashion", amount: 72000000, stageId: 3, probability: 60, expectedCloseDate: "2026-11-25", ownerName: "Phạm Quốc Hùng", status: "OPEN" },
+            { id: 3, name: "Tích hợp VoIP & Tổng đài Viettravel Sun", customerId: 3, customerName: "Viettravel Sun", amount: 45000000, stageId: 2, probability: 30, expectedCloseDate: "2026-12-10", ownerName: "Trần Minh Tuấn", status: "OPEN" },
+            { id: 4, name: "Nâng cấp hệ thống BI & Báo cáo LogiTech", customerId: 9, customerName: "LogiTech Logistics", amount: 95000000, stageId: 5, probability: 100, expectedCloseDate: "2026-10-15", ownerName: "Đặng Hoàng Yến", status: "WON" },
+            { id: 5, name: "Triển khai CRM cho Dược phẩm An Sinh", customerId: 6, customerName: "Dược phẩm An Sinh", amount: 120000000, stageId: 4, probability: 80, expectedCloseDate: "2026-11-10", ownerName: "Lê Thị Mai", status: "OPEN" }
+        ];
+        try {
+            localStorage.setItem("crm_ui_opportunities", JSON.stringify(opportunities));
         } catch (_) {}
     }
 
@@ -190,13 +236,17 @@ function populateStageSelect() {
 }
 
 function populateCustomerSelect() {
-    const custSelect = document.getElementById("opportunityCustomer");
+    const custSelect = document.getElementById("opportunityCustomer") || document.getElementById("customerSelect");
     if (!custSelect) return;
+    const currentVal = custSelect.value;
     custSelect.innerHTML = '<option value="">-- Chọn khách hàng --</option>';
     customers.forEach(c => {
         const opt = document.createElement("option");
         opt.value = c.id;
         opt.textContent = `${c.name} (${c.code || c.phone || ""})`;
+        if (currentVal && String(currentVal) === String(c.id)) {
+            opt.selected = true;
+        }
         custSelect.appendChild(opt);
     });
 }
@@ -285,18 +335,24 @@ opportunityForm?.addEventListener("submit", async event => {
     if (custError) custError.textContent = "";
 
     const customerId = Number(customerIdVal);
+    const matchedCustomer = customers.find(c => c.id === customerId);
+    const customerName = matchedCustomer ? matchedCustomer.name : "";
+
     const stageId = Number(document.getElementById("opportunityStage").value) || stages[0]?.id;
     const probability = clamp(Number(document.getElementById("opportunityProbability").value) || 0, 0, 100);
     const amount = Math.max(0, Number(document.getElementById("opportunityValue").value) || 0);
     const expectedCloseDate = fieldValue("opportunityCloseDate") || null;
+    const ownerName = fieldValue("opportunityOwner") || "Tôi";
 
     const payload = {
         name,
         customerId,
+        customerName,
         stageId,
         probability,
         amount,
-        expectedCloseDate
+        expectedCloseDate,
+        ownerName
     };
 
     try {
@@ -306,17 +362,39 @@ opportunityForm?.addEventListener("submit", async event => {
                 body: JSON.stringify(payload)
             });
         } else {
-            await api("/api/opportunities", {
+            const created = await api("/api/opportunities", {
                 method: "POST",
                 body: JSON.stringify(payload)
             });
+            if (created && created.id) payload.id = created.id;
         }
-
-        closeOpportunityDrawer();
-        await loadOpportunities();
     } catch (err) {
-        alert("Lỗi khi lưu cơ hội: " + err.message);
+        console.warn("API offline, lưu cơ hội vào localStorage:", err);
     }
+
+    // Always update local storage
+    if (editingOppId) {
+        const idx = opportunities.findIndex(o => o.id === editingOppId);
+        if (idx >= 0) {
+            opportunities[idx] = {
+                ...opportunities[idx],
+                ...payload
+            };
+        }
+    } else {
+        const newId = payload.id || Date.now();
+        opportunities.unshift({
+            id: newId,
+            ...payload,
+            status: "OPEN"
+        });
+    }
+    try {
+        localStorage.setItem("crm_ui_opportunities", JSON.stringify(opportunities));
+    } catch (_) {}
+
+    closeOpportunityDrawer();
+    render();
 });
 
 /* =========================================================
@@ -599,7 +677,8 @@ function createCard(record) {
         <button class="card-menu-btn" type="button" data-card-menu="${record.id}">⋮</button>
 
         <div class="card-menu" data-menu="${record.id}">
-            <button type="button" data-edit-opportunity="${record.id}">Sửa</button>
+            <a href="deal-detail.html?id=${record.id}" style="display:block; padding:8px 12px; font-weight:700; color:var(--crm-primary); text-decoration:none; text-align:left;">📦 Chi tiết & Sản phẩm (ARR)</a>
+            <button type="button" data-edit-opportunity="${record.id}">Sửa thông tin</button>
             ${canPrev ? `<button type="button" data-prev-stage="${record.id}">← Giai đoạn trước</button>` : ""}
             ${canNext ? `<button type="button" data-next-stage="${record.id}">Giai đoạn tiếp →</button>` : ""}
             <button type="button" class="won" data-close-won="${record.id}">✓ Đóng Thắng</button>
@@ -607,7 +686,9 @@ function createCard(record) {
             <button type="button" style="color:#ef4444;" data-delete-opportunity="${record.id}">🗑 Xóa</button>
         </div>
 
-        <h3>${escapeHtml(record.name)}</h3>
+        <a href="deal-detail.html?id=${record.id}" style="color:inherit; text-decoration:none;">
+            <h3>${escapeHtml(record.name)}</h3>
+        </a>
 
         <div class="opportunity-customer">
             ${escapeHtml(record.customerName || "Chưa chọn khách hàng")}
@@ -620,6 +701,12 @@ function createCard(record) {
         <div class="opportunity-meta">
             <span>${record.probability ?? 0}% xác suất</span>
             <span>${escapeHtml(record.expectedCloseDate || "—")}</span>
+        </div>
+
+        <div style="margin-top:6px;">
+            <a href="deal-detail.html?id=${record.id}" style="display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; color:var(--crm-primary); text-decoration:none;">
+                📦 Quản lý Sản phẩm & ARR →
+            </a>
         </div>
 
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;">
@@ -683,21 +770,45 @@ function openOpportunityDrawer(id = null) {
     if (nameErr) nameErr.textContent = "";
     if (custErr) custErr.textContent = "";
 
+    // Đảm bảo danh sách khách hàng luôn sẵn sàng và render vào dropdown
+    if (!customers || customers.length === 0) {
+        try {
+            const cached = JSON.parse(localStorage.getItem("crm_ui_customers"));
+            if (Array.isArray(cached) && cached.length > 0) {
+                customers = cached;
+            } else {
+                customers = [...DEFAULT_CUSTOMERS];
+            }
+        } catch (_) {
+            customers = [...DEFAULT_CUSTOMERS];
+        }
+    }
+    populateCustomerSelect();
+
     if (id !== null) {
         const opp = opportunities.find(o => o.id === id);
         if (opp) {
             if (titleEl) titleEl.textContent = "Sửa cơ hội";
             setField("opportunityName", opp.name);
             setField("opportunityCustomer", opp.customerId);
-            setField("opportunityValue", opp.amount);
-            setField("opportunityCloseDate", opp.expectedCloseDate);
-            setField("opportunityStage", opp.stageId);
+            setField("opportunityValue", opp.amount || opp.value);
+            setField("opportunityCloseDate", opp.expectedCloseDate || opp.closeDate);
+            setField("opportunityStage", opp.stageId || opp.stage);
             setField("opportunityProbability", opp.probability);
-            setField("opportunityOwner", opp.ownerName);
+            setField("opportunityOwner", opp.ownerName || opp.owner);
+
+            const linkWrap = document.getElementById("drawerDealProductsLinkWrap");
+            const linkBtn = document.getElementById("drawerDealProductsLink");
+            if (linkWrap && linkBtn) {
+                linkWrap.style.display = "block";
+                linkBtn.href = `deal-detail.html?id=${id}`;
+            }
         }
     } else {
         if (titleEl) titleEl.textContent = "Thêm cơ hội";
         opportunityForm.reset();
+        const linkWrap = document.getElementById("drawerDealProductsLinkWrap");
+        if (linkWrap) linkWrap.style.display = "none";
         if (stages.length > 0) {
             setField("opportunityStage", stages[0].id);
             setField("opportunityProbability", stages[0].probability);
