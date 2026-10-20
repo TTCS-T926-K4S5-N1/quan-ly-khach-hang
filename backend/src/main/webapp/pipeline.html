@@ -743,6 +743,93 @@
 
 
 <!-- =========================================================
+     STAGE OVERRIDE MODAL (SCRUM-75)
+========================================================= -->
+
+<div
+    id="stageOverrideOverlay"
+    class="close-deal-overlay"
+></div>
+
+<section
+    id="stageOverrideModal"
+    class="close-deal-modal crm-card"
+    style="width: min(520px, calc(100% - 32px));"
+>
+    <header class="close-deal-head">
+        <div>
+            <span class="deal-emoji">⚠️</span>
+            <strong id="stageOverrideTitle">
+                Điều Kiện Chuyển Giai Đoạn
+            </strong>
+        </div>
+
+        <button
+            id="closeStageOverrideX"
+            type="button"
+            aria-label="Đóng"
+        >
+            <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+    </header>
+
+    <div style="padding: 16px 20px;">
+        <div id="stageOverrideInfo" style="margin-bottom: 12px; font-size: 13px; color: var(--crm-muted, #64748b);">
+            Cơ hội: <strong id="overrideOppName" style="color: var(--crm-text, #1e293b);">--</strong><br>
+            Tiến trình: <span id="overrideFromStage" style="font-weight: 600;">--</span> ➔ <span id="overrideToStage" style="font-weight: 600; color: #2563eb;">--</span>
+        </div>
+
+        <div class="override-warning-box" style="background: #fffbeb; border: 1px solid #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px; padding: 12px 14px; margin-bottom: 14px;">
+            <div style="font-weight: 600; color: #b45309; margin-bottom: 6px; font-size: 13px;">
+                Cơ hội chưa thỏa mãn điều kiện bắt buộc rời giai đoạn:
+            </div>
+            <ul id="stageOverrideMissingList" style="margin: 0; padding-left: 20px; font-size: 13px; color: #92400e; line-height: 1.5;">
+            </ul>
+        </div>
+
+        <div id="stageOverrideRoleNotice" style="font-size: 12px; color: #0369a1; background: #f0f9ff; border: 1px solid #e0f2fe; padding: 10px 12px; border-radius: 6px; margin-bottom: 14px;">
+            ℹ️ Bạn có quyền <strong>Trưởng nhóm trở lên</strong>. Bạn có thể ghi đè để chuyển giai đoạn nhưng bắt buộc phải cung cấp lý do phục vụ đối soát và báo cáo thực tế.
+        </div>
+
+        <form id="stageOverrideForm" class="deal-form" style="padding: 0;">
+            <label style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: 500;">
+                Lý do ghi đè bắt buộc <em>*</em>
+                <textarea
+                    id="stageOverrideReason"
+                    class="crm-input"
+                    rows="3"
+                    placeholder="Nhập lý do chi tiết (ví dụ: đã chốt qua điện thoại, bổ sung cuộc gặp sau... - tối thiểu 5 ký tự)"
+                    style="width: 100%; margin-top: 6px; resize: vertical;"
+                ></textarea>
+            </label>
+
+            <div id="stageOverrideError" class="deal-error" style="color: #ef4444; font-size: 12px; min-height: 18px; margin-top: 4px;"></div>
+
+            <footer class="deal-footer" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px;">
+                <button
+                    id="cancelStageOverrideBtn"
+                    type="button"
+                    class="crm-btn crm-btn-secondary"
+                >
+                    Hủy bỏ
+                </button>
+
+                <button
+                    id="confirmStageOverrideBtn"
+                    type="submit"
+                    class="crm-btn crm-btn-primary"
+                    style="background: #f59e0b; border-color: #f59e0b; color: #fff;"
+                >
+                    Xác nhận ghi đè & Chuyển
+                </button>
+            </footer>
+        </form>
+    </div>
+</section>
+
+
+
+<!-- =========================================================
      MOBILE
 ========================================================= -->
 
