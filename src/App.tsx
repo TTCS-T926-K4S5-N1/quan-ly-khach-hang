@@ -1,572 +1,440 @@
-import React, { useState, useRef } from 'react';
-import type { ChangeEvent, DragEvent } from 'react';
+import React, { useState } from 'react';
 import { 
-  FileText, 
-  Upload, 
-  Download, 
-  Trash2, 
-  Eye, 
-  Lock, 
-  Globe, 
-  Search, 
-  Filter, 
-  Plus, 
-  CheckCircle2, 
-  AlertCircle, 
-  FileCheck, 
-  Briefcase, 
-  Calendar, 
-  X
+  Bell, AlertTriangle, Clock, CheckCircle2, User, 
+  Users, Plus, Calendar, ShieldAlert, X
 } from 'lucide-react';
 
-interface AppUser {
+interface Task {
   id: string;
-  name: string;
-  role: string;
-  avatar: string;
+  title: string;
+  assignee: string;
+  assigneeAvatar: string;
+  dueDate: string;
+  reminderMinutesBefore: number;
+  status: 'PENDING' | 'COMPLETED';
+  dealValue: string;
+  clientName: string;
 }
 
-interface Attachment {
-  id: string;
-  name: string;
-  size: number; // Kích thước tệp tính bằng bytes
-  type: string;
-  category: 'Bid' | 'Meeting' | 'Contract' | 'Other';
-  uploadedBy: {
-    id: string;
-    name: string;
-    avatar: string;
-  };
-  uploadedAt: string;
-  allowedUserIds: string[]; // Danh sách ID người dùng có quyền tải xuống
-  isPublic: boolean;
-  url: string;
-}
-
-// Giả lập người dùng hiện tại
-const CURRENT_USER: AppUser = {
-  id: 'usr_001',
-  name: 'Nguyễn Văn Kinh Doanh',
-  role: 'Nhân viên Kinh doanh',
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'
-};
-
-const OTHER_USER: AppUser = {
-  id: 'usr_002',
-  name: 'Trần Thị Trưởng Phòng',
-  role: 'Quản lý Bán hàng',
-  avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80'
-};
-
-const INITIAL_ATTACHMENTS: Attachment[] = [
+const INITIAL_TASKS: Task[] = [
   {
-    id: 'att-1',
-    name: 'Ho_so_dieu_kien_du_thau_2026.pdf',
-    size: 14.5 * 1024 * 1024, // 14.5 MB
-    type: 'pdf',
-    category: 'Bid',
-    uploadedBy: {
-      id: CURRENT_USER.id,
-      name: CURRENT_USER.name,
-      avatar: CURRENT_USER.avatar
-    },
-    uploadedAt: '2026-10-20T09:30:00.000Z',
-    allowedUserIds: [CURRENT_USER.id, OTHER_USER.id],
-    isPublic: false,
-    url: '#'
+    id: '1',
+    title: 'Gửi báo giá hợp đồng phần mềm cho Công ty A',
+    assignee: 'Nguyễn Văn A',
+    assigneeAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+    dueDate: new Date(Date.now() - 3600000 * 5).toISOString(),
+    reminderMinutesBefore: 30,
+    status: 'PENDING',
+    dealValue: '120,000,000 VNĐ',
+    clientName: 'Tập đoàn A'
   },
   {
-    id: 'att-2',
-    name: 'Bien_ban_hop_chot_yeu_cau_khach_hang.docx',
-    size: 3.2 * 1024 * 1024, // 3.2 MB
-    type: 'docx',
-    category: 'Meeting',
-    uploadedBy: {
-      id: OTHER_USER.id,
-      name: OTHER_USER.name,
-      avatar: OTHER_USER.avatar
-    },
-    uploadedAt: '2026-10-19T15:45:00.000Z',
-    allowedUserIds: [OTHER_USER.id, CURRENT_USER.id],
-    isPublic: true,
-    url: '#'
+    id: '2',
+    title: 'Gọi điện chốt hợp đồng gia hạn dịch vụ',
+    assignee: 'Nguyễn Văn A',
+    assigneeAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+    dueDate: new Date(Date.now() - 3600000 * 2).toISOString(),
+    reminderMinutesBefore: 60,
+    status: 'PENDING',
+    dealValue: '45,000,000 VNĐ',
+    clientName: 'Công ty B'
+  },
+  {
+    id: '3',
+    title: 'Họp Demo sản phẩm trực tuyến',
+    assignee: 'Nguyễn Văn A',
+    assigneeAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+    dueDate: new Date(Date.now() + 3600000 * 3).toISOString(),
+    reminderMinutesBefore: 15,
+    status: 'PENDING',
+    dealValue: '300,000,000 VNĐ',
+    clientName: 'Dự án C'
+  },
+  {
+    id: '4',
+    title: 'Chăm sóc khách hàng sau tư vấn',
+    assignee: 'Trần Thị B',
+    assigneeAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
+    dueDate: new Date(Date.now() - 3600000 * 12).toISOString(),
+    reminderMinutesBefore: 60,
+    status: 'PENDING',
+    dealValue: '80,000,000 VNĐ',
+    clientName: 'Khách hàng cá nhân'
+  },
+  {
+    id: '5',
+    title: 'Gửi hồ sơ năng lực cho đối tác',
+    assignee: 'Lê Văn C',
+    assigneeAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
+    dueDate: new Date(Date.now() - 3600000 * 24).toISOString(),
+    reminderMinutesBefore: 120,
+    status: 'PENDING',
+    dealValue: '210,000,000 VNĐ',
+    clientName: 'Đối tác D'
   }
 ];
 
 export default function App() {
-  const [attachments, setAttachments] = useState<Attachment[]>(INITIAL_ATTACHMENTS);
-  const [activeUser, setActiveUser] = useState<AppUser>(CURRENT_USER);
-  const [dragActive, setDragActive] = useState<boolean>(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [previewFile, setPreviewFile] = useState<Attachment | null>(null);
+  const [role, setRole] = useState<'SALES' | 'LEADER'>('SALES');
+  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
+  const [currentUser] = useState('Nguyễn Văn A');
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
-
-  // Hiển thị kích thước file đẹp hơn
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  // Format ngày giờ
-  const formatDate = (isoString: string): string => {
-    const date = new Date(isoString);
-    return date.toLocaleString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  // Xử lý Upload Tệp
-  const handleFiles = (files: FileList) => {
-    setErrorMsg(null);
-    setSuccessMsg(null);
-
-    const validFiles: Attachment[] = [];
-    let oversizeDetected = false;
-
-    Array.from(files).forEach((file) => {
-      if (file.size > MAX_FILE_SIZE) {
-        oversizeDetected = true;
-      } else {
-        const ext = file.name.split('.').pop()?.toLowerCase() || '';
-        let category: Attachment['category'] = 'Other';
-        if (file.name.toLowerCase().includes('thau') || file.name.toLowerCase().includes('bid')) {
-          category = 'Bid';
-        } else if (file.name.toLowerCase().includes('hop') || file.name.toLowerCase().includes('bien_ban')) {
-          category = 'Meeting';
-        }
-
-        const newAttachment: Attachment = {
-          id: `att-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-          name: file.name,
-          size: file.size,
-          type: ext,
-          category: category,
-          uploadedBy: {
-            id: activeUser.id,
-            name: activeUser.name,
-            avatar: activeUser.avatar
-          },
-          uploadedAt: new Date().toISOString(),
-          allowedUserIds: [activeUser.id], // Mặc định người sở hữu được tải
-          isPublic: true, // Mặc định chia sẻ rộng rãi trong thương vụ
-          url: URL.createObjectURL(file)
-        };
-        validFiles.push(newAttachment);
-      }
-    });
-
-    if (oversizeDetected) {
-      setErrorMsg('Một số tệp bị từ chối do vượt quá dung lượng tối đa 20MB.');
-    }
-
-    if (validFiles.length > 0) {
-      setAttachments((prev) => [...validFiles, ...prev]);
-      setSuccessMsg(`Đã đính kèm thành công ${validFiles.length} tệp tài liệu.`);
-    }
-  };
-
-  const handleDrag = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFiles(e.dataTransfer.files);
-    }
-  };
-
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      handleFiles(e.target.files);
-    }
-  };
-
-  const handleDelete = (id: string) => {
-    setAttachments((prev) => prev.filter((item) => item.id !== id));
-    setSuccessMsg('Đã xóa tài liệu đính kèm.');
-  };
-
-  const canDownload = (attachment: Attachment): boolean => {
-    if (attachment.isPublic) return true;
-    return attachment.uploadedBy.id === activeUser.id || attachment.allowedUserIds.includes(activeUser.id);
-  };
-
-  const filteredAttachments = attachments.filter((item) => {
-    const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory;
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          item.uploadedBy.name.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
+  const [newTask, setNewTask] = useState({
+    title: '',
+    clientName: '',
+    dealValue: '',
+    dueDate: '',
+    reminderMinutesBefore: 30
   });
 
+  const isOverdue = (dueDateStr: string) => new Date(dueDateStr) < new Date();
+  const isDueSoon = (dueDateStr: string) => {
+    const due = new Date(dueDateStr);
+    const now = new Date();
+    const diffHours = (due.getTime() - now.getTime()) / (1000 * 3600);
+    return diffHours > 0 && diffHours <= 24;
+  };
+
+  const myTasks = tasks.filter(t => t.assignee === currentUser);
+  const myOverdueTasks = myTasks.filter(t => t.status === 'PENDING' && isOverdue(t.dueDate));
+  const myDueSoonTasks = myTasks.filter(t => t.status === 'PENDING' && isDueSoon(t.dueDate));
+  const myUpcomingTasks = myTasks.filter(t => t.status === 'PENDING' && !isOverdue(t.dueDate));
+
+  const teamMembers = Array.from(new Set(tasks.map(t => t.assignee))).map(name => {
+    const memberTasks = tasks.filter(t => t.assignee === name);
+    const overdueCount = memberTasks.filter(t => t.status === 'PENDING' && isOverdue(t.dueDate)).length;
+    const pendingCount = memberTasks.filter(t => t.status === 'PENDING').length;
+    const completedCount = memberTasks.filter(t => t.status === 'COMPLETED').length;
+    const avatar = memberTasks[0]?.assigneeAvatar || '';
+
+    return { name, avatar, overdueCount, pendingCount, completedCount, total: memberTasks.length };
+  });
+
+  const toggleTaskStatus = (id: string) => {
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: t.status === 'COMPLETED' ? 'PENDING' : 'COMPLETED' } : t));
+  };
+
+  const handleCreateTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTask.title || !newTask.dueDate) return;
+
+    const task: Task = {
+      id: Date.now().toString(),
+      title: newTask.title,
+      clientName: newTask.clientName || 'Chưa định tên',
+      dealValue: newTask.dealValue ? `${Number(newTask.dealValue).toLocaleString('vi-VN')} VNĐ` : '0 VNĐ',
+      dueDate: new Date(newTask.dueDate).toISOString(),
+      reminderMinutesBefore: Number(newTask.reminderMinutesBefore),
+      assignee: currentUser,
+      assigneeAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+      status: 'PENDING'
+    };
+
+    setTasks(prev => [task, ...prev]);
+    setShowAddModal(false);
+    setNewTask({ title: '', clientName: '', dealValue: '', dueDate: '', reminderMinutesBefore: 30 });
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-600 text-white rounded-lg">
-              <Briefcase className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="font-bold text-slate-900 text-lg leading-tight">Cơ hội Kinh doanh #OPP-2026-88</h1>
-              <p className="text-xs text-slate-500">Dự án Cung cấp Giải pháp Phần mềm Enterprise</p>
-            </div>
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="bg-indigo-600 text-white p-2 rounded-lg font-bold">CRM</div>
+            <h1 className="font-bold text-lg text-slate-900 hidden sm:block">Nhắc Việc Thương Vụ</h1>
           </div>
 
-          {/* Chuyển đổi User giả lập để kiểm tra phân quyền */}
-          <div className="flex items-center gap-3 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
-            <span className="text-xs font-medium text-slate-500 pl-2 hidden sm:inline">Giả lập tài khoản:</span>
-            <button
-              onClick={() => setActiveUser(CURRENT_USER)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeUser.id === CURRENT_USER.id 
-                  ? 'bg-white text-blue-600 shadow-xs border border-slate-200/60' 
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <img src={CURRENT_USER.avatar} alt="avatar" className="w-5 h-5 rounded-full object-cover" />
-              <span>Chính mình</span>
-            </button>
-            <button
-              onClick={() => setActiveUser(OTHER_USER)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeUser.id === OTHER_USER.id 
-                  ? 'bg-white text-blue-600 shadow-xs border border-slate-200/60' 
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <img src={OTHER_USER.avatar} alt="avatar" className="w-5 h-5 rounded-full object-cover" />
-              <span>Đồng nghiệp</span>
-            </button>
+          <div className="flex items-center space-x-4">
+            <div className="bg-slate-100 p-1 rounded-xl flex items-center text-sm font-medium">
+              <button 
+                onClick={() => setRole('SALES')}
+                className={`px-3 py-1.5 rounded-lg transition-all flex items-center space-x-1 ${role === 'SALES' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}
+              >
+                <User size={16} />
+                <span>NVKD</span>
+              </button>
+              <button 
+                onClick={() => setRole('LEADER')}
+                className={`px-3 py-1.5 rounded-lg transition-all flex items-center space-x-1 ${role === 'LEADER' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}
+              >
+                <Users size={16} />
+                <span>Trưởng nhóm</span>
+              </button>
+            </div>
+
+            <div className="relative">
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative p-2 rounded-full hover:bg-slate-100 text-slate-600 transition"
+              >
+                <Bell size={20} />
+                {myOverdueTasks.length > 0 && (
+                  <span className="absolute top-1 right-1 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                    {myOverdueTasks.length}
+                  </span>
+                )}
+              </button>
+
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50">
+                  <div className="px-4 py-2 border-b border-slate-100 font-semibold text-slate-800 text-sm flex justify-between items-center">
+                    <span>Thông báo nhắc việc</span>
+                    <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-medium">{myOverdueTasks.length} quá hạn</span>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto">
+                    {myOverdueTasks.map(t => (
+                      <div key={t.id} className="p-3 border-b border-slate-50 bg-red-50/50 hover:bg-red-50 flex items-start space-x-2">
+                        <AlertTriangle size={16} className="text-red-500 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-xs font-semibold text-red-900">{t.title}</p>
+                          <p className="text-[10px] text-red-600 mt-0.5">Quá hạn từ: {new Date(t.dueDate).toLocaleString('vi-VN')}</p>
+                        </div>
+                      </div>
+                    ))}
+                    {myDueSoonTasks.map(t => (
+                      <div key={t.id} className="p-3 border-b border-slate-50 bg-amber-50/50 hover:bg-amber-50 flex items-start space-x-2">
+                        <Clock size={16} className="text-amber-500 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-xs font-semibold text-slate-800">{t.title}</p>
+                          <p className="text-[10px] text-amber-600 mt-0.5">Sắp đến hạn: {new Date(t.dueDate).toLocaleString('vi-VN')}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        
-        {/* Thông báo Alert */}
-        {errorMsg && (
-          <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm animate-fade-in">
-            <AlertCircle className="w-5 h-5 shrink-0 text-red-500" />
-            <span className="flex-1">{errorMsg}</span>
-            <button onClick={() => setErrorMsg(null)} className="text-red-400 hover:text-red-600">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        )}
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        {role === 'SALES' ? (
+          <div className="space-y-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">Trang chủ Cá nhân</h2>
+                <p className="text-slate-500 text-sm">Xin chào {currentUser}, đây là danh sách công việc thương vụ của bạn.</p>
+              </div>
+              <button 
+                onClick={() => setShowAddModal(true)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center space-x-2 transition shadow-sm"
+              >
+                <Plus size={18} />
+                <span>Thêm việc thương vụ</span>
+              </button>
+            </div>
 
-        {successMsg && (
-          <div className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-sm animate-fade-in">
-            <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-500" />
-            <span className="flex-1">{successMsg}</span>
-            <button onClick={() => setSuccessMsg(null)} className="text-emerald-400 hover:text-emerald-600">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        )}
+            {/* Cảnh báo Quá Hạn Nổi Bật */}
+            {myOverdueTasks.length > 0 && (
+              <section className="bg-red-50 border-2 border-red-500/30 rounded-2xl p-6 shadow-sm relative overflow-hidden">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="p-2.5 bg-red-500 text-white rounded-xl shadow-md animate-pulse">
+                    <ShieldAlert size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-red-900">CẢNH BÁO QUÁ HẠN ({myOverdueTasks.length})</h3>
+                    <p className="text-sm text-red-700">Cần xử lý ngay để không ảnh hưởng tới tiến độ thương vụ!</p>
+                  </div>
+                </div>
 
-        {/* Khu vực Upload Tệp */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
-          <div className="flex items-center justify-between mb-4">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {myOverdueTasks.map(t => (
+                    <div key={t.id} className="bg-white rounded-xl p-4 border border-red-200 shadow-sm flex items-start justify-between">
+                      <div className="space-y-1">
+                        <div className="inline-block bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                          Khách hàng: {t.clientName} ({t.dealValue})
+                        </div>
+                        <h4 className="font-semibold text-slate-800 text-sm">{t.title}</h4>
+                        <div className="flex items-center space-x-1 text-red-600 text-xs">
+                          <Clock size={12} />
+                          <span>Hạn: {new Date(t.dueDate).toLocaleString('vi-VN')}</span>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => toggleTaskStatus(t.id)}
+                        className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
+                        title="Đánh dấu hoàn thành"
+                      >
+                        <CheckCircle2 size={20} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Danh sách việc */}
+            <section className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+              <h3 className="font-bold text-lg text-slate-800 mb-4 flex items-center space-x-2">
+                <Clock className="text-indigo-600" size={20} />
+                <span>Danh sách công việc đang thực hiện</span>
+              </h3>
+
+              <div className="space-y-3">
+                {myUpcomingTasks.map(t => {
+                  const dueSoon = isDueSoon(t.dueDate);
+                  return (
+                    <div 
+                      key={t.id} 
+                      className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition ${
+                        dueSoon ? 'bg-amber-50/40 border-amber-200' : 'bg-slate-50/50 border-slate-100'
+                      }`}
+                    >
+                      <div className="flex items-start space-x-3">
+                        <button 
+                          onClick={() => toggleTaskStatus(t.id)}
+                          className="mt-0.5 text-slate-300 hover:text-emerald-500 transition"
+                        >
+                          <CheckCircle2 size={20} />
+                        </button>
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-xs font-semibold text-slate-500">{t.clientName}</span>
+                            <span className="text-xs text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md font-medium">{t.dealValue}</span>
+                            {dueSoon && (
+                              <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                                Sắp đến hạn
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="font-semibold text-slate-800 text-sm mt-1">{t.title}</h4>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-4 text-xs text-slate-500 self-end sm:self-center">
+                        <div className="flex items-center space-x-1">
+                          <Bell size={14} className="text-slate-400" />
+                          <span>Nhắc trước {t.reminderMinutesBefore} phút</span>
+                        </div>
+                        <div className="flex items-center space-x-1 font-medium text-slate-700">
+                          <Calendar size={14} />
+                          <span>{new Date(t.dueDate).toLocaleString('vi-VN')}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
+        ) : (
+          /* Trưởng nhóm View */
+          <div className="space-y-8">
             <div>
-              <h2 className="text-base font-bold text-slate-900">Đính kèm tài liệu vào thương vụ</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Tải lên hồ sơ thầu, biên bản họp và các tài liệu quan trọng khác.</p>
+              <h2 className="text-2xl font-bold text-slate-900">Dashboard Quản Lý Trưởng Nhóm</h2>
+              <p className="text-slate-500 text-sm">Theo dõi tổng quan việc quá hạn của từng thành viên.</p>
             </div>
-            <span className="text-xs font-semibold px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-100">
-              Tối đa 20MB / tệp
-            </span>
+
+            <section className="grid gap-4 sm:grid-cols-3">
+              {teamMembers.map(m => (
+                <div key={m.name} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <img src={m.avatar} alt={m.name} className="w-10 h-10 rounded-full object-cover" />
+                    <div>
+                      <h4 className="font-bold text-slate-800">{m.name}</h4>
+                      <p className="text-xs text-slate-500">NVKD</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs font-semibold">
+                      <span className="text-red-600">Số việc quá hạn:</span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${m.overdueCount > 0 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}`}>
+                        {m.overdueCount} việc
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs font-semibold">
+                      <span className="text-slate-500">Việc đang thực hiện:</span>
+                      <span>{m.pendingCount} việc</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </section>
           </div>
+        )}
+      </main>
 
-          <div
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
-              dragActive 
-                ? 'border-blue-500 bg-blue-50/50 scale-[1.005]' 
-                : 'border-slate-200 hover:border-blue-400 hover:bg-slate-50/50'
-            }`}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              onChange={handleFileChange}
-              className="hidden"
-            />
-            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Upload className="w-6 h-6" />
-            </div>
-            <p className="text-sm font-semibold text-slate-700">
-              Kéo thả các tệp vào đây hoặc <span className="text-blue-600 underline">bấm để chọn</span>
-            </p>
-            <p className="text-xs text-slate-400 mt-1">
-              Hỗ trợ nhiều tệp (PDF, Word, Excel, PNG, JPG...). Tối đa 20MB mỗi tệp.
-            </p>
-          </div>
-        </div>
-
-        {/* Danh sách & Bộ lọc Tài liệu */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-          <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <FileCheck className="w-5 h-5 text-blue-600" />
-              <h3 className="font-bold text-slate-900">Danh sách tài liệu ({filteredAttachments.length})</h3>
-            </div>
-
-            {/* Tìm kiếm & Bọ lọc */}
-            <div className="flex flex-wrap items-center gap-3">
-              {/* Tìm kiếm */}
-              <div className="relative flex-1 sm:w-64">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Tìm theo tên tệp, người tải..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-4 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+      {/* Modal Thêm Việc */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl relative">
+            <button 
+              onClick={() => setShowAddModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
+            >
+              <X size={20} />
+            </button>
+            <h3 className="text-lg font-bold text-slate-900 mb-4">Tạo Thương Vụ / Nhắc Việc Mới</h3>
+            <form onSubmit={handleCreateTask} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Tên công việc</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="VD: Gửi báo giá thương vụ..."
+                  value={newTask.title}
+                  onChange={e => setNewTask({...newTask, title: e.target.value})}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
-              {/* Lọc loại tài liệu */}
-              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
-                <Filter className="w-3.5 h-3.5 text-slate-400 ml-1.5" />
-                {[
-                  { id: 'All', label: 'Tất cả' },
-                  { id: 'Bid', label: 'Hồ sơ thầu' },
-                  { id: 'Meeting', label: 'Biên bản họp' },
-                  { id: 'Other', label: 'Khác' }
-                ].map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all ${
-                      selectedCategory === cat.id
-                        ? 'bg-white text-slate-900 shadow-xs font-semibold'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    {cat.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Bảng hiển thị danh sách tệp */}
-          <div className="overflow-x-auto">
-            {filteredAttachments.length === 0 ? (
-              <div className="text-center py-12 text-slate-400 text-sm">
-                Không tìm thấy tài liệu đính kèm nào phù hợp.
-              </div>
-            ) : (
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    <th className="py-3.5 px-6">Tài liệu</th>
-                    <th className="py-3.5 px-4">Loại</th>
-                    <th className="py-3.5 px-4">Người tải lên</th>
-                    <th className="py-3.5 px-4">Thời điểm</th>
-                    <th className="py-3.5 px-4">Quyền truy cập</th>
-                    <th className="py-3.5 px-6 text-right">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-sm">
-                  {filteredAttachments.map((file) => {
-                    const userCanDownload = canDownload(file);
-                    return (
-                      <tr key={file.id} className="hover:bg-slate-50/60 transition-colors">
-                        {/* Tên & Kích thước */}
-                        <td className="py-4 px-6">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2.5 bg-blue-50 text-blue-600 rounded-lg shrink-0">
-                              <FileText className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <div className="font-semibold text-slate-900 truncate max-w-xs">{file.name}</div>
-                              <div className="text-xs text-slate-400 mt-0.5">{formatFileSize(file.size)}</div>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Phân loại */}
-                        <td className="py-4 px-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                            file.category === 'Bid' 
-                              ? 'bg-purple-50 text-purple-700 border-purple-200' 
-                              : file.category === 'Meeting'
-                              ? 'bg-amber-50 text-amber-700 border-amber-200'
-                              : 'bg-slate-100 text-slate-700 border-slate-200'
-                          }`}>
-                            {file.category === 'Bid' ? 'Hồ sơ thầu' : file.category === 'Meeting' ? 'Biên bản họp' : 'Khác'}
-                          </span>
-                        </td>
-
-                        {/* Người tải lên */}
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2.5">
-                            <img 
-                              src={file.uploadedBy.avatar} 
-                              alt={file.uploadedBy.name} 
-                              className="w-7 h-7 rounded-full object-cover border border-slate-200" 
-                            />
-                            <span className="text-xs font-medium text-slate-700">{file.uploadedBy.name}</span>
-                          </div>
-                        </td>
-
-                        {/* Thời điểm */}
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                            <span>{formatDate(file.uploadedAt)}</span>
-                          </div>
-                        </td>
-
-                        {/* Phân quyền */}
-                        <td className="py-4 px-4">
-                          {file.isPublic ? (
-                            <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
-                              <Globe className="w-3.5 h-3.5" /> Được chia sẻ
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-xs text-slate-500 font-medium">
-                              <Lock className="w-3.5 h-3.5 text-slate-400" /> Chỉ người sở hữu
-                            </span>
-                          )}
-                        </td>
-
-                        {/* Thao tác */}
-                        <td className="py-4 px-6 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {/* Xem trước */}
-                            <button
-                              onClick={() => setPreviewFile(file)}
-                              className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Xem trước"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-
-                            {/* Tải xuống */}
-                            {userCanDownload ? (
-                              <a
-                                href={file.url}
-                                download={file.name}
-                                className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors inline-block"
-                                title="Tải xuống"
-                              >
-                                <Download className="w-4 h-4" />
-                              </a>
-                            ) : (
-                              <button
-                                disabled
-                                className="p-1.5 text-slate-300 cursor-not-allowed"
-                                title="Bạn không có quyền tải tệp này"
-                              >
-                                <Lock className="w-4 h-4" />
-                              </button>
-                            )}
-
-                            {/* Xóa tệp (Chỉ người tạo mới được xóa) */}
-                            {file.uploadedBy.id === activeUser.id && (
-                              <button
-                                onClick={() => handleDelete(file.id)}
-                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Xóa tệp"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-      </main>
-
-      {/* Modal Preview File */}
-      {previewFile && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl relative animate-scale-up">
-            <button
-              onClick={() => setPreviewFile(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-                <FileText className="w-6 h-6" />
-              </div>
               <div>
-                <h4 className="font-bold text-slate-900 text-sm leading-tight">{previewFile.name}</h4>
-                <p className="text-xs text-slate-400 mt-0.5">{formatFileSize(previewFile.size)}</p>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Tên Khách hàng / Dự án</label>
+                <input 
+                  type="text"
+                  placeholder="VD: Tập đoàn ABC"
+                  value={newTask.clientName}
+                  onChange={e => setNewTask({...newTask, clientName: e.target.value})}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
               </div>
-            </div>
 
-            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 text-xs space-y-2 mb-6">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Phân loại:</span>
-                <span className="font-semibold text-slate-700">{previewFile.category}</span>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Hạn hoàn thành (Due Date)</label>
+                <input 
+                  type="datetime-local" 
+                  required
+                  value={newTask.dueDate}
+                  onChange={e => setNewTask({...newTask, dueDate: e.target.value})}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Người tải lên:</span>
-                <span className="font-semibold text-slate-700">{previewFile.uploadedBy.name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Thời gian:</span>
-                <span className="font-semibold text-slate-700">{formatDate(previewFile.uploadedAt)}</span>
-              </div>
-            </div>
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => setPreviewFile(null)}
-                className="flex-1 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
-              >
-                Đóng
-              </button>
-              {canDownload(previewFile) && (
-                <a
-                  href={previewFile.url}
-                  download={previewFile.name}
-                  className="flex-1 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors text-center flex items-center justify-center gap-1.5"
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Thời gian nhắc trước</label>
+                <select 
+                  value={newTask.reminderMinutesBefore}
+                  onChange={e => setNewTask({...newTask, reminderMinutesBefore: Number(e.target.value)})}
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
-                  <Download className="w-4 h-4" /> Tải xuống
-                </a>
-              )}
-            </div>
+                  <option value={15}>Trước 15 phút</option>
+                  <option value={30}>Trước 30 phút</option>
+                  <option value={60}>Trước 1 giờ</option>
+                  <option value={120}>Trước 2 giờ</option>
+                  <option value={1440}>Trước 1 ngày</option>
+                </select>
+              </div>
+
+              <div className="pt-2 flex justify-end space-x-2">
+                <button 
+                  type="button" 
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 border border-slate-200 text-slate-600 text-sm font-medium rounded-xl hover:bg-slate-50"
+                >
+                  Hủy
+                </button>
+                <button 
+                  type="submit" 
+                  className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 shadow-sm"
+                >
+                  Tạo nhắc việc
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
