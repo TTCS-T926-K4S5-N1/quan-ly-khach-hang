@@ -1,6 +1,7 @@
 package com.crm.dao.pipeline;
 
 import com.crm.config.DatabaseConfig;
+import com.crm.dto.pipeline.OpportunityExportFilter;
 import com.crm.dto.pipeline.OpportunityWriteRequest;
 import com.crm.service.permissions.DataScopeContext;
 
@@ -236,6 +237,146 @@ public class OpportunityDAO {
             stmt.setLong(1, id);
             stmt.executeUpdate();
         }
+    }
+
+    /** SCRUM-108: Tên hiển thị của người xuất file (full_name, fallback email). */
+    public String findUserDisplayName(long userId) throws SQLException {
+        String sql = "SELECT full_name, email FROM users WHERE id = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    String name = rs.getString("full_name");
+                    String email = rs.getString("email");
+                    if (name != null && !name.isBlank()) {
+                        return email == null || email.isBlank() ? name : name + " (" + email + ")";
+                    }
+                    return email;
+                }
+            }
+        }
+        return "User #" + userId;
+    }
+
+    /**
+     * SCRUM-108: Lấy danh sách cơ hội để xuất Excel theo bộ lọc + phạm vi dữ liệu.
+     * Giá vốn chỉ được SELECT khi {@code includeCost = true} (người dùng có quyền product.cost.read),
+     * để dữ liệu nhạy cảm không bao giờ rời khỏi DB với người không có quyền.
+     * Giá vốn = Σ(quantity × cost_price) của báo giá mới nhất (chưa xoá) thuộc cơ hội.
+     */
+    public List<Map<String, Object>> searchForExport(
+            DataScopeContext scope,
+            OpportunityExportFilter filter,
+            boolean includeCost,
+            int limit
+    ) throws SQLException {
+        StringBuilder sql = new StringBuilder("""
+                SELECT
+                    o.id,
+                    o.name,
+                    o.customer_id,
+                    o.contact_name,
+                    o.amount,
+                    o.stage_id,
+                    o.probability,
+                    o.expected_close_date,
+                    o.status,
+                    o.win_reason_id,
+                    o.loss_reason_id,
+                    o.competitor_id,
+                    o.lost_reason,
+                    o.owner_user_id,
+                    o.created_at,
+                    c.name AS customer_name,
+                    ps.name AS stage_name,
+                    ps.order_no AS stage_order,
+                    u.full_name AS owner_name,
+                    comp.name AS competitor_name
+                """);
+        if (includeCost) {
+            sql.append("""
+                    ,
+                    (
+                        SELECT SUM(qi.quantity * COALESCE(p.cost_price, 0))
+                        FROM quote_items qi
+                        JOIN products p ON p.id = qi.product_id
+                        WHERE qi.quote_id = (
+                            SELECT q.id FROM quotes q
+                            WHERE q.opportunity_id = o.id AND q.is_deleted = 0
+                            ORDER BY q.id DESC LIMIT 1
+                        )
+                    ) AS cost_amount
+                    """);
+        }
+        sql.append("""
+                FROM opportunities o
+                LEFT JOIN customers c ON c.id = o.customer_id
+                LEFT JOIN pipeline_stages ps ON ps.id = o.stage_id
+                LEFT JOIN users u ON u.id = o.owner_user_id
+                LEFT JOIN competitors comp ON comp.id = o.competitor_id
+                WHERE o.is_deleted = 0
+                """);
+
+        List<Object> params = new ArrayList<>();
+        if (scope != null) {
+            scope.appendOwnerPredicate("o.owner_user_id", sql, params);
+            if (filter.isOnlyMine()) {
+                sql.append(" AND o.owner_user_id = ?");
+                params.add(scope.currentUserId());
+            }
+        }
+        if (filter.getStageId() != null) {
+            sql.append(" AND o.stage_id = ?");
+            params.add(filter.getStageId());
+        }
+        if (filter.getStatus() != null) {
+            sql.append(" AND o.status = ?");
+            params.add(filter.getStatus());
+        }
+        if (filter.getKeyword() != null) {
+            sql.append(" AND (LOWER(o.name) LIKE ? OR LOWER(o.contact_name) LIKE ? OR LOWER(c.name) LIKE ?)");
+            String kw = "%" + filter.getKeyword().toLowerCase() + "%";
+            params.add(kw);
+            params.add(kw);
+            params.add(kw);
+        }
+        for (Map.Entry<String, String> cf : filter.getCustomFieldFilters().entrySet()) {
+            sql.append("""
+                     AND EXISTS (
+                        SELECT 1 FROM custom_field_values cfv
+                        JOIN custom_fields cfd ON cfd.id = cfv.custom_field_id
+                        WHERE cfv.record_id = o.id
+                          AND cfd.entity_type = 'OPPORTUNITY'
+                          AND cfd.active = TRUE
+                          AND cfd.field_key = ?
+                          AND LOWER(cfv.field_value) LIKE ?
+                    )
+                    """);
+            params.add(cf.getKey());
+            params.add("%" + cf.getValue().toLowerCase() + "%");
+        }
+
+        sql.append(" ORDER BY o.id DESC LIMIT ?");
+        params.add(limit);
+
+        List<Map<String, Object>> list = new ArrayList<>();
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                stmt.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> row = mapOpportunity(rs);
+                    if (includeCost) {
+                        row.put("costAmount", rs.getBigDecimal("cost_amount"));
+                    }
+                    list.add(row);
+                }
+            }
+        }
+        return list;
     }
 
     private Map<String, Object> mapOpportunity(ResultSet rs) throws SQLException {

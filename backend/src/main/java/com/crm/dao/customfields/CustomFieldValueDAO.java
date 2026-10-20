@@ -29,6 +29,60 @@ public class CustomFieldValueDAO {
         return values;
     }
 
+    /** SCRUM-108: Danh sách trường tuỳ chỉnh đang active của một thực thể (field_key → label), giữ thứ tự id. */
+    public Map<String, String> listActiveFields(String entityType) throws SQLException {
+        Map<String, String> fields = new LinkedHashMap<>();
+        String sql = "SELECT field_key, label FROM custom_fields WHERE entity_type = ? AND active = TRUE ORDER BY id";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, entityType);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    fields.put(rs.getString("field_key"), rs.getString("label"));
+                }
+            }
+        }
+        return fields;
+    }
+
+    /** SCRUM-108: Lấy giá trị trường tuỳ chỉnh cho nhiều bản ghi trong một truy vấn (recordId → field_key → value). */
+    public Map<Long, Map<String, String>> getValuesForRecords(String entityType, Collection<Long> recordIds) throws SQLException {
+        Map<Long, Map<String, String>> result = new HashMap<>();
+        if (recordIds == null || recordIds.isEmpty()) return result;
+
+        List<Long> ids = new ArrayList<>(recordIds);
+        final int chunkSize = 500;
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            for (int start = 0; start < ids.size(); start += chunkSize) {
+                List<Long> chunk = ids.subList(start, Math.min(ids.size(), start + chunkSize));
+                StringBuilder sql = new StringBuilder("""
+                        SELECT cfv.record_id, cf.field_key, cfv.field_value
+                        FROM custom_field_values cfv
+                        JOIN custom_fields cf ON cf.id = cfv.custom_field_id
+                        WHERE cf.entity_type = ? AND cf.active = TRUE AND cfv.record_id IN (
+                        """);
+                for (int i = 0; i < chunk.size(); i++) {
+                    sql.append(i == 0 ? "?" : ",?");
+                }
+                sql.append(')');
+
+                try (PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+                    stmt.setString(1, entityType);
+                    for (int i = 0; i < chunk.size(); i++) {
+                        stmt.setLong(i + 2, chunk.get(i));
+                    }
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            result.computeIfAbsent(rs.getLong("record_id"), k -> new LinkedHashMap<>())
+                                    .put(rs.getString("field_key"), rs.getString("field_value"));
+                        }
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
     public void saveValues(String entityType, long recordId, Map<String, Object> values) throws SQLException {
         if (values == null || values.isEmpty()) return;
 

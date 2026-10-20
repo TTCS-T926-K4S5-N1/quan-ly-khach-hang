@@ -3,10 +3,13 @@ package com.crm.service.pipeline;
 import com.crm.dao.customfields.CustomFieldValueDAO;
 import com.crm.dao.pipeline.OpportunityDAO;
 import com.crm.dao.pipeline.PipelineStageDAO;
+import com.crm.dto.pipeline.OpportunityExportFilter;
 import com.crm.dto.pipeline.OpportunityWriteRequest;
 import com.crm.service.permissions.DataScopeContext;
 import com.crm.service.permissions.DataScopeService;
+import com.crm.service.permissions.PermissionService;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 public class OpportunityService {
@@ -15,6 +18,51 @@ public class OpportunityService {
     private final PipelineStageDAO stageDAO = new PipelineStageDAO();
     private final CustomFieldValueDAO customFieldValueDAO = new CustomFieldValueDAO();
     private final DataScopeService dataScopeService = new DataScopeService();
+    private final PermissionService permissionService = new PermissionService();
+    private final OpportunityExcelExporter excelExporter = new OpportunityExcelExporter();
+
+    /** SCRUM-108: Giới hạn an toàn số dòng mỗi lần xuất. */
+    public static final int EXPORT_MAX_ROWS = 10_000;
+    public static final String PERMISSION_VIEW_COST = "product.cost.read";
+
+    /** Kết quả xuất file. */
+    public record ExportResult(byte[] content, int rowCount, boolean includeCost, boolean truncated) { }
+
+    /**
+     * SCRUM-108: Xuất danh sách cơ hội ra Excel theo bộ lọc đang áp dụng.
+     * - Yêu cầu quyền opportunity.export; phạm vi dữ liệu (SELF/TEAM/ALL) lấy từ role.
+     * - Giá vốn và biên lợi nhuận chỉ xuất khi người dùng có quyền product.cost.read.
+     */
+    public ExportResult export(long currentUserId, OpportunityExportFilter filter) throws Exception {
+        DataScopeContext scope = dataScopeService.resolve(currentUserId, "opportunity", "export");
+        boolean includeCost = permissionService.hasPermission(currentUserId, PERMISSION_VIEW_COST);
+
+        List<Map<String, Object>> rows = opportunityDAO.searchForExport(scope, filter, includeCost, EXPORT_MAX_ROWS + 1);
+        boolean truncated = rows.size() > EXPORT_MAX_ROWS;
+        if (truncated) {
+            rows = new ArrayList<>(rows.subList(0, EXPORT_MAX_ROWS));
+        }
+
+        Map<String, String> customFields = customFieldValueDAO.listActiveFields("OPPORTUNITY");
+        Map<Long, Map<String, String>> cfValues = Map.of();
+        if (!customFields.isEmpty() && !rows.isEmpty()) {
+            List<Long> ids = new ArrayList<>(rows.size());
+            for (Map<String, Object> r : rows) ids.add(((Number) r.get("id")).longValue());
+            cfValues = customFieldValueDAO.getValuesForRecords("OPPORTUNITY", ids);
+        }
+
+        byte[] content = excelExporter.export(new OpportunityExcelExporter.ExportData(
+                rows,
+                customFields,
+                cfValues,
+                includeCost,
+                filter.describe(),
+                opportunityDAO.findUserDisplayName(currentUserId),
+                LocalDateTime.now(),
+                truncated
+        ));
+        return new ExportResult(content, rows.size(), includeCost, truncated);
+    }
 
     public List<Map<String, Object>> search(
             long currentUserId,

@@ -8,6 +8,8 @@ let customers = [];
 let winReasons = [];
 let lossReasons = [];
 let competitors = [];
+let currentUser = null;
+let userPermissions = new Set();
 
 let draggedOppId = null;
 let closingOppId = null;
@@ -67,6 +69,7 @@ async function api(path, options = {}) {
 async function initPipeline() {
     try {
         await Promise.all([
+            loadSession(),
             loadStages(),
             loadWinLossAndCompetitors(),
             loadCustomers(),
@@ -74,6 +77,30 @@ async function initPipeline() {
         ]);
     } catch (err) {
         console.error("Initialization error:", err);
+    }
+}
+
+async function loadSession() {
+    try {
+        const session = await api("/api/auth/session");
+        currentUser = session;
+        if (Array.isArray(session?.permissions)) {
+            userPermissions = new Set(session.permissions);
+        }
+        setupExportPermission();
+    } catch (err) {
+        console.warn("Could not load user session:", err);
+    }
+}
+
+function setupExportPermission() {
+    const exportBtn = document.getElementById("exportOpportunitiesButton");
+    if (!exportBtn) return;
+    const canExport = userPermissions.has("opportunity.export") || userPermissions.has("*");
+    if (canExport) {
+        exportBtn.style.display = "inline-flex";
+    } else {
+        exportBtn.style.display = "none";
     }
 }
 
@@ -243,6 +270,8 @@ document.getElementById("addOpportunityButton")?.addEventListener("click", () =>
     openOpportunityDrawer();
 });
 
+document.getElementById("exportOpportunitiesButton")?.addEventListener("click", exportOpportunities);
+
 document.getElementById("closeOpportunityDrawer")?.addEventListener("click", closeOpportunityDrawer);
 document.getElementById("cancelOpportunity")?.addEventListener("click", closeOpportunityDrawer);
 opportunityOverlay?.addEventListener("click", closeOpportunityDrawer);
@@ -263,6 +292,79 @@ document.getElementById("resetPipelineFilter")?.addEventListener("click", () => 
     if (ownerFilter) ownerFilter.value = "";
     render();
 });
+
+/* =========================================================
+   EXCEL EXPORT (SCRUM-108 / SCRUM-215)
+========================================================= */
+async function exportOpportunities() {
+    const exportBtn = document.getElementById("exportOpportunitiesButton");
+    if (!exportBtn || exportBtn.disabled) return;
+
+    const originalText = exportBtn.innerHTML;
+    exportBtn.disabled = true;
+    exportBtn.innerHTML = "⏳ Đang xuất...";
+
+    try {
+        const params = new URLSearchParams();
+        const query = (searchInput?.value || "").trim();
+        if (query) params.set("keyword", query);
+
+        const owner = (ownerFilter?.value || "").trim();
+        if (owner === "Tôi") {
+            params.set("owner", "me");
+        }
+
+        const url = `${API_BASE}/api/opportunities/export${params.toString() ? "?" + params.toString() : ""}`;
+        const response = await fetch(url, {
+            method: "GET",
+            credentials: "include"
+        });
+
+        if (response.status === 401) {
+            window.location.href = "login";
+            return;
+        }
+
+        if (!response.ok) {
+            let errorMsg = `Lỗi máy chủ (${response.status})`;
+            try {
+                const errJson = await response.json();
+                if (errJson?.message) errorMsg = errJson.message;
+            } catch (_) {}
+            throw new Error(errorMsg);
+        }
+
+        let filename = "danh-sach-co-hoi.xlsx";
+        const disposition = response.headers.get("Content-Disposition");
+        if (disposition) {
+            const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+            if (utf8Match && utf8Match[1]) {
+                filename = decodeURIComponent(utf8Match[1]);
+            } else {
+                const regularMatch = disposition.match(/filename="?([^";]+)"?/i);
+                if (regularMatch && regularMatch[1]) {
+                    filename = regularMatch[1];
+                }
+            }
+        }
+
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+        console.error("Export error:", err);
+        alert("Không thể xuất file Excel: " + err.message);
+    } finally {
+        exportBtn.disabled = false;
+        exportBtn.innerHTML = originalText;
+    }
+}
 
 /* Drawer form submit */
 opportunityForm?.addEventListener("submit", async event => {
@@ -550,7 +652,14 @@ function render() {
     const filtered = opportunities.filter(opp => {
         const text = `${opp.name || ""} ${opp.customerName || ""}`.toLowerCase();
         const searchOk = !query || text.includes(query);
-        const ownerOk = !owner || (opp.ownerName || "").includes(owner) || (owner === "Tôi");
+        let ownerOk = true;
+        if (owner === "Tôi") {
+            ownerOk = (currentUser?.id && opp.ownerUserId === currentUser.id) ||
+                      (currentUser?.fullName && opp.ownerName === currentUser.fullName) ||
+                      (opp.ownerName === "Tôi");
+        } else if (owner) {
+            ownerOk = (opp.ownerName || "").includes(owner);
+        }
         return searchOk && ownerOk;
     });
 

@@ -1,6 +1,7 @@
 package com.crm.controller.pipeline;
 
 import com.crm.dto.common.ApiResponse;
+import com.crm.dto.pipeline.OpportunityExportFilter;
 import com.crm.dto.pipeline.OpportunityWriteRequest;
 import com.crm.service.pipeline.OpportunityService;
 import com.crm.util.JsonUtil;
@@ -13,6 +14,11 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
@@ -39,6 +45,11 @@ public class OpportunityServlet extends HttpServlet {
 
                 var items = opportunityService.search(currentUserId, stageId, status, keyword, page, size);
                 ResponseUtil.json(resp, 200, ApiResponse.success("Lấy danh sách cơ hội thành công", items));
+                return;
+            }
+
+            if (path.equals("/export") || path.equals("/export/")) {
+                handleExport(req, resp, currentUserId);
                 return;
             }
 
@@ -154,6 +165,29 @@ public class OpportunityServlet extends HttpServlet {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
             ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));
+        }
+    }
+
+    /** SCRUM-108: GET /api/opportunities/export → tệp .xlsx theo bộ lọc đang áp dụng. */
+    private void handleExport(HttpServletRequest req, HttpServletResponse resp, long currentUserId) throws Exception {
+        OpportunityExportFilter filter = OpportunityExportFilter.fromParameters(req.getParameterMap());
+        OpportunityService.ExportResult result = opportunityService.export(currentUserId, filter);
+
+        String fileName = "co-hoi_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".xlsx";
+        String encoded = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
+
+        resp.setStatus(200);
+        resp.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        resp.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"; filename*=UTF-8''" + encoded);
+        resp.setHeader("Cache-Control", "no-store");
+        resp.setHeader("X-Export-Row-Count", String.valueOf(result.rowCount()));
+        resp.setHeader("X-Export-Include-Cost", String.valueOf(result.includeCost()));
+        resp.setHeader("X-Export-Truncated", String.valueOf(result.truncated()));
+        resp.setHeader("Access-Control-Expose-Headers",
+                "Content-Disposition, X-Export-Row-Count, X-Export-Include-Cost, X-Export-Truncated");
+        resp.setContentLength(result.content().length);
+        try (OutputStream out = resp.getOutputStream()) {
+            out.write(result.content());
         }
     }
 
