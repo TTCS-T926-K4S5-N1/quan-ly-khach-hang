@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bảng Quản Lý Pipeline Bán Hàng - CRM Kanban</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+
+  <!-- TOP HEADER -->
+  <header class="top-header">
+    <div class="brand">
+      <i class="fa-solid fa-chart-kanban text-primary"></i>
+      <div>
+        <h1>CRM Sales Pipeline</h1>
+        <p class="subtitle">Quản lý cơ hội & Nhận diện thương vụ tắc nghẽn</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-outline" id="btn-demo-data">
+        <i class="fa-solid fa-rotate-left"></i> Nạp dữ liệu mẫu
+      </button>
+      <button class="btn btn-primary" id="btn-add-deal">
+        <i class="fa-solid fa-plus"></i> Thêm cơ hội mới
+      </button>
+    </div>
+  </header>
+
+  <!-- STATS BAR -->
+  <section class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-icon bg-blue"><i class="fa-solid fa-sack-dollar"></i></div>
+      <div class="stat-info">
+        <span class="stat-label">Tổng giá trị Pipeline</span>
+        <span class="stat-value" id="stat-total-val">0 ₫</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon bg-green"><i class="fa-solid fa-coins"></i></div>
+      <div class="stat-info">
+        <span class="stat-label">Doanh thu dự kiến (Weighted)</span>
+        <span class="stat-value" id="stat-weighted-val">0 ₫</span>
+      </div>
+    </div>
+    <div class="stat-card border-warning">
+      <div class="stat-icon bg-warning"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <div class="stat-info">
+        <span class="stat-label">Thương vụ đang bị TẮC</span>
+        <span class="stat-value text-danger" id="stat-stuck-count">0 Deal</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon bg-purple"><i class="fa-solid fa-trophy"></i></div>
+      <div class="stat-info">
+        <span class="stat-label">Tỷ lệ Chốt thành công</span>
+        <span class="stat-value" id="stat-win-rate">0%</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTROLS / FILTERS -->
+  <section class="controls-bar">
+    <div class="search-box">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" id="input-search" placeholder="Tìm theo tên cơ hội, khách hàng, số điện thoại...">
+    </div>
+    <div class="filter-group">
+      <select id="filter-priority">
+        <option value="ALL">-- Tất cả ưu tiên --</option>
+        <option value="HIGH">Ưu tiên Cao</option>
+        <option value="MEDIUM">Ưu tiên Vừa</option>
+        <option value="LOW">Ưu tiên Thấp</option>
+      </select>
+
+      <button class="btn-toggle-stuck" id="btn-toggle-stuck">
+        <i class="fa-solid fa-fire"></i> Chỉ hiện deal bị TẮC
+      </button>
+    </div>
+  </section>
+
+  <!-- MAIN KANBAN BOARD -->
+  <main class="kanban-board" id="kanban-board">
+    <!-- Columns dynamically created via JS -->
+  </main>
+
+  <!-- MODAL TAO/SUA DEAL -->
+  <div class="modal-overlay" id="deal-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-title">Thêm Cơ Hội Bán Hàng Mới</h3>
+        <button class="btn-close" id="btn-close-modal">&times;</button>
+      </div>
+      <form id="deal-form">
+        <input type="hidden" id="field-deal-id">
+        <div class="form-grid">
+          <div class="form-group col-12">
+            <label required>Tên cơ hội / Tên dự án</label>
+            <input type="text" id="field-title" placeholder="VD: Hợp đồng phần mềm CRM - Cty Á Châu" required>
+          </div>
+          <div class="form-group col-6">
+            <label required>Khách hàng / Công ty</label>
+            <input type="text" id="field-customer" placeholder="VD: Công ty TNHH Á Châu" required>
+          </div>
+          <div class="form-group col-6">
+            <label>Số điện thoại</label>
+            <input type="text" id="field-phone" placeholder="0901234567">
+          </div>
+          <div class="form-group col-6">
+            <label required>Giá trị hợp đồng (VNĐ)</label>
+            <input type="number" id="field-value" min="0" step="1000000" placeholder="50000000" required>
+          </div>
+          <div class="form-group col-6">
+            <label required>Giai đoạn</label>
+            <select id="field-stage" required>
+              <option value="LEAD">1. Khách hàng tiềm năng (10%)</option>
+              <option value="QUALIFIED">2. Xác định nhu cầu (30%)</option>
+              <option value="PROPOSAL">3. Gửi báo giá / Demo (50%)</option>
+              <option value="NEGOTIATION">4. Đàm phán hợp đồng (80%)</option>
+              <option value="WON">5. Thành công (Won) (100%)</option>
+              <option value="LOST">6. Thất bại (Lost) (0%)</option>
+            </select>
+          </div>
+          <div class="form-group col-6">
+            <label>Mức độ ưu tiên</label>
+            <select id="field-priority">
+              <option value="HIGH">Cao</option>
+              <option value="MEDIUM" selected>Trung bình</option>
+              <option value="LOW">Thấp</option>
+            </select>
+          </div>
+          <div class="form-group col-6">
+            <label>Ngày tương tác gần nhất</label>
+            <input type="date" id="field-last-activity" required>
+          </div>
+          <div class="form-group col-12">
+            <label>Hành động tiếp theo (Next Step)</label>
+            <input type="text" id="field-next-step" placeholder="VD: Gọi lại chốt điều khoản thanh toán">
+          </div>
+          <div class="form-group col-12">
+            <label>Ghi chú chi tiết</label>
+            <textarea id="field-notes" rows="3" placeholder="Ghi chú chi tiết về nhu cầu, vướng mắc của khách..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" id="btn-cancel-modal">Hủy</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Lưu Cơ Hội</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
