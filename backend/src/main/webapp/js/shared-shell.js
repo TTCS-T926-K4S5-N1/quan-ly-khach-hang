@@ -85,7 +85,10 @@
                 `<svg viewBox="0 0 24 24"><path d="M20 15a8 8 0 1 1-11-11 7 7 0 0 0 11 11Z"/></svg>`,
 
             sun:
-                `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`
+                `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`,
+
+            stagnant:
+                `<svg viewBox="0 0 24 24"><path d="m10.29 3.86-8.58 14.86A2 2 0 0 0 3.45 22h17.1a2 2 0 0 0 1.74-3.28l-8.58-14.86a2 2 0 0 0-3.42 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`
         };
 
         return icons[name] || "";
@@ -735,6 +738,7 @@
                 { section: "workspace", path: "dashboard", label: "Tổng quan", icon: "dashboard" },
                 { section: "workspace", path: "customers", label: "Khách hàng", icon: "customer" },
                 { section: "workspace", path: "pipeline", label: "Cơ hội", icon: "opportunity" },
+                { section: "workspace", path: "stagnant-deals", label: "Cơ hội đình trệ ⚠️", icon: "stagnant" },
                 { section: "workspace", path: "calendar", label: "Lịch", icon: "calendar" },
                 { section: "workspace", path: "tasks", label: "Công việc", icon: "task" },
                 { section: "workspace", path: "quotations", label: "Báo giá", icon: "quote" },

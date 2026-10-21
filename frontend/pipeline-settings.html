@@ -196,24 +196,20 @@
 
         <aside class="crm-card settings-nav">
 
-            <a class="active" href="#">
+            <a class="active" href="pipeline-settings">
                 Pipeline & Giai đoạn
             </a>
 
-            <a href="#">
-                Lý do Thắng / Thua
+            <a href="win-loss-settings">
+                Lý do Thắng / Thua & Đối thủ
             </a>
 
-            <a href="#">
-                Đối thủ cạnh tranh
-            </a>
-
-            <a href="#">
+            <a href="master-data">
                 Danh mục dùng chung
             </a>
 
-            <a href="#">
-                Trường tùy chỉnh
+            <a href="stagnant-deals" style="color:#d97706; font-weight:600; display:flex; align-items:center; gap:6px;">
+                <span>⚠️</span> Cấu hình Ngưỡng Đình trệ
             </a>
 
         </aside>
@@ -339,6 +335,31 @@
                 <span>%</span>
 
             </div>
+        </label>
+
+
+        <label>
+            Ngưỡng không hoạt động tối đa (Cảnh báo đình trệ SCRUM-203)
+            <em>*</em>
+
+            <div class="probability-field">
+
+                <input
+                    id="stageStagnantDays"
+                    class="crm-input"
+                    type="number"
+                    min="1"
+                    max="90"
+                    placeholder="VD: 7"
+                    value="7"
+                >
+
+                <span>ngày</span>
+
+            </div>
+            <small style="display:block; margin-top:4px; font-size:12px; color:var(--crm-muted);">
+                Cơ hội ở giai đoạn này không có tương tác vượt quá số ngày trên sẽ tự động bị gắn cờ cảnh báo đình trệ.
+            </small>
         </label>
 
 

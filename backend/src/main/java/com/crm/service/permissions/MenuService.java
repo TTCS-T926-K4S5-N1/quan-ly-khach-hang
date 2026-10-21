@@ -54,6 +54,16 @@ public class MenuService {
                             "opportunity"
                     )
             );
+
+            menu.add(
+                    item(
+                            "STAGNANT_DEALS",
+                            "Cơ hội đình trệ ⚠️",
+                            "stagnant-deals",
+                            "workspace",
+                            "stagnant"
+                    )
+            );
         }
 
 

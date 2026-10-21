@@ -196,13 +196,26 @@
         </div>
 
 
-        <button
-            id="addOpportunityButton"
-            class="crm-btn crm-btn-primary"
-            type="button"
-        >
-            + Thêm cơ hội
-        </button>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <a
+                href="stagnant-deals"
+                id="btnStagnantWarningLink"
+                class="crm-btn crm-btn-secondary"
+                title="Xem trung tâm cảnh báo cơ hội đình trệ"
+                style="border-color:#f59e0b; color:#b45309; background:#fffbeb;"
+            >
+                ⚠️ Cảnh báo đình trệ
+                <span id="pipelineStagnantCountBadge" style="display:none; padding:2px 7px; border-radius:12px; background:#dc2626; color:#fff; font-size:11px; font-weight:700;">0</span>
+            </a>
+
+            <button
+                id="addOpportunityButton"
+                class="crm-btn crm-btn-primary"
+                type="button"
+            >
+                + Thêm cơ hội
+            </button>
+        </div>
 
     </section>
 
@@ -232,6 +245,11 @@
                 Nhóm
             </option>
         </select>
+
+        <label class="filter-stagnant-toggle" style="display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#b45309; cursor:pointer; padding:0 8px; white-space:nowrap;">
+            <input type="checkbox" id="filterStagnantOnly">
+            <span>⚠️ Chỉ cơ hội đình trệ</span>
+        </label>
 
         <button
             id="resetPipelineFilter"
