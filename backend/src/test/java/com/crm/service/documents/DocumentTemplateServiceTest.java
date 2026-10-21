@@ -1,7 +1,6 @@
 package com.crm.service.documents;
 
 import com.crm.model.documents.DocumentTemplate;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -9,12 +8,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class DocumentTemplateServiceTest {
 
-    private DocumentTemplateService service;
-
-    @BeforeEach
-    void setUp() {
-        service = new DocumentTemplateService();
-    }
+    final DocumentTemplateService service = new DocumentTemplateService();
 
     @Test
     @DisplayName("Mẫu tài liệu hợp lệ vượt qua thẩm định")
