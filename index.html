@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuoteTrack - Hệ thống Gửi Báo giá & Theo dõi Khách hàng Trực tuyến</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Header Navigation -->
+    <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-30 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded-lg text-white">
+                    <i class="fa-solid fa-paper-plane text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">QuoteTrack Portal</h1>
+                    <p class="text-xs text-slate-400">Hệ thống gửi & Theo dõi tương tác Báo giá</p>
+                </div>
+            </div>
+
+            <!-- View Switcher (Mô phỏng đổi góc nhìn Sales <-> Khách hàng) -->
+            <div class="flex items-center gap-2 bg-slate-800 p-1 rounded-xl border border-slate-700">
+                <button id="tab-sales" onclick="switchPortal('SALES')" class="px-4 py-1.5 text-xs font-bold rounded-lg transition bg-blue-600 text-white shadow-sm">
+                    <i class="fa-solid fa-user-tie mr-1.5"></i> Góc nhìn Sales
+                </button>
+                <button id="tab-customer" onclick="switchPortal('CUSTOMER')" class="px-4 py-1.5 text-xs font-bold rounded-lg transition text-slate-300 hover:text-white">
+                    <i class="fa-solid fa-eye mr-1.5"></i> Góc nhìn Khách xem link
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- SECTION 1: SALES DASHBOARD (Góc nhìn Nhân viên Kinh doanh) -->
+    <main id="sales-portal" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col gap-6">
+
+        <!-- Header Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase">Tổng Báo Giá Đã Gửi</p>
+                    <p id="stat-total" class="text-2xl font-bold text-slate-900 mt-1">0</p>
+                </div>
+                <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-file-invoice"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase">Khách Đã Mở Xem</p>
+                    <p id="stat-viewed" class="text-2xl font-bold text-amber-600 mt-1">0</p>
+                    <span class="text-xs text-amber-600 font-medium"><i class="fa-solid fa-eye mr-1"></i>Đã biết khách xem</span>
+                </div>
+                <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-eye"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase">Khách Đã Chấp Nhận</p>
+                    <p id="stat-accepted" class="text-2xl font-bold text-emerald-600 mt-1">0</p>
+                    <span class="text-xs text-emerald-600 font-medium"><i class="fa-solid fa-circle-check mr-1"></i>Sẵn sàng lên hợp đồng</span>
+                </div>
+                <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-handshake"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase">Từ chối / Cần chỉnh</p>
+                    <p id="stat-rejected" class="text-2xl font-bold text-rose-600 mt-1">0</p>
+                    <span class="text-xs text-rose-600 font-medium">Có ý kiến phản hồi</span>
+                </div>
+                <div class="w-12 h-12 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-comment-dots"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter and Create button -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div class="flex items-center gap-2">
+                <button onclick="setFilter('ALL')" id="btn-f-ALL" class="filter-btn px-4 py-2 rounded-lg text-sm font-medium transition bg-slate-900 text-white">Tất cả</button>
+                <button onclick="setFilter('SENT')" id="btn-f-SENT" class="filter-btn px-4 py-2 rounded-lg text-sm font-medium transition bg-slate-100 text-slate-600 hover:bg-slate-200">Chưa xem</button>
+                <button onclick="setFilter('VIEWED')" id="btn-f-VIEWED" class="filter-btn px-4 py-2 rounded-lg text-sm font-medium transition bg-slate-100 text-slate-600 hover:bg-slate-200">Đã xem</button>
+                <button onclick="setFilter('ACCEPTED')" id="btn-f-ACCEPTED" class="filter-btn px-4 py-2 rounded-lg text-sm font-medium transition bg-slate-100 text-slate-600 hover:bg-slate-200">Chấp nhận</button>
+                <button onclick="setFilter('REJECTED')" id="btn-f-REJECTED" class="filter-btn px-4 py-2 rounded-lg text-sm font-medium transition bg-slate-100 text-slate-600 hover:bg-slate-200">Phản hồi khác</button>
+            </div>
+
+            <button onclick="openModal('modal-create')" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-4 py-2.5 rounded-lg transition flex items-center gap-2 shadow-sm">
+                <i class="fa-solid fa-plus"></i> Tạo & Gửi Báo Giá Mới
+            </button>
+        </div>
+
+        <!-- Quotations List Table -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-1">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-slate-600">
+                    <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 uppercase text-xs tracking-wider">
+                        <tr>
+                            <th class="px-6 py-4">Mã / Khách hàng</th>
+                            <th class="px-6 py-4">Tổng tiền</th>
+                            <th class="px-6 py-4 text-center">Trạng Thái Theo Dõi</th>
+                            <th class="px-6 py-4 text-center">Lần Xem Gần Nhất</th>
+                            <th class="px-6 py-4">Liên Kết Gửi Khách</th>
+                            <th class="px-6 py-4 text-right">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="quotes-table-body" class="divide-y divide-slate-100">
+                        <!-- Content populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- SECTION 2: CUSTOMER PUBLIC PORTAL (Góc nhìn Khách xem Liên kết) -->
+    <main id="customer-portal" class="flex-1 max-w-4xl w-full mx-auto px-4 py-8 hidden space-y-6">
+        
+        <!-- Live Alert Indicator -->
+        <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center justify-between text-amber-900">
+            <div class="flex items-center gap-3">
+                <span class="relative flex h-3 w-3">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                </span>
+                <p class="text-xs font-medium">Bạn đang ở chế độ <strong>Mô Phỏng Khách Mở Link Báo Giá</strong>. Mọi thao tác đổi trạng thái ở đây sẽ cập nhật ngay cho Sales!</p>
+            </div>
+            <select id="customer-quote-selector" onchange="loadCustomerQuoteView(this.value)" class="text-xs bg-white border border-amber-300 rounded-lg p-1.5 font-bold outline-none">
+                <!-- Quotation Selector -->
+            </select>
+        </div>
+
+        <!-- Quotation Document Paper View -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
+            <!-- Company Header -->
+            <div class="p-8 border-b border-slate-100 flex justify-between items-start">
+                <div>
+                    <div class="flex items-center gap-2 text-blue-600 font-bold text-xl">
+                        <i class="fa-solid fa-cube"></i> TECHPRO SOLUTIONS
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1">Công ty TNHH Giải Pháp Công Nghệ TechPro</p>
+                    <p class="text-xs text-slate-500">Tầng 8, Tòa nhà Innovation, Cầu Giấy, Hà Nội</p>
+                    <p class="text-xs text-slate-500">Hotline: 0988 123 456 - Email: sales@techpro.vn</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-2xl font-extrabold text-slate-900 tracking-tight block">BÁO GIÁ</span>
+                    <span id="cust-doc-id" class="text-xs font-mono bg-slate-100 px-2.5 py-1 rounded font-bold text-slate-600 inline-block mt-1">BG-2023-01</span>
+                    <p id="cust-doc-date" class="text-xs text-slate-400 mt-1">Ngày tạo: 24/10/2023</p>
+                </div>
+            </div>
+
+            <!-- Customer Info -->
+            <div class="bg-slate-50/70 p-6 border-b border-slate-100 grid grid-cols-2 gap-4 text-xs">
+                <div>
+                    <span class="text-slate-400 font-medium uppercase">KÍNH GỬI KHÁCH HÀNG:</span>
+                    <h4 id="cust-doc-name" class="font-bold text-slate-800 text-sm mt-0.5">Công ty TNHH Sản Xuất Minh An</h4>
+                    <p id="cust-doc-contact" class="text-slate-600 mt-1">Người nhận: Anh Hoàng - Giám đốc IT</p>
+                    <p id="cust-doc-email" class="text-slate-600">Email: hoang@minhan.vn</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-slate-400 font-medium uppercase">ĐẠI DIỆN KINH DOANH:</span>
+                    <h4 class="font-bold text-slate-800 text-sm mt-0.5">Nguyễn Văn Nam</h4>
+                    <p class="text-slate-600 mt-1">SĐT/Zalo: 0912 345 678</p>
+                    <p class="text-slate-600">Email: nam.nguyen@techpro.vn</p>
+                </div>
+            </div>
+
+            <!-- Table Items -->
+            <div class="p-6 space-y-6">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-100 text-slate-700 font-bold uppercase">
+                        <tr>
+                            <th class="p-3 rounded-l-lg">STT</th>
+                            <th class="p-3">Hạng Mục Sản Phẩm / Dịch Vụ</th>
+                            <th class="p-3 text-center">ĐVT</th>
+                            <th class="p-3 text-center">SL</th>
+                            <th class="p-3 text-right">Đơn Giá</th>
+                            <th class="p-3 text-right rounded-r-lg">Thành Tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cust-doc-items" class="divide-y divide-slate-100">
+                        <!-- Dynamic items -->
+                    </tbody>
+                </table>
+
+                <!-- Summary Total -->
+                <div class="flex justify-end pt-4 border-t border-slate-100">
+                    <div class="w-64 space-y-2 text-xs">
+                        <div class="flex justify-between text-slate-500">
+                            <span>Cộng tiền hàng:</span>
+                            <span id="cust-doc-subtotal" class="font-medium">0 ₫</span>
+                        </div>
+                        <div class="flex justify-between text-slate-500">
+                            <span>Chiết khấu thương mại:</span>
+                            <span id="cust-doc-discount" class="font-medium text-rose-600">-0 ₫</span>
+                        </div>
+                        <div class="flex justify-between text-slate-500">
+                            <span>Thuế VAT (10%):</span>
+                            <span id="cust-doc-vat" class="font-medium">0 ₫</span>
+                        </div>
+                        <div class="flex justify-between text-sm font-bold text-slate-900 border-t border-slate-200 pt-2">
+                            <span>TỔNG THANH TOÁN:</span>
+                            <span id="cust-doc-total" class="text-blue-600 text-base">0 ₫</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Terms -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-1">
+                    <p class="font-bold text-slate-800">Điều khoản & Báo giá:</p>
+                    <p>• Báo giá có hiệu lực trong vòng 15 ngày kể từ ngày phát hành.</p>
+                    <p>• Thanh toán làm 2 đợt: 50% ngay khi ký hợp đồng, 50% sau khi nghiệm thu.</p>
+                </div>
+            </div>
+
+            <!-- Customer Response Interaction Box -->
+            <div class="bg-slate-900 text-white p-6 border-t border-slate-800">
+                <div id="cust-action-area" class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="font-bold text-base">Xác nhận phản hồi báo giá này</h4>
+                            <p class="text-xs text-slate-400">Phản hồi của quý khách sẽ gửi trực tiếp đến nhân viên phụ trách mà không cần gọi lại.</p>
+                        </div>
+                        <div id="cust-current-status-tag">
+                            <!-- Status Tag -->
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-3 pt-2">
+                        <button onclick="customerRespond('ACCEPTED')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold text-xs transition flex items-center gap-2 shadow-lg">
+                            <i class="fa-solid fa-check-circle text-base"></i> ĐỒNG Ý / CHẤP NHẬN BÁO GIÁ
+                        </button>
+                        <button onclick="showRejectInput()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-5 py-2.5 rounded-xl font-bold text-xs transition flex items-center gap-2">
+                            <i class="fa-solid fa-comment-dots text-base"></i> YÊU CẦU CHỈNH SỬA / TỪ CHỐI
+                        </button>
+                    </div>
+
+                    <!-- Reject / Feedback Form -->
+                    <div id="reject-reason-box" class="hidden space-y-3 pt-3 border-t border-slate-800">
+                        <label class="block text-xs font-bold text-slate-300">Nhập phản hồi / Lý do cần điều chỉnh:</label>
+                        <textarea id
