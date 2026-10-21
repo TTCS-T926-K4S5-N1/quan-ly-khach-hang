@@ -744,7 +744,8 @@
                 { section: "admin", path: "master-data", label: "Danh mục dùng chung", icon: "master" },
                 { section: "admin", path: "custom-fields", label: "Trường tùy chỉnh", icon: "custom" },
                 { section: "admin", path: "win-loss-settings", label: "Win / Loss", icon: "winLoss" },
-                { section: "admin", path: "pipeline-settings", label: "Cấu hình Pipeline", icon: "settings" }
+                { section: "admin", path: "pipeline-settings", label: "Cấu hình Pipeline", icon: "settings" },
+                { section: "admin", path: "document-templates", label: "Mẫu tài liệu PDF", icon: "settings" }
             ];
 
             renderUser();

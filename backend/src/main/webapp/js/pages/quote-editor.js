@@ -533,5 +533,47 @@ function todayString() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+const exportPdfButton = document.getElementById("exportQuotePdfButton");
+if (exportPdfButton) {
+    if (currentId) {
+        exportPdfButton.style.display = "inline-flex";
+    }
+    exportPdfButton.addEventListener("click", async () => {
+        if (!currentId) return;
+        exportPdfButton.disabled = true;
+        exportPdfButton.textContent = "Đang tạo PDF...";
+        try {
+            const res = await fetch(`${API_BASE}/api/quotes/${encodeURIComponent(currentId)}/pdf`, { credentials: "include" });
+            if (!res.ok) {
+                let msg = "Không thể xuất file PDF báo giá.";
+                try {
+                    const j = await res.json();
+                    if (j?.message) msg = j.message;
+                } catch (_) {}
+                throw new Error(msg);
+            }
+            const blob = await res.blob();
+            const disposition = res.headers.get("Content-Disposition") || "";
+            let filename = `BaoGia_${currentId}.pdf`;
+            const match = disposition.match(/filename="?([^";]+)"?/);
+            if (match && match[1]) filename = match[1];
+
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            exportPdfButton.disabled = false;
+            exportPdfButton.innerHTML = `<svg style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Xuất PDF`;
+        }
+    });
+}
+
 // Start
 initQuoteEditor();

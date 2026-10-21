@@ -14,6 +14,8 @@ let quote = getQuotes().find(item => String(item.id) === String(quoteId));
 const blocked = document.getElementById("contractBlocked");
 const createButton = document.getElementById("createContractButton");
 
+const exportPdfButton = document.getElementById("exportContractPdfBtn");
+
 async function initContractPage() {
     if (!quote && quoteId) {
         try {
@@ -36,20 +38,96 @@ async function initContractPage() {
         blocked.hidden = false;
         blocked.innerHTML = "Không tìm thấy báo giá được chọn.";
         createButton.disabled = true;
+        if (exportPdfButton) exportPdfButton.disabled = true;
     } else {
         renderQuoteData(quote);
-        if (quote.status !== "approved") {
+        if (quote.status !== "approved" && quote.status !== "accepted") {
             blocked.hidden = false;
-            blocked.innerHTML = "Báo giá chưa được phê duyệt nên không thể tạo hợp đồng.";
+            blocked.innerHTML = "Báo giá chưa được phê duyệt nên không thể tạo hoặc xuất hợp đồng.";
             createButton.disabled = true;
+            if (exportPdfButton) exportPdfButton.disabled = true;
         } else {
             blocked.hidden = true;
             createButton.disabled = false;
+            if (exportPdfButton) exportPdfButton.disabled = false;
         }
     }
 }
 
 initContractPage();
+
+if (exportPdfButton) {
+    exportPdfButton.addEventListener("click", async () => {
+        if (!quote || (quote.status !== "approved" && quote.status !== "accepted")) {
+            alert("Báo giá chưa được phê duyệt.");
+            return;
+        }
+
+        const number = value("contractNumber");
+        const signed = value("signedDate");
+        const effective = value("effectiveDate");
+        const expiry = value("expiryDate");
+        const terms = value("contractPaymentTerms");
+        const validation = document.getElementById("contractValidation");
+
+        if (!number || !signed || !effective) {
+            validation.textContent = "Vui lòng nhập số hợp đồng, ngày ký và ngày hiệu lực trước khi xuất PDF.";
+            return;
+        }
+        if (expiry && expiry < effective) {
+            validation.textContent = "Ngày hết hạn không được trước ngày hiệu lực.";
+            return;
+        }
+        validation.textContent = "";
+
+        exportPdfButton.disabled = true;
+        exportPdfButton.textContent = "Đang tạo PDF...";
+
+        try {
+            const res = await fetch(`http://localhost:8080/crm/api/quotes/${quote.id}/contract-pdf`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contractNumber: number,
+                    signedDate: signed,
+                    effectiveDate: effective,
+                    expiryDate: expiry || null,
+                    paymentTerms: terms || null
+                })
+            });
+
+            if (!res.ok) {
+                let msg = "Lỗi khi xuất PDF hợp đồng";
+                try {
+                    const j = await res.json();
+                    if (j?.message) msg = j.message;
+                } catch (_) {}
+                throw new Error(msg);
+            }
+
+            const blob = await res.blob();
+            const disposition = res.headers.get("Content-Disposition") || "";
+            let filename = `HopDong_${number}.pdf`;
+            const match = disposition.match(/filename="?([^";]+)"?/);
+            if (match && match[1]) filename = match[1];
+
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            exportPdfButton.disabled = false;
+            exportPdfButton.textContent = "Xuất PDF Hợp đồng";
+        }
+    });
+}
 
 
 document
