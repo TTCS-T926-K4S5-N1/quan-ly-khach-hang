@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<script>
+(function () {
+    try {
+        var theme = localStorage.getItem("crm_ui_theme");
+        document.documentElement.setAttribute("data-theme", theme === "dark" ? "dark" : "light");
+        document.documentElement.removeAttribute("data-crm-theme");
+    } catch (e) {
+        document.documentElement.setAttribute("data-theme", "light");
+    }
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chi tiết Cơ hội & Quản lý Đội ngũ</title>
+
+<link rel="stylesheet" href="css/design-system.css">
+<link rel="stylesheet" href="css/app-shell.css">
+<link rel="stylesheet" href="css/animations.css">
+<link rel="stylesheet" href="css/pages/deal-detail.css">
+</head>
+
+<body class="crm-private">
+
+<!-- SIDEBAR -->
+<aside class="crm-sidebar" id="sidebar"></aside>
+
+<!-- TOPBAR -->
+<header class="crm-topbar" id="topbar"></header>
+
+<!-- MAIN CONTENT -->
+<main class="crm-main deal-detail-page">
+
+    <!-- Breadcrumb -->
+    <nav class="deal-breadcrumb" aria-label="Breadcrumb">
+        <a href="pipeline">Cơ hội bán hàng</a>
+        <span class="deal-breadcrumb-sep">/</span>
+        <span id="breadcrumbCustomerName">Khách hàng</span>
+        <span class="deal-breadcrumb-sep">/</span>
+        <span id="breadcrumbDealName" style="color:var(--crm-text); font-weight:600;">Chi tiết cơ hội</span>
+    </nav>
+
+    <!-- Role Simulation Bar (Kiểm chứng AC2) -->
+    <div class="role-sim-banner">
+        <div class="role-sim-left">
+            <span class="role-sim-badge">MÔ PHỎNG QUYỀN (SCRUM-82)</span>
+            <span>Bạn đang xem với tư cách:</span>
+            <select id="userRoleSimulator" class="role-sim-select" title="Đổi người dùng để kiểm chứng phân quyền AC2">
+                <!-- Populated dynamically via JS -->
+            </select>
+        </div>
+        <div id="rolePermissionNote" style="font-size:12px; color:var(--crm-muted);">
+            <!-- Displays role permission capability -->
+        </div>
+    </div>
+
+    <!-- Hero Header Card -->
+    <section class="deal-hero-card">
+        <div class="deal-hero-top">
+            <div class="deal-title-wrap">
+                <div class="deal-kicker">
+                    <span>💎 THƯƠNG VỤ BÁN HÀNG</span>
+                    <span>•</span>
+                    <span id="dealCodeDisplay">#DEAL-101</span>
+                </div>
+                <h1 id="dealHeroTitle">Triển khai phần mềm ERP đa chi nhánh</h1>
+                <a href="#" id="dealCustomerLink" class="deal-customer-link">
+                    <svg class="crm-inline-icon" viewBox="0 0 24 24" style="width:16px;height:16px;"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                    <span id="dealCustomerName">Tập đoàn Công nghiệp Foxconn VN</span>
+                </a>
+            </div>
+
+            <div class="deal-hero-actions">
+                <button id="btnOpenShareModal" class="crm-btn crm-btn-primary" type="button" title="Thêm/chia sẻ thành viên phối hợp">
+                    <svg class="crm-inline-icon" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    👥 Quản lý Đội ngũ & Chia sẻ
+                </button>
+
+                <button id="btnTransferOwnerTop" class="crm-btn crm-btn-secondary" type="button" title="Chuyển giao người sở hữu chính">
+                    <svg class="crm-inline-icon" viewBox="0 0 24 24"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+                    🔄 Chuyển Người sở hữu
+                </button>
+
+                <button id="btnQuickLogActivityTop" class="crm-btn crm-btn-secondary" type="button" title="Ghi nhận hoạt động tương tác mới">
+                    <svg class="crm-inline-icon" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    📞 Ghi hoạt động
+                </button>
+
+                <a href="pipeline" class="crm-btn crm-btn-secondary" title="Quay lại bảng Kanban">
+                    ← Về Pipeline
+                </a>
+            </div>
+        </div>
+
+        <!-- Key Metrics Ribbon -->
+        <div class="deal-stats-ribbon">
+            <div class="deal-stat-item">
+                <span class="stat-label">Giá trị cơ hội</span>
+                <span id="statDealAmount" class="stat-value value-highlight">850.000.000 ₫</span>
+            </div>
+            <div class="deal-stat-item">
+                <span class="stat-label">Giai đoạn hiện tại</span>
+                <span id="statDealStage" class="stat-value" style="font-size:16px;">Gửi đề xuất & Báo giá</span>
+            </div>
+            <div class="deal-stat-item">
+                <span class="stat-label">Xác suất thắng</span>
+                <span id="statDealProb" class="stat-value">60%</span>
+            </div>
+            <div class="deal-stat-item">
+                <span class="stat-label">Dự kiến chốt</span>
+                <span id="statDealCloseDate" class="stat-value" style="font-size:16px;">15/11/2026</span>
+            </div>
+            <div class="deal-stat-item">
+                <span class="stat-label">Trạng thái</span>
+                <div id="statDealStatus">
+                    <span class="status-badge status-open">● Đang mở</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interactive Stage Stepper -->
+        <div class="stage-stepper" id="dealStageStepper" title="Click vào giai đoạn để cập nhật tiến trình">
+            <!-- Rendered by JS -->
+        </div>
+    </section>
+
+    <!-- 2-Column Content Grid -->
+    <div class="deal-detail-grid">
+
+        <!-- ================= LEFT COLUMN ================= -->
+        <div class="deal-col-left">
+
+            <!-- CARD 1: DEAL TEAM & COLLABORATORS (SCRUM-82 MAIN FOCUS) -->
+            <section class="deal-card">
+                <header class="deal-card-head">
+                    <div class="deal-card-title">
+                        <svg class="crm-inline-icon" viewBox="0 0 24 24" style="color:var(--crm-primary);"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        <h2>Đội ngũ Phụ trách Cơ hội (Deal Team)</h2>
+                        <span id="teamMemberCountBadge" class="card-count-badge">4 người</span>
+                    </div>
+
+                    <button id="btnCardAddCollaborator" class="crm-btn crm-btn-secondary" type="button" style="font-size:12.5px;">
+                        + Thêm thành viên phối hợp
+                    </button>
+                </header>
+
+                <!-- Primary Owner Box -->
+                <div class="deal-owner-box">
+                    <div class="owner-info-left">
+                        <div id="ownerAvatar" class="owner-avatar">H</div>
+                        <div class="owner-details">
+                            <strong>
+                                <span id="ownerFullName">Trần Thị Thu Hà</span>
+                                <span class="owner-role-tag">👑 Người sở hữu chính (Deal Owner)</span>
+                            </strong>
+                            <p id="ownerDepartment">Trưởng nhóm Kinh doanh Miền Bắc • lead.mienbac@crm.local</p>
+                            <p style="font-size:11.5px; color:#92400e; margin-top:2px;">
+                                Chịu trách nhiệm doanh số cao nhất cho thương vụ này.
+                            </p>
+                        </div>
+                    </div>
+
+                    <button id="btnTransferOwnerCard" class="crm-btn crm-btn-secondary" type="button" style="font-size:12px; background:#fff;">
+                        🔄 Chuyển quyền
+                    </button>
+                </div>
+
+                <!-- Collaborators / Shared Members List -->
+                <div style="margin-bottom:10px;">
+                    <strong style="font-size:13.5px; color:var(--crm-text);">
+                        Thành viên cùng tham gia (Collaborators)
+                    </strong>
+                    <span style="font-size:12px; color:var(--crm-muted); margin-left:6px;">
+                        (Được quyền xem chi tiết & ghi lịch sử hoạt động, không thể đổi người sở hữu)
+                    </span>
+                </div>
+
+                <div id="collaboratorsListContainer" class="collaborators-list">
+                    <!-- Collaborator cards rendered by JS -->
+                </div>
+
+                <!-- Team Policy Callout -->
+                <div class="team-policy-box">
+                    <svg viewBox="0 0 24 24" style="width:18px;height:18px;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                    <div>
+                        <strong>Quy tắc phân quyền đội ngũ (SCRUM-82):</strong>
+                        Mọi thành viên được chia sẻ đều có quyền bình đẳng trong việc xem toàn bộ tiến độ và ghi nhận hoạt động tương tác với khách hàng để phối hợp nhịp nhàng. Duy nhất <em>Người sở hữu chính</em> và <em>Trưởng nhóm</em> mới có thẩm quyền chuyển giao quyền sở hữu hoặc xóa thương vụ.
+                    </div>
+                </div>
+            </section>
+
+            <!-- CARD 2: DEAL DETAILS & BUSINESS INFORMATION -->
+            <section class="deal-card">
+                <header class="deal-card-head">
+                    <div class="deal-card-title">
+                        <svg class="crm-inline-icon" viewBox="0 0 24 24" style="color:var(--crm-primary);"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                        <h2>Thông tin Thương vụ & Nhu cầu</h2>
+                    </div>
+                </header>
+
+                <div class="deal-info-grid">
+                    <div class="deal-info-item">
+                        <label>Khách hàng doanh nghiệp</label>
+                        <span id="detailCustomerCompany">Tập đoàn Công nghiệp Foxconn VN</span>
+                    </div>
+
+                    <div class="deal-info-item">
+                        <label>Người liên hệ chính</label>
+                        <span id="detailContactPerson">Ông Trần Quốc Bảo (Giám đốc CNTT) - 0988.123.456</span>
+                    </div>
+
+                    <div class="deal-info-item">
+                        <label>Sản phẩm / Dịch vụ chào bán</label>
+                        <span id="detailProductInterest">Hệ thống ERP Doanh nghiệp Cloud Edition</span>
+                    </div>
+
+                    <div class="deal-info-item">
+                        <label>Phương thức thanh toán / Hợp đồng</label>
+                        <span>Thuê bao hàng năm (SaaS Enterprise Contract)</span>
+                    </div>
+
+                    <div class="deal-info-item" style="grid-column: 1 / -1;">
+                        <label>Ghi chú mục tiêu & Chiến lược phối hợp</label>
+                        <p id="detailDealNotes" style="margin:4px 0 0; font-size:13px; color:var(--crm-text-2); line-height:1.5; background:var(--crm-surface-soft); padding:10px 14px; border-radius:6px; border:1px solid var(--crm-border);">
+                            Khách hàng có 3 nhà máy tại Bắc Giang và Bắc Ninh. Cần giải pháp kết nối dữ liệu sản xuất và tài chính thời gian thực. Đội ngũ kỹ thuật (Pre-sales) cần phối hợp chặt chẽ để trả lời bài toán bảo mật hệ thống.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- ================= RIGHT COLUMN ================= -->
+        <div class="deal-col-right">
+
+            <!-- CARD 3: ACTIVITY LOG & AUDIT TRAIL (AC3 FOCUS) -->
+            <section class="deal-card">
+                <header class="deal-card-head">
+                    <div class="deal-card-title">
+                        <svg class="crm-inline-icon" viewBox="0 0 24 24" style="color:var(--crm-primary);"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <h2>Nhật ký Hoạt động (Activity Log)</h2>
+                    </div>
+                </header>
+
+                <!-- Filter Tabs -->
+                <div class="activity-filter-tabs">
+                    <button type="button" class="act-tab-btn active" data-filter-type="ALL">Tất cả</button>
+                    <button type="button" class="act-tab-btn" data-filter-type="TEAM">👥 Đội ngũ & Sở hữu</button>
+                    <button type="button" class="act-tab-btn" data-filter-type="ACTIVITY">📞 Tương tác</button>
+                </div>
+
+                <!-- Quick Log Action Input Box (Thành viên được chia sẻ ghi hoạt động tại đây) -->
+                <div class="quick-log-box">
+                    <div style="font-size:12px; font-weight:700; color:var(--crm-text); margin-bottom:8px; display:flex; justify-content:space-between;">
+                        <span>✍️ Ghi nhận hoạt động mới</span>
+                        <span id="quickLogActorLabel" style="font-weight:normal; color:var(--crm-muted);">Người ghi: ...</span>
+                    </div>
+
+                    <form id="quickLogForm" class="quick-log-inputs">
+                        <div class="quick-log-row">
+                            <select id="quickLogType" class="crm-input" style="font-size:12px; padding:6px 8px;">
+                                <option value="Cuộc gọi">📞 Cuộc gọi</option>
+                                <option value="Họp demo">💻 Họp demo kỹ thuật</option>
+                                <option value="Gửi báo giá">📄 Gửi báo giá / Đề xuất</option>
+                                <option value="Gặp trực tiếp">🤝 Gặp đàm phán</option>
+                                <option value="Ghi chú nội bộ">📝 Ghi chú phối hợp</option>
+                            </select>
+
+                            <input id="quickLogDate" type="date" class="crm-input" style="font-size:12px; padding:6px 8px;">
+                        </div>
+
+                        <textarea id="quickLogNote" placeholder="Nhập tóm tắt kết quả trao đổi, phản hồi của khách hàng hoặc bước tiếp theo..." required></textarea>
+
+                        <div class="quick-log-actions">
+                            <button type="submit" class="crm-btn crm-btn-primary" style="font-size:12px; padding:6px 14px;">
+                                Lưu hoạt động
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Timeline List -->
+                <div id="activityTimelineContainer" class="activity-timeline">
+                    <!-- Timeline items rendered by JS -->
+                </div>
+            </section>
+
+        </div>
+
+    </div>
+
+</main>
+
+<!-- =========================================================
+     MODAL 1: SHARE DEAL / ADD COLLABORATOR
+========================================================= -->
+<div id="shareModalOverlay" class="crm-modal-overlay"></div>
+<div id="shareModalDialog" class="crm-modal-dialog">
+    <div class="modal-header">
+        <h3>👥 Thêm Thành viên Tham gia Cơ hội</h3>
+        <button id="btnCloseShareModal" class="modal-close-btn" type="button">&times;</button>
+    </div>
+
+    <form id="formShareDeal">
+        <div class="modal-body">
+            <div>
+                <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">
+                    Tìm kiếm & Chọn nhân sự công ty <em>*</em>
+                </label>
+                <input id="searchEmployeeInput" type="text" class="crm-input" placeholder="Gõ tên hoặc email nhân viên..." autocomplete="off">
+            </div>
+
+            <!-- Employee Picker List -->
+            <div id="employeePickerList" class="user-picker-list">
+                <!-- Populated dynamically via JS -->
+            </div>
+            <input type="hidden" id="selectedEmployeeId" required>
+
+            <div>
+                <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">
+                    Vai trò phụ trách trong cơ hội <em>*</em>
+                </label>
+                <select id="collaboratorRoleSelect" class="crm-input" required>
+                    <option value="Pre-Sales / Hỗ trợ Kỹ thuật">Kỹ thuật & Pre-Sales (Demo / Khảo sát giải pháp)</option>
+                    <option value="Chuyên viên Kinh doanh Phối hợp">Chuyên viên Kinh doanh Phối hợp (Co-Sales Rep)</option>
+                    <option value="Kỹ sư Giải pháp (Solution Architect)">Kỹ sư Giải pháp (Solution Architect)</option>
+                    <option value="Chuyên viên Pháp chế & Hợp đồng">Chuyên viên Pháp chế & Hợp đồng (Legal / Contract)</option>
+                    <option value="Quản lý Hỗ trợ (Manager / Sponsor)">Quản lý Hỗ trợ Đàm phán (Deal Sponsor)</option>
+                    <option value="Chăm sóc Khách hàng (Customer Success)">Chăm sóc Khách hàng (CS / Onboarding)</option>
+                </select>
+            </div>
+
+            <div>
+                <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">
+                    Ghi chú phân công nhiệm vụ
+                </label>
+                <textarea id="collaboratorAssignNote" class="crm-input" rows="2" placeholder="Ví dụ: Phụ trách demo giải pháp và tính toán chi phí triển khai..."></textarea>
+            </div>
+
+            <div style="font-size:12px; color:var(--crm-muted); background:var(--crm-surface-soft); padding:8px 12px; border-radius:6px; border:1px solid var(--crm-border);">
+                ℹ️ <strong>Quyền hạn:</strong> Thành viên được thêm sẽ có quyền xem đầy đủ dữ liệu thương vụ và ghi nhận lịch sử hoạt động. Hệ thống sẽ tự động ghi sự kiện này vào Nhật ký lịch sử (Activity Log).
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button id="btnCancelShareModal" type="button" class="crm-btn crm-btn-secondary">Hủy</button>
+            <button type="submit" class="crm-btn crm-btn-primary">Thêm vào cơ hội</button>
+        </div>
+    </form>
+</div>
+
+<!-- =========================================================
+     MODAL 2: TRANSFER OWNERSHIP
+========================================================= -->
+<div id="transferModalOverlay" class="crm-modal-overlay"></div>
+<div id="transferModalDialog" class="crm-modal-dialog">
+    <div class="modal-header">
+        <h3>🔄 Chuyển Quyền Sở hữu Chính (Deal Owner)</h3>
+        <button id="btnCloseTransferModal" class="modal-close-btn" type="button">&times;</button>
+    </div>
+
+    <form id="formTransferOwner">
+        <div class="modal-body">
+            <div style="padding:10px 14px; background:#fffbeb; border:1px solid #fde68a; border-radius:6px; font-size:12.5px; color:#92400e;">
+                ⚠️ <strong>Lưu ý quan trọng:</strong> Người sở hữu chính là người chịu chỉ tiêu doanh số cuối cùng cho thương vụ này. Sau khi chuyển, Người sở hữu mới sẽ có quyền quản lý cao nhất đối với thương vụ.
+            </div>
+
+            <div>
+                <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">
+                    Người sở hữu hiện tại:
+                </label>
+                <input id="currentOwnerNameInput" type="text" class="crm-input" disabled style="background:#f1f5f9; font-weight:600;">
+            </div>
+
+            <div>
+                <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">
+                    Chọn Người sở hữu mới <em>*</em>
+                </label>
+                <select id="newOwnerSelect" class="crm-input" required>
+                    <!-- Populated dynamically via JS -->
+                </select>
+            </div>
+
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;">
+                <input type="checkbox" id="keepCurrentOwnerAsCollab" checked>
+                <span>Giữ người sở hữu hiện tại lại làm <strong>Thành viên cùng tham gia (Collaborator)</strong></span>
+            </label>
+
+            <div>
+                <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">
+                    Lý do chuyển giao quyền sở hữu <em>*</em>
+                </label>
+                <textarea id="transferReason" class="crm-input" rows="2" placeholder="Ví dụ: Bàn giao phụ trách khách hàng trọng điểm khu vực Miền Bắc..." required></textarea>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button id="btnCancelTransferModal" type="button" class="crm-btn crm-btn-secondary">Hủy</button>
+            <button type="submit" class="crm-btn crm-btn-primary" style="background:#f59e0b; border-color:#d97706;">
+                Xác nhận chuyển giao
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- =========================================================
+     MODAL 3: LOG ACTIVITY MODAL
+========================================================= -->
+<div id="logActModalOverlay" class="crm-modal-overlay"></div>
+<div id="logActModalDialog" class="crm-modal-dialog">
+    <div class="modal-header">
+        <h3>📞 Ghi nhận Hoạt động Tương tác</h3>
+        <button id="btnCloseLogActModal" class="modal-close-btn" type="button">&times;</button>
+    </div>
+
+    <form id="formLogActivityModal">
+        <div class="modal-body">
+            <div>
+                <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">
+                    Loại tương tác <em>*</em>
+                </label>
+                <select id="modalLogType" class="crm-input" required>
+                    <option value="Cuộc gọi">📞 Cuộc gọi điện thoại</option>
+                    <option value="Họp demo">💻 Buổi họp demo giải pháp kỹ thuật</option>
+                    <option value="Gặp trực tiếp">🤝 Gặp gỡ đàm phán trực tiếp</option>
+                    <option value="Gửi báo giá">📄 Gửi báo giá / Bản đề xuất giải pháp</option>
+                    <option value="Khác">📝 Khác</option>
+                </select>
+            </div>
+
+            <div class="quick-log-row">
+                <div>
+                    <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">
+                        Ngày tương tác <em>*</em>
+                    </label>
+                    <input id="modalLogDate" type="date" class="crm-input" required>
+                </div>
+
+                <div>
+                    <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">
+                        Thành viên thực hiện
+                    </label>
+                    <select id="modalLogActorSelect" class="crm-input">
+                        <!-- Populated with deal team members -->
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">
+                    Nội dung chi tiết <em>*</em>
+                </label>
+                <textarea id="modalLogContent" class="crm-input" rows="4" placeholder="Tóm tắt phản hồi của khách hàng, điểm thống nhất, các rào cản cần gỡ bỏ..." required></textarea>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button id="btnCancelLogActModal" type="button" class="crm-btn crm-btn-secondary">Hủy</button>
+            <button type="submit" class="crm-btn crm-btn-primary">Lưu hoạt động</button>
+        </div>
+    </form>
+</div>
+
+<!-- SCRIPTS -->
+<script src="js/pages/deal-detail.js"></script>
+<script src="js/page-transition.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/shared-shell.js"></script>
+<script src="js/ui-core.js"></script>
+<script src="js/ui-effects.js"></script>
+</body>
+</html>
