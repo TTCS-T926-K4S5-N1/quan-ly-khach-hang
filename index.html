@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSKH 360 - Dòng Thời Gian Tương Tác</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800">
+
+  <!-- Top Navigation Bar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center space-x-3">
+        <span class="w-8 h-8 rounded-md bg-indigo-600 text-white flex items-center justify-center font-bold text-sm">
+          <i class="fa-solid fa-headset"></i>
+        </span>
+        <div>
+          <h1 class="text-sm font-bold text-slate-900 leading-none">CRM Customer Support</h1>
+          <p class="text-[11px] text-slate-500 mt-0.5">Tiếp nhận & Quản lý tương tác Khách hàng</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2 text-xs">
+        <span class="text-slate-500">Nhân viên CSKH:</span>
+        <span class="font-semibold text-slate-800 bg-slate-100 px-2.5 py-1 rounded border border-slate-200">
+          Lê Minh Tâm
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- Cột trái: Hồ sơ & Tóm tắt bối cảnh bàn giao (4 Cột) -->
+    <aside class="lg:col-span-4 space-y-4">
+      
+      <!-- Thông tin Khách hàng -->
+      <div class="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
+        <div class="flex items-center space-x-3 pb-3 border-b border-slate-100">
+          <div class="w-11 h-11 rounded-full bg-slate-100 text-slate-700 font-bold flex items-center justify-center text-sm border border-slate-200">
+            HA
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h2 class="text-sm font-bold text-slate-900">Nguyễn Hoàng Anh</h2>
+              <span class="bg-amber-50 text-amber-700 text-[10px] font-semibold px-1.5 py-0.5 rounded border border-amber-200">VIP Gold</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Giám đốc - Công ty TechPro</p>
+            <p class="text-[11px] text-slate-400 font-mono">Mã KH: CUST-88392</p>
+          </div>
+        </div>
+
+        <div class="pt-3 space-y-2 text-xs">
+          <div class="flex justify-between">
+            <span class="text-slate-400">Điện thoại:</span>
+            <span class="font-medium text-slate-700">0988.123.456</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Email:</span>
+            <span class="font-medium text-slate-700">hoanganh@techpro.vn</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Sales phụ trách cũ:</span>
+            <span class="font-medium text-slate-700">Nguyễn Thị Mai</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Gói sản phẩm:</span>
+            <span class="font-medium text-indigo-600">ERP Enterprise (Năm 2)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tóm tắt Bối cảnh trong 5 phút -->
+      <div class="bg-slate-900 text-white rounded-lg p-4 shadow-sm space-y-3">
+        <div class="flex items-center space-x-2 border-b border-slate-800 pb-2">
+          <i class="fa-solid fa-bolt text-amber-400 text-xs"></i>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-200">Bối cảnh tiếp nhận (Nắm trong 5')</h3>
+        </div>
+
+        <div class="space-y-2 text-xs text-slate-300">
+          <div class="bg-slate-800/80 p-2.5 rounded border border-slate-700/60">
+            <span class="text-slate-400 block text-[10px] uppercase font-semibold mb-0.5">Trạng thái tài khoản:</span>
+            Vừa ký gia hạn Hợp đồng năm thứ 2. Hiện đang yêu cầu hỗ trợ kết nối phần mềm Hóa đơn điện tử MISA.
+          </div>
+
+          <div class="bg-slate-800/80 p-2.5 rounded border border-slate-700/60">
+            <span class="text-slate-400 block text-[10px] uppercase font-semibold mb-0.5">Thói quen làm việc:</span>
+            Ưu tiên trao đổi qua Zalo/Email. Tính cách cẩn thận, hay yêu cầu phản hồi tiến độ kỹ thuật rõ ràng.
+          </div>
+
+          <div class="bg-amber-950/50 border border-amber-800/60 p-2.5 rounded text-amber-200">
+            <span class="text-amber-400 block text-[10px] uppercase font-bold mb-0.5">Lưu ý gấp:</span>
+            Ticket <span class="font-mono underline">#TK-1029</span> đang mở. Cần đôn đốc Kỹ thuật phản hồi KH trước 17h hôm nay.
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Button -->
+      <button id="btn-open-log" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 px-4 rounded-lg text-xs transition flex items-center justify-center space-x-2 shadow-sm">
+        <i class="fa-solid fa-plus"></i>
+        <span>Ghi Nhận Tương Tác / Nhật Ký Mới</span>
+      </button>
+
+    </aside>
+
+    <!-- Cột phải: Dòng thời gian tương tác 360° (8 Cột) -->
+    <section class="lg:col-span-8">
+      <div class="bg-white rounded-lg border border-slate-200 p-5 shadow-sm">
+        
+        <!-- Header & Filter -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b border-slate-100">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">Dòng Thời Gian Tương Tác (Audit History)</h3>
+            <p class="text-xs text-slate-400">Toàn bộ lịch sử trao đổi, cuộc gọi, email và hợp đồng</p>
+          </div>
+          <span id="activity-count" class="text-xs text-slate-500 font-mono bg-slate-100 px-2.5 py-1 rounded border border-slate-200">
+            0 hoạt động
+          </span>
+        </div>
+
+        <!-- Filter tabs -->
+        <div class="flex flex-wrap gap-1.5 py-3 border-b border-slate-100 text-xs">
+          <button class="filter-btn active" data-type="ALL">Tất cả</button>
+          <button class="filter-btn" data-type="CALL">Cuộc gọi</button>
+          <button class="filter-btn" data-type="EMAIL">Email</button>
+          <button class="filter-btn" data-type="TICKET">Ticket Hỗ trợ</button>
+          <button class="filter-btn" data-type="NOTE">Ghi chú Nội bộ</button>
+          <button class="filter-btn" data-type="CONTRACT">Hợp đồng / Sales</button>
+        </div>
+
+        <!-- Timeline Container -->
+        <div id="timeline-container" class="relative border-l border-slate-200 ml-3 space-y-4 pt-4">
+          <!-- Render tự động qua JavaScript -->
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal Thêm tương tác mới -->
+  <div id="log-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-lg w-full p-5 space-y-4 border border-slate-200">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-sm text-slate-900">Thêm Tương Tác CSKH Mới</h3>
+        <button id="btn-close-modal" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="log-form" class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Loại hoạt động <span class="text-red-500">*</span></label>
+          <select id="input-type" required class="w-full border border-slate-300 rounded p-2 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+            <option value="CALL">Cuộc gọi điện thoại</option>
+            <option value="EMAIL">Email phản hồi</option>
+            <option value="TICKET">Ticket Hỗ trợ Kỹ thuật</option>
+            <option value="NOTE">Ghi chú Nội bộ / Bàn giao</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Tiêu đề tương tác <span class="text-red-500">*</span></label>
+          <input type="text" id="input-title" required placeholder="Ví dụ: Gọi hướng dẫn khách kết nối hóa đơn MISA" class="w-full border border-slate-300 rounded p-2 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Nội dung chi tiết <span class="text-red-500">*</span></label>
+          <textarea id="input-content" rows="3" required placeholder="Tóm tắt nội dung trao đổi hoặc yêu cầu cần theo dõi tiếp..." class="w-full border border-slate-300 rounded p-2 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Trạng thái</label>
+          <select id="input-status" class="w-full border border-slate-300 rounded p-2 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+            <option value="Hoàn thành">Hoàn thành</option>
+            <option value="Đang xử lý">Đang xử lý / Cần follow-up</option>
+            <option value="Chờ khách phản hồi">Chờ khách phản hồi</option>
+          </select>
+        </div>
+
+        <div class="flex justify-end space-x-2 pt-2 border-t">
+          <button type="button" id="btn-cancel-modal" class="px-3 py-1.5 border border-slate-300 rounded text-xs text-slate-600 hover:bg-slate-50">Hủy</button>
+          <button type="submit" class="px-3 py-1.5 bg-indigo-600 text-white rounded text-xs font-medium hover:bg-indigo-700">Lưu Dòng Thời Gian</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- External JavaScript -->
+  <script src="app.js"></script>
+</body>
+</html>
