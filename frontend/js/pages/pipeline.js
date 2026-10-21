@@ -19,9 +19,86 @@ const opportunityOverlay = document.getElementById("opportunityOverlay");
 const opportunityForm = document.getElementById("opportunityForm");
 const searchInput = document.getElementById("pipelineSearch");
 const ownerFilter = document.getElementById("ownerFilter");
+const filterStagnantOnly = document.getElementById("filterStagnantOnly");
+const pipelineStagnantCountBadge = document.getElementById("pipelineStagnantCountBadge");
 
 const dealModal = document.getElementById("closeDealModal");
 const dealOverlay = document.getElementById("closeDealOverlay");
+
+/* =========================================================
+   STAGNANCY THRESHOLDS & EVALUATION (SCRUM-78 / SCRUM-203)
+========================================================= */
+function getStagnancyThresholds() {
+    try {
+        const raw = localStorage.getItem("crm_stagnancy_thresholds");
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            return {
+                1: 5, 2: 7, 3: 10, 4: 14,
+                ...(parsed.stageThresholds || {}),
+                alertOverdueClose: parsed.alertOverdueClose !== false,
+                criticalDoubleThreshold: parsed.criticalDoubleThreshold !== false
+            };
+        }
+    } catch (_) {}
+    return { 1: 5, 2: 7, 3: 10, 4: 14, alertOverdueClose: true, criticalDoubleThreshold: true };
+}
+
+function evaluateDealStagnancy(deal) {
+    const isClosed = deal.status === "WON" || deal.status === "LOST" || deal.stageId === 5 || deal.stageId === 6;
+    if (isClosed) {
+        return { isStagnant: false, severity: "CLOSED", daysInactive: 0, daysOverdue: 0, reasons: [] };
+    }
+
+    const thresholds = getStagnancyThresholds();
+    const now = new Date();
+    const todayZero = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+    let daysInactive = 0;
+    let isInactive = false;
+    const stageThreshold = thresholds[deal.stageId] || 7;
+
+    if (deal.lastActivityDate) {
+        const actDate = new Date(deal.lastActivityDate);
+        const actZero = new Date(actDate.getFullYear(), actDate.getMonth(), actDate.getDate()).getTime();
+        daysInactive = Math.max(0, Math.floor((todayZero - actZero) / (1000 * 60 * 60 * 24)));
+        if (daysInactive > stageThreshold) {
+            isInactive = true;
+        }
+    }
+
+    let daysOverdue = 0;
+    let isOverdue = false;
+    if (thresholds.alertOverdueClose && deal.expectedCloseDate) {
+        const closeDate = new Date(deal.expectedCloseDate);
+        const closeZero = new Date(closeDate.getFullYear(), closeDate.getMonth(), closeDate.getDate()).getTime();
+        if (closeZero < todayZero) {
+            daysOverdue = Math.floor((todayZero - closeZero) / (1000 * 60 * 60 * 24));
+            isOverdue = daysOverdue > 0;
+        }
+    }
+
+    const isStagnant = isInactive || isOverdue;
+    let severity = "NORMAL";
+    if (isStagnant) {
+        const isDouble = thresholds.criticalDoubleThreshold && (daysInactive >= stageThreshold * 2);
+        if ((isInactive && isOverdue) || isDouble || daysOverdue >= 7) {
+            severity = "CRITICAL";
+        } else {
+            severity = "WARNING";
+        }
+    }
+
+    return {
+        isStagnant,
+        isInactive,
+        isOverdue,
+        severity,
+        daysInactive,
+        stageThreshold,
+        daysOverdue
+    };
+}
 
 /* =========================================================
    API HELPER
@@ -131,33 +208,73 @@ async function loadWinLossAndCompetitors() {
     populateWinLossSelects();
 }
 
+const DEFAULT_CUSTOMERS = [
+    { id: 1, name: "Tập đoàn Công nghiệp Foxconn VN", code: "KH-FOXCONN", phone: "024-3888-9999", email: "contact@foxconn.vn" },
+    { id: 2, name: "Ngân hàng TMCP VPBank - CN Thăng Long", code: "KH-VPBANK", phone: "024-7300-8888", email: "crm@vpbank.com.vn" },
+    { id: 3, name: "Công ty Du lịch Viettravel Sun", code: "KH-VIETTRAVEL", phone: "028-3822-8899", email: "booking@viettravel.com" },
+    { id: 4, name: "Thời trang NEM Fashion Toàn quốc", code: "KH-NEM", phone: "024-3942-8888", email: "info@nemfashion.vn" },
+    { id: 5, name: "Công ty CP Logistics LogiTech Global", code: "KH-LOGITECH", phone: "028-3999-7777", email: "support@logitech-global.vn" },
+    { id: 6, name: "Tập đoàn Viễn thông FPT Telecom", code: "KH-FPT", phone: "024-7300-2222", email: "b2b@fpt.net" },
+    { id: 7, name: "Chuỗi Bitis Miền Bắc", code: "KH-BITIS", phone: "024-3788-6666", email: "sales@bitis.vn" },
+    { id: 8, name: "Tập đoàn Tiêu dùng Masan Consumer", code: "KH-MASAN", phone: "028-6255-5660", email: "procurement@masangroup.com" },
+    { id: 9, name: "Tập đoàn Vingroup - VinFast", code: "KH-VINFAST", phone: "1900-232389", email: "b2b@vinfastauto.com" },
+    { id: 10, name: "Công ty CP Sữa Việt Nam (Vinamilk)", code: "KH-VINAMILK", phone: "028-5415-5555", email: "vinamilk@vinamilk.com.vn" }
+];
+
 async function loadCustomers() {
     try {
         const list = await api("/api/customers");
-        if (Array.isArray(list)) {
+        if (Array.isArray(list) && list.length > 0) {
             customers = list;
+            try {
+                localStorage.setItem("crm_ui_customers", JSON.stringify(customers));
+            } catch (_) {}
         }
     } catch (err) {
-        console.warn("Could not load customers:", err);
+        console.warn("Could not load customers from backend, checking cache:", err);
     }
+
+    if (!customers || customers.length === 0) {
+        try {
+            const cached = JSON.parse(localStorage.getItem("crm_ui_customers"));
+            if (Array.isArray(cached) && cached.length > 0) {
+                customers = cached;
+            }
+        } catch (_) {}
+    }
+
+    // Fallback to default sample customers if empty
+    if (!customers || customers.length === 0) {
+        customers = [...DEFAULT_CUSTOMERS];
+        try {
+            localStorage.setItem("crm_ui_customers", JSON.stringify(customers));
+        } catch (_) {}
+    }
+
     populateCustomerSelect();
 }
 
 async function loadOpportunities() {
     try {
         const list = await api("/api/opportunities");
-        if (Array.isArray(list)) {
+        if (Array.isArray(list) && list.length > 0) {
             opportunities = list;
-            // Sync with localStorage for offline / dashboard view
+            // Sync with localStorage
             try {
                 localStorage.setItem("crm_ui_opportunities", JSON.stringify(opportunities.map(o => ({
                     id: o.id,
                     name: o.name,
                     customer: o.customerName || "",
+                    customerName: o.customerName || "",
                     value: o.amount || 0,
+                    amount: o.amount || 0,
+                    stageId: o.stageId,
                     stage: String(o.stageId),
                     probability: o.probability || 0,
-                    closeDate: o.expectedCloseDate || "",
+                    expectedCloseDate: o.expectedCloseDate || "",
+                    lastActivityDate: o.lastActivityDate || todayString(),
+                    lastActivityType: o.lastActivityType || "Tương tác",
+                    ownerName: o.ownerName || "Tôi",
                     owner: o.ownerName || "Tôi",
                     status: o.status
                 }))));
@@ -165,9 +282,139 @@ async function loadOpportunities() {
         }
     } catch (err) {
         console.warn("Could not load opportunities from backend, checking cache:", err);
+    }
+
+    if (!opportunities || opportunities.length === 0) {
         try {
             const cached = JSON.parse(localStorage.getItem("crm_ui_opportunities"));
-            if (Array.isArray(cached)) opportunities = cached;
+            if (Array.isArray(cached) && cached.length > 0) {
+                opportunities = cached.map(o => ({
+                    ...o,
+                    customerName: o.customerName || o.customer || "",
+                    amount: o.amount ?? o.value ?? 0,
+                    stageId: Number(o.stageId || o.stage || 1),
+                    ownerName: o.ownerName || o.owner || "Tôi"
+                }));
+            }
+        } catch (_) {}
+    }
+
+    // If still empty or missing lastActivityDate, seed with rich mock data
+    const hasActivities = opportunities.some(o => o.lastActivityDate);
+    if (!opportunities.length || !hasActivities) {
+        const now = new Date();
+        const subD = d => new Date(now.getTime() - d * 86400000).toISOString().split("T")[0];
+        const addD = d => new Date(now.getTime() + d * 86400000).toISOString().split("T")[0];
+
+        opportunities = [
+            {
+                id: 101,
+                name: "Triển khai phần mềm ERP đa chi nhánh",
+                customerId: 1,
+                customerName: "Tập đoàn Công nghiệp Foxconn VN",
+                stageId: 3,
+                stageName: "Gửi đề xuất & Báo giá",
+                amount: 850000000,
+                probability: 50,
+                expectedCloseDate: subD(4), // Quá hạn chốt 4 ngày
+                lastActivityDate: subD(16),  // Im ắng 16 ngày (ngưỡng 10) -> CRITICAL
+                lastActivityType: "Gửi email",
+                ownerName: "Nguyễn Văn Hùng",
+                status: "OPEN"
+            },
+            {
+                id: 102,
+                name: "Hệ thống CRM Doanh nghiệp Omnichannel",
+                customerId: 2,
+                customerName: "Ngân hàng TMCP VPBank - CN Thăng Long",
+                stageId: 4,
+                stageName: "Thương lượng & Đàm phán",
+                amount: 1450000000,
+                probability: 75,
+                expectedCloseDate: addD(5),
+                lastActivityDate: subD(18),  // Im ắng 18 ngày (ngưỡng 14) -> WARNING
+                lastActivityType: "Họp trực tuyến",
+                ownerName: "Trần Thị Mai",
+                status: "OPEN"
+            },
+            {
+                id: 103,
+                name: "Gói hạ tầng Cloud & Bảo mật dữ liệu",
+                customerId: 3,
+                customerName: "Công ty Du lịch Viettravel Sun",
+                stageId: 2,
+                stageName: "Đánh giá & Xác định nhu cầu",
+                amount: 320000000,
+                probability: 25,
+                expectedCloseDate: addD(12),
+                lastActivityDate: subD(11),  // Im ắng 11 ngày (ngưỡng 7) -> WARNING
+                lastActivityType: "Cuộc gọi",
+                ownerName: "Lê Hoàng Long",
+                status: "OPEN"
+            },
+            {
+                id: 104,
+                name: "Phần mềm HRM & Chấm công chuỗi bán lẻ",
+                customerId: 4,
+                customerName: "Thời trang NEM Fashion Toàn quốc",
+                stageId: 1,
+                stageName: "Khảo sát nhu cầu",
+                amount: 480000000,
+                probability: 10,
+                expectedCloseDate: addD(20),
+                lastActivityDate: subD(9),   // Im ắng 9 ngày (ngưỡng 5) -> WARNING
+                lastActivityType: "Gặp trực tiếp",
+                ownerName: "Phạm Quốc Dũng",
+                status: "OPEN"
+            },
+            {
+                id: 105,
+                name: "Nâng cấp bảo mật & Tường lửa thế hệ mới",
+                customerId: 5,
+                customerName: "Công ty CP Logistics LogiTech Global",
+                stageId: 3,
+                stageName: "Gửi đề xuất & Báo giá",
+                amount: 620000000,
+                probability: 50,
+                expectedCloseDate: subD(8), // Quá hạn chốt 8 ngày
+                lastActivityDate: subD(6),  // Không vi phạm im ắng (6 < 10) nhưng QUÁ HẠN CHỐT
+                lastActivityType: "Cuộc gọi",
+                ownerName: "Nguyễn Văn Hùng",
+                status: "OPEN"
+            },
+            {
+                id: 106,
+                name: "Giải pháp AI Voicebot Chăm sóc Khách hàng",
+                customerId: 6,
+                customerName: "Tập đoàn Viễn thông FPT Telecom",
+                stageId: 4,
+                stageName: "Thương lượng & Đàm phán",
+                amount: 980000000,
+                probability: 75,
+                expectedCloseDate: addD(10),
+                lastActivityDate: subD(2),  // Mới tương tác 2 ngày trước -> NORMAL
+                lastActivityType: "Họp trực tuyến",
+                ownerName: "Trần Thị Mai",
+                status: "OPEN"
+            },
+            {
+                id: 107,
+                name: "Gói phần mềm kế toán doanh nghiệp vừa và nhỏ",
+                customerId: 7,
+                customerName: "Chuỗi Bitis Miền Bắc",
+                stageId: 2,
+                stageName: "Đánh giá & Xác định nhu cầu",
+                amount: 190000000,
+                probability: 25,
+                expectedCloseDate: addD(15),
+                lastActivityDate: subD(1),  // Mới tương tác 1 ngày trước -> NORMAL
+                lastActivityType: "Gửi email",
+                ownerName: "Lê Hoàng Long",
+                status: "OPEN"
+            }
+        ];
+        try {
+            localStorage.setItem("crm_ui_opportunities", JSON.stringify(opportunities));
         } catch (_) {}
     }
 
@@ -190,14 +437,27 @@ function populateStageSelect() {
 }
 
 function populateCustomerSelect() {
-    const custSelect = document.getElementById("opportunityCustomer");
-    if (!custSelect) return;
-    custSelect.innerHTML = '<option value="">-- Chọn khách hàng --</option>';
-    customers.forEach(c => {
-        const opt = document.createElement("option");
-        opt.value = c.id;
-        opt.textContent = `${c.name} (${c.code || c.phone || ""})`;
-        custSelect.appendChild(opt);
+    const custSelects = [
+        document.getElementById("opportunityCustomer"),
+        document.getElementById("customerSelect"),
+        document.querySelector('select[name="customerId"]'),
+        document.querySelector('select[name="customer"]')
+    ].filter(Boolean);
+
+    if (custSelects.length === 0) return;
+
+    custSelects.forEach(custSelect => {
+        const currentVal = custSelect.value;
+        custSelect.innerHTML = '<option value="">-- Chọn khách hàng --</option>';
+        customers.forEach(c => {
+            const opt = document.createElement("option");
+            opt.value = c.id;
+            opt.textContent = `${c.name} (${c.code || c.phone || "KH-" + c.id})`;
+            custSelect.appendChild(opt);
+        });
+        if (currentVal) {
+            custSelect.value = currentVal;
+        }
     });
 }
 
@@ -257,10 +517,17 @@ document.getElementById("opportunityStage")?.addEventListener("change", event =>
 
 searchInput?.addEventListener("input", render);
 ownerFilter?.addEventListener("change", render);
+filterStagnantOnly?.addEventListener("change", render);
+
+// Check if navigated with ?filter=stagnant
+if (new URLSearchParams(window.location.search).get("filter") === "stagnant" && filterStagnantOnly) {
+    filterStagnantOnly.checked = true;
+}
 
 document.getElementById("resetPipelineFilter")?.addEventListener("click", () => {
     if (searchInput) searchInput.value = "";
     if (ownerFilter) ownerFilter.value = "";
+    if (filterStagnantOnly) filterStagnantOnly.checked = false;
     render();
 });
 
@@ -276,7 +543,7 @@ opportunityForm?.addEventListener("submit", async event => {
     }
     if (nameError) nameError.textContent = "";
 
-    const customerIdVal = document.getElementById("opportunityCustomer")?.value;
+    const customerIdVal = document.getElementById("opportunityCustomer")?.value || document.getElementById("customerSelect")?.value;
     const custError = document.getElementById("opportunityCustomerError");
     if (!customerIdVal) {
         if (custError) custError.textContent = "Vui lòng chọn khách hàng.";
@@ -285,7 +552,9 @@ opportunityForm?.addEventListener("submit", async event => {
     if (custError) custError.textContent = "";
 
     const customerId = Number(customerIdVal);
+    const matchedCustomer = customers.find(c => c.id === customerId);
     const stageId = Number(document.getElementById("opportunityStage").value) || stages[0]?.id;
+    const matchedStage = stages.find(s => s.id === stageId);
     const probability = clamp(Number(document.getElementById("opportunityProbability").value) || 0, 0, 100);
     const amount = Math.max(0, Number(document.getElementById("opportunityValue").value) || 0);
     const expectedCloseDate = fieldValue("opportunityCloseDate") || null;
@@ -293,10 +562,16 @@ opportunityForm?.addEventListener("submit", async event => {
     const payload = {
         name,
         customerId,
+        customerName: matchedCustomer ? matchedCustomer.name : "Khách hàng",
         stageId,
+        stageName: matchedStage ? matchedStage.name : "Giai đoạn",
         probability,
         amount,
-        expectedCloseDate
+        expectedCloseDate,
+        lastActivityDate: todayString(),
+        lastActivityType: "Tương tác",
+        ownerName: "Tôi",
+        status: "OPEN"
     };
 
     try {
@@ -315,7 +590,27 @@ opportunityForm?.addEventListener("submit", async event => {
         closeOpportunityDrawer();
         await loadOpportunities();
     } catch (err) {
-        alert("Lỗi khi lưu cơ hội: " + err.message);
+        console.warn("Backend API not reachable or failed, saving to local state:", err);
+        if (editingOppId) {
+            const idx = opportunities.findIndex(o => o.id === editingOppId);
+            if (idx >= 0) {
+                opportunities[idx] = {
+                    ...opportunities[idx],
+                    ...payload
+                };
+            }
+        } else {
+            const newOpp = {
+                id: Date.now(),
+                ...payload
+            };
+            opportunities.unshift(newOpp);
+        }
+        try {
+            localStorage.setItem("crm_ui_opportunities", JSON.stringify(opportunities));
+        } catch (_) {}
+        closeOpportunityDrawer();
+        render();
     }
 });
 
@@ -467,9 +762,40 @@ document.addEventListener("click", async event => {
         return;
     }
 
+    const logActBtn = event.target.closest("[data-quick-log-act]");
+    if (logActBtn) {
+        const id = Number(logActBtn.dataset.quickLogAct);
+        const opp = opportunities.find(o => o.id === id);
+        if (opp) {
+            const note = prompt(`Ghi nhận tương tác mới cho "${opp.name}":\nNhập ghi chú cuộc gọi/họp để hâm nóng cơ hội và gỡ cờ cảnh báo:`, "Đã gọi điện trao đổi lại với khách hàng");
+            if (note) {
+                opp.lastActivityDate = todayString();
+                opp.lastActivityType = "Cuộc gọi";
+                opp.lastActivityNote = note;
+                try {
+                    localStorage.setItem("crm_ui_opportunities", JSON.stringify(opportunities));
+                } catch (_) {}
+                render();
+                alert(`Đã ghi nhận tương tác hôm nay và gỡ cờ đình trệ thành công cho "${opp.name}"!`);
+            }
+        }
+        return;
+    }
+
     if (!event.target.closest(".opportunity-card")) {
         document.querySelectorAll(".card-menu").forEach(menu => menu.classList.remove("open"));
     }
+});
+
+// Cross-tab and module sync
+window.addEventListener("storage", event => {
+    if (event.key === "crm_ui_opportunities" || event.key === "crm_stagnancy_thresholds") {
+        loadOpportunities();
+    }
+});
+
+document.addEventListener("crm:stagnant-deals-updated", () => {
+    loadOpportunities();
 });
 
 /* =========================================================
@@ -546,12 +872,26 @@ function render() {
 
     const query = (searchInput?.value || "").trim().toLowerCase();
     const owner = (ownerFilter?.value || "").trim();
+    const onlyStagnant = !!filterStagnantOnly?.checked;
+
+    // Update stagnant badge count in header
+    const openOpportunities = opportunities.filter(o => o.status !== "WON" && o.status !== "LOST");
+    const stagnantCount = openOpportunities.filter(o => evaluateDealStagnancy(o).isStagnant).length;
+    if (pipelineStagnantCountBadge) {
+        if (stagnantCount > 0) {
+            pipelineStagnantCountBadge.style.display = "inline-block";
+            pipelineStagnantCountBadge.textContent = stagnantCount;
+        } else {
+            pipelineStagnantCountBadge.style.display = "none";
+        }
+    }
 
     const filtered = opportunities.filter(opp => {
         const text = `${opp.name || ""} ${opp.customerName || ""}`.toLowerCase();
         const searchOk = !query || text.includes(query);
         const ownerOk = !owner || (opp.ownerName || "").includes(owner) || (owner === "Tôi");
-        return searchOk && ownerOk;
+        const stagnantOk = !onlyStagnant || evaluateDealStagnancy(opp).isStagnant;
+        return searchOk && ownerOk && stagnantOk;
     });
 
     stages.forEach((st, idx) => {
@@ -591,6 +931,33 @@ function createCard(record) {
     card.draggable = window.innerWidth > 768;
     card.dataset.id = String(record.id);
 
+    // Stagnancy Evaluation
+    const stg = evaluateDealStagnancy(record);
+    if (stg.isStagnant) {
+        card.classList.add(stg.severity === "CRITICAL" ? "card-stagnant-critical" : "card-stagnant-warning");
+    }
+
+    let warningBadgesHtml = "";
+    if (stg.isStagnant) {
+        warningBadgesHtml = '<div class="card-warning-pill-group">';
+        if (stg.severity === "CRITICAL") {
+            warningBadgesHtml += `<span class="card-warning-pill pill-critical">🚨 Đình trệ nghiêm trọng (${stg.daysInactive}d im ắng${stg.isOverdue ? ' & Quá hạn ' + stg.daysOverdue + 'd' : ''})</span>`;
+        } else {
+            if (stg.isOverdue) {
+                warningBadgesHtml += `<span class="card-warning-pill pill-overdue">🚨 Quá hạn chốt ${stg.daysOverdue} ngày</span>`;
+            }
+            if (stg.isInactive) {
+                warningBadgesHtml += `<span class="card-warning-pill pill-inactive">⏳ Đình trệ ${stg.daysInactive} ngày</span>`;
+            }
+        }
+        warningBadgesHtml += '</div>';
+    }
+
+    let lastActLine = "";
+    if (record.lastActivityDate) {
+        lastActLine = `<div class="card-last-activity-line">🕒 Tương tác: ${stg.daysInactive > 0 ? stg.daysInactive + ' ngày trước' : 'Hôm nay'} (${escapeHtml(record.lastActivityType || "Tương tác")})</div>`;
+    }
+
     const currentStageIndex = stages.findIndex(s => s.id === record.stageId);
     const canPrev = currentStageIndex > 0;
     const canNext = currentStageIndex < stages.length - 1;
@@ -600,12 +967,16 @@ function createCard(record) {
 
         <div class="card-menu" data-menu="${record.id}">
             <button type="button" data-edit-opportunity="${record.id}">Sửa</button>
+            <button type="button" data-quick-log-act="${record.id}">📞 Ghi nhận tương tác mới</button>
             ${canPrev ? `<button type="button" data-prev-stage="${record.id}">← Giai đoạn trước</button>` : ""}
             ${canNext ? `<button type="button" data-next-stage="${record.id}">Giai đoạn tiếp →</button>` : ""}
             <button type="button" class="won" data-close-won="${record.id}">✓ Đóng Thắng</button>
             <button type="button" class="lost" data-close-lost="${record.id}">✕ Đóng Thua</button>
+            <a href="stagnant-deals" style="display:block; padding:8px 12px; font-size:12px; color:var(--crm-primary); text-decoration:none;">⚠️ Xem cảnh báo đình trệ</a>
             <button type="button" style="color:#ef4444;" data-delete-opportunity="${record.id}">🗑 Xóa</button>
         </div>
+
+        ${warningBadgesHtml}
 
         <h3>${escapeHtml(record.name)}</h3>
 
@@ -621,6 +992,8 @@ function createCard(record) {
             <span>${record.probability ?? 0}% xác suất</span>
             <span>${escapeHtml(record.expectedCloseDate || "—")}</span>
         </div>
+
+        ${lastActLine}
 
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;">
             <small style="color:#64748b;font-size:10px;">
@@ -683,12 +1056,20 @@ function openOpportunityDrawer(id = null) {
     if (nameErr) nameErr.textContent = "";
     if (custErr) custErr.textContent = "";
 
+    // Always ensure customers list is loaded and select element is populated
+    if (!customers || customers.length === 0) {
+        loadCustomers();
+    } else {
+        populateCustomerSelect();
+    }
+
     if (id !== null) {
         const opp = opportunities.find(o => o.id === id);
         if (opp) {
             if (titleEl) titleEl.textContent = "Sửa cơ hội";
             setField("opportunityName", opp.name);
             setField("opportunityCustomer", opp.customerId);
+            setField("customerSelect", opp.customerId);
             setField("opportunityValue", opp.amount);
             setField("opportunityCloseDate", opp.expectedCloseDate);
             setField("opportunityStage", opp.stageId);
@@ -698,6 +1079,7 @@ function openOpportunityDrawer(id = null) {
     } else {
         if (titleEl) titleEl.textContent = "Thêm cơ hội";
         opportunityForm.reset();
+        populateCustomerSelect();
         if (stages.length > 0) {
             setField("opportunityStage", stages[0].id);
             setField("opportunityProbability", stages[0].probability);

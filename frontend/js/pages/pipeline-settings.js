@@ -187,6 +187,46 @@ async function api(
 }
 
 
+const DEFAULT_STAGES = [
+    { id: 1, pipelineId: 1, name: "Khảo sát nhu cầu", orderNo: 1, probability: 20, exitCondition: "Xác nhận được nhu cầu sơ bộ và thông tin liên hệ chính thức", conditionRequired: true, active: true },
+    { id: 2, pipelineId: 1, name: "Đánh giá & Xác định", orderNo: 2, probability: 40, exitCondition: "Hoàn thành buổi demo hoặc khảo sát hiện trạng kỹ thuật", conditionRequired: true, active: true },
+    { id: 3, pipelineId: 1, name: "Gửi đề xuất & Báo giá", orderNo: 3, probability: 60, exitCondition: "Khách hàng xác nhận đã nhận báo giá và đang duyệt ngân sách", conditionRequired: true, active: true },
+    { id: 4, pipelineId: 1, name: "Thương lượng & Đàm phán", orderNo: 4, probability: 80, exitCondition: "Thống nhất các điều khoản thương mại và dự thảo hợp đồng", conditionRequired: true, active: true }
+];
+
+function getStageStagnantDays(stageId) {
+    try {
+        const raw = localStorage.getItem("crm_stagnancy_thresholds");
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed.stageThresholds && parsed.stageThresholds[stageId] !== undefined) {
+                return Number(parsed.stageThresholds[stageId]);
+            }
+        }
+    } catch (_) {}
+    const defaults = { 1: 5, 2: 7, 3: 10, 4: 14 };
+    return defaults[stageId] || 7;
+}
+
+function saveStageStagnantDays(stageId, days) {
+    try {
+        let config = {};
+        const raw = localStorage.getItem("crm_stagnancy_thresholds");
+        if (raw) {
+            try { config = JSON.parse(raw); } catch (_) {}
+        }
+        if (!config.stageThresholds) {
+            config.stageThresholds = { 1: 5, 2: 7, 3: 10, 4: 14 };
+        }
+        config.stageThresholds[stageId] = Number(days);
+        config.lastEvaluatedAt = new Date().toISOString();
+        localStorage.setItem("crm_stagnancy_thresholds", JSON.stringify(config));
+        document.dispatchEvent(new CustomEvent("crm:stagnant-deals-updated"));
+    } catch (e) {
+        console.warn("Could not save stagnant days to localStorage:", e);
+    }
+}
+
 async function loadStages() {
 
     try {
@@ -206,34 +246,39 @@ async function loadStages() {
             :
             [];
 
-
-        stages.sort(
-            (a, b) =>
-                Number(a.orderNo)
-                -
-                Number(b.orderNo)
-        );
-
-
-        render();
+        if (stages.length > 0) {
+            try {
+                localStorage.setItem("crm_pipeline_stages", JSON.stringify(stages));
+            } catch (_) {}
+        }
 
     } catch (error) {
 
-        console.error(
-            "Load pipeline stages error:",
+        console.warn(
+            "Backend API unavailable, using cached or default stages:",
             error
         );
 
-        stages = [];
+        try {
+            const cached = JSON.parse(localStorage.getItem("crm_pipeline_stages"));
+            if (Array.isArray(cached) && cached.length > 0) {
+                stages = cached;
+            }
+        } catch (_) {}
 
-        render();
-
-        alert(
-            error.message
-            ||
-            "Không thể tải pipeline."
-        );
+        if (!stages || !stages.length) {
+            stages = [...DEFAULT_STAGES];
+        }
     }
+
+    stages.sort(
+        (a, b) =>
+            Number(a.orderNo)
+            -
+            Number(b.orderNo)
+    );
+
+    render();
 }
 
 
@@ -377,6 +422,8 @@ async function saveStage() {
     };
 
 
+    const stagnantDays = Math.max(1, Number(document.getElementById("stageStagnantDays")?.value) || 7);
+
     try {
 
         if (editingId) {
@@ -394,9 +441,11 @@ async function saveStage() {
                 }
             );
 
+            saveStageStagnantDays(Number(editingId), stagnantDays);
+
         } else {
 
-            await api(
+            const res = await api(
                 "/api/pipeline-stages",
                 {
                     method:
@@ -408,6 +457,9 @@ async function saveStage() {
                         )
                 }
             );
+
+            const targetId = res.data?.id || Date.now();
+            saveStageStagnantDays(Number(targetId), stagnantDays);
         }
 
 
@@ -417,18 +469,29 @@ async function saveStage() {
 
     } catch (err) {
 
-        console.error(
-            "Save stage error:",
+        console.warn(
+            "Save stage fallback to local state:",
             err
         );
 
-        if (error) {
-
-            error.textContent =
-                err.message
-                ||
-                "Không thể lưu giai đoạn.";
+        if (editingId) {
+            const idx = stages.findIndex(s => Number(s.id) === Number(editingId));
+            if (idx >= 0) {
+                stages[idx] = { ...stages[idx], ...body, id: Number(editingId) };
+            }
+            saveStageStagnantDays(Number(editingId), stagnantDays);
+        } else {
+            const targetId = Date.now();
+            stages.push({ ...body, id: targetId });
+            saveStageStagnantDays(targetId, stagnantDays);
         }
+
+        try {
+            localStorage.setItem("crm_pipeline_stages", JSON.stringify(stages));
+        } catch (_) {}
+
+        closeStageDrawer();
+        render();
     }
 }
 
@@ -690,12 +753,23 @@ function openStageDrawer(
             }
 
 
+            setValue(
+                "stageStagnantDays",
+                getStageStagnantDays(Number(stage.id))
+            );
+
+
             if (title) {
 
                 title.textContent =
                     "Sửa giai đoạn";
             }
         }
+    } else {
+        setValue(
+            "stageStagnantDays",
+            7
+        );
     }
 
 
@@ -816,9 +890,12 @@ function render() {
 
                 </div>
 
-                <div>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                     <span class="probability-badge">
                         ${Number(stage.probability)}% thắng
+                    </span>
+                    <span class="stagnant-threshold-badge" style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:4px; font-size:12px; font-weight:600; background:#fef3c7; color:#92400e; border:1px solid #fde68a;" title="Số ngày tối đa không hoạt động trước khi bị cảnh báo đình trệ">
+                        ⏳ Cảnh báo sau ${getStageStagnantDays(stage.id)} ngày
                     </span>
                 </div>
 

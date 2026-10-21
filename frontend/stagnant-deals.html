@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<script>
+(function () {
+    try {
+        var theme = localStorage.getItem("crm_ui_theme");
+        document.documentElement.setAttribute(
+            "data-theme",
+            theme === "dark" ? "dark" : "light"
+        );
+        document.documentElement.removeAttribute("data-crm-theme");
+    } catch (e) {
+        document.documentElement.setAttribute("data-theme", "light");
+    }
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Cảnh báo Cơ hội Đình trệ | Corporate CRM</title>
+
+<link rel="stylesheet" href="css/design-system.css">
+<link rel="stylesheet" href="css/app-shell.css">
+<link rel="stylesheet" href="css/pages/stagnant-deals.css">
+<link rel="stylesheet" href="css/animations.css">
+</head>
+
+<body class="crm-private">
+
+<!-- SIDEBAR -->
+<aside class="crm-sidebar">
+    <div class="crm-brand">
+        <div class="crm-brand-mark">C</div>
+        <span class="crm-brand-name">Corporate CRM</span>
+    </div>
+
+    <nav class="crm-nav">
+        <div class="crm-nav-section">Không gian làm việc</div>
+
+        <a href="dashboard" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+            <span class="crm-nav-label">Tổng quan</span>
+        </a>
+
+        <a href="customers" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
+            <span class="crm-nav-label">Khách hàng</span>
+        </a>
+
+        <a href="pipeline" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 9-8 9-8-9 8-9Z"/></svg></span>
+            <span class="crm-nav-label">Cơ hội (Pipeline)</span>
+        </a>
+
+        <a href="stagnant-deals" class="crm-nav-item active">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m10.29 3.86-8.58 14.86A2 2 0 0 0 3.45 22h17.1a2 2 0 0 0 1.74-3.28l-8.58-14.86a2 2 0 0 0-3.42 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+            <span class="crm-nav-label">Cơ hội đình trệ ⚠️</span>
+        </a>
+
+        <a href="calendar" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span>
+            <span class="crm-nav-label">Lịch</span>
+        </a>
+
+        <a href="tasks" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>
+            <span class="crm-nav-label">Công việc</span>
+        </a>
+
+        <div class="crm-nav-section">Quản trị & Cấu hình</div>
+
+        <a href="lead-scoring" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+            <span class="crm-nav-label">Chấm điểm Lead</span>
+        </a>
+
+        <a href="pipeline-settings" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m9 3 6 0 1 4 4 1 1 6-4 2-1 4-6 1-2-4-4-1-1-6 4-2 1-4Z"/></svg></span>
+            <span class="crm-nav-label">Cấu hình Pipeline</span>
+        </a>
+
+        <a href="win-loss-settings" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg></span>
+            <span class="crm-nav-label">Win / Loss</span>
+        </a>
+    </nav>
+</aside>
+
+<!-- TOPBAR -->
+<header class="crm-topbar">
+    <div class="crm-search">
+        <svg viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="7"/>
+            <path d="m20 20-4-4"/>
+        </svg>
+        <input id="globalSearch" type="search" placeholder="Tìm kiếm cơ hội đình trệ, khách hàng... (Ctrl + K)">
+        <kbd>Ctrl K</kbd>
+    </div>
+
+    <div class="crm-top-actions">
+        <button id="themeToggle" class="crm-shell-icon-button" type="button" title="Đổi giao diện">
+            <svg viewBox="0 0 24 24"><path d="M20 15a8 8 0 1 1-11-11 7 7 0 0 0 11 11Z"/></svg>
+        </button>
+
+        <button id="notificationButton" class="crm-shell-icon-button crm-notification-button" type="button" title="Thông báo">
+            <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+            <span class="crm-notification-dot"></span>
+        </button>
+
+        <div class="crm-user">
+            <button id="userButton" class="crm-user-button" type="button">
+                <div class="crm-avatar">T</div>
+                <div class="crm-user-copy">
+                    <span id="shellUserName" class="crm-user-name">Trưởng nhóm kinh doanh</span>
+                    <span id="shellUserRole" class="crm-user-role">Trưởng nhóm kinh doanh</span>
+                </div>
+                <span class="crm-user-arrow">⌄</span>
+            </button>
+
+            <div id="userDropdown" class="crm-user-dropdown">
+                <div id="shellUserTeam" style="padding: 10px 14px; font-size: 12px; opacity: .7;">
+                    Nhóm: Nhóm Kinh doanh Doanh nghiệp lớn
+                </div>
+                <a href="profile">Hồ sơ cá nhân</a>
+                <a href="change-password">Đổi mật khẩu</a>
+                <button id="logoutButton" type="button">Đăng xuất</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- MAIN CONTENT -->
+<main class="crm-main stagnant-deals-page">
+
+    <!-- Header Section -->
+    <section class="stagnant-head">
+        <div>
+            <p class="stagnant-kicker">CRM / Giám sát Bán hàng / SCRUM-78 / SCRUM-203</p>
+            <h1>Cảnh báo Cơ hội Đình trệ & Nguy cơ Nguội Lạnh</h1>
+            <p class="stagnant-subtitle">
+                Hệ thống tự động phát hiện các thương vụ không có tương tác vượt ngưỡng số ngày quy định của từng giai đoạn hoặc quá ngày dự kiến chốt mà chưa hoàn tất, giúp Trưởng nhóm can thiệp kịp thời bảo vệ doanh số.
+            </p>
+        </div>
+
+        <div class="stagnant-actions">
+            <button id="btnRunManualScan" class="crm-btn crm-btn-primary" type="button" title="Quét và đánh giá lại toàn bộ cơ hội ngay lập tức">
+                <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                Quét & Đánh giá lại
+            </button>
+            <button id="btnToggleConfigPanel" class="crm-btn crm-btn-secondary" type="button" title="Mở panel cấu hình ngưỡng số ngày đình trệ">
+                <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.5 1A7 7 0 0 0 15 6l-.4-2.7h-4L10 6a7 7 0 0 0-1.4.8l-2.5-1-2 3.4L6 11a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.5-1A7 7 0 0 0 10 18l.5 2.7h4L15 18a7 7 0 0 0 1.4-.8l2.5 1 2-3.4L19 13a7 7 0 0 0 0-1Z"/></svg>
+                Cấu hình Ngưỡng (N ngày)
+            </button>
+            <a href="pipeline" class="crm-btn crm-btn-secondary" title="Xem trực tiếp trên bảng Kanban Pipeline">
+                <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>
+                Xem Bảng Kanban
+            </a>
+        </div>
+    </section>
+
+    <!-- Scan Status Pulse Banner -->
+    <div class="scan-status-banner crm-card" id="scanStatusBanner">
+        <div class="scan-status-left">
+            <span class="status-pulse-dot"></span>
+            <div>
+                <strong id="scanStatusTitle">Tác vụ đánh giá tự động đang chạy định kỳ (mỗi 60s)</strong>
+                <p id="scanStatusText">Lần quét gần nhất: Vừa xong • Đã phân tích 12 cơ hội trong đường ống bán hàng.</p>
+            </div>
+        </div>
+        <div class="scan-status-right">
+            <span id="scanNextCountdown" class="countdown-tag">Lần quét kế tiếp sau: 59s</span>
+        </div>
+    </div>
+
+    <!-- KPI Metrics Ribbon -->
+    <section class="stagnant-metrics">
+        <div class="crm-card metric-card metric-card-stagnant">
+            <div class="metric-icon-wrap metric-icon-amber">⚠️</div>
+            <div class="metric-info">
+                <div class="metric-label">Cơ hội đình trệ</div>
+                <div id="metricStagnantCount" class="metric-val">0</div>
+                <div id="metricStagnantRate" class="metric-sub">Chiếm 0% tổng cơ hội mở</div>
+            </div>
+        </div>
+
+        <div class="crm-card metric-card metric-card-risk">
+            <div class="metric-icon-wrap metric-icon-red">💸</div>
+            <div class="metric-info">
+                <div class="metric-label">Tổng giá trị rủi ro</div>
+                <div id="metricRiskValue" class="metric-val">0 ₫</div>
+                <div class="metric-sub">Doanh số có nguy cơ thất thoát</div>
+            </div>
+        </div>
+
+        <div class="crm-card metric-card metric-card-overdue">
+            <div class="metric-icon-wrap metric-icon-rose">🚨</div>
+            <div class="metric-info">
+                <div class="metric-label">Quá ngày dự kiến chốt</div>
+                <div id="metricOverdueCount" class="metric-val">0</div>
+                <div id="metricOverdueValue" class="metric-sub">0 ₫ giá trị hợp đồng</div>
+            </div>
+        </div>
+
+        <div class="crm-card metric-card metric-card-inactive">
+            <div class="metric-icon-wrap metric-icon-orange">⏳</div>
+            <div class="metric-info">
+                <div class="metric-label">Không tương tác &gt; N ngày</div>
+                <div id="metricInactiveCount" class="metric-val">0</div>
+                <div id="metricInactiveValue" class="metric-sub">0 ₫ cần hâm nóng ngay</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Threshold Configuration Panel (Collapsible) -->
+    <section class="crm-card config-panel" id="thresholdConfigPanel">
+        <header class="config-panel-head">
+            <div class="config-panel-title">
+                <span class="config-icon">⚙️</span>
+                <div>
+                    <h2>Cấu hình Ngưỡng Thời Gian Đình Trệ Theo Từng Giai Đoạn</h2>
+                    <p>Thiết lập số ngày tối đa (N ngày) cho phép không có tương tác trước khi hệ thống kích hoạt cờ cảnh báo cho Trưởng nhóm.</p>
+                </div>
+            </div>
+            <div class="config-panel-head-actions">
+                <button id="btnResetThresholdDefaults" class="crm-btn crm-btn-secondary" type="button" style="font-size:12px;">
+                    🔄 Khôi phục mặc định
+                </button>
+                <button id="btnCloseConfigPanel" class="crm-btn crm-btn-secondary" type="button" title="Đóng panel">
+                    ✕
+                </button>
+            </div>
+        </header>
+
+        <form id="thresholdConfigForm" class="config-form">
+            <div class="threshold-stages-grid">
+                <!-- Stage 1 -->
+                <div class="stage-threshold-box">
+                    <div class="stage-box-top">
+                        <span class="stage-number">1</span>
+                        <strong class="stage-name">Khảo sát nhu cầu</strong>
+                    </div>
+                    <p class="stage-desc">Giai đoạn đầu tiếp cận, tìm hiểu nhu cầu sơ bộ.</p>
+                    <div class="threshold-input-line">
+                        <label for="threshStage1">Ngưỡng không hoạt động tối đa:</label>
+                        <div class="input-unit-wrap">
+                            <input id="threshStage1" class="crm-input threshold-val-input" type="number" min="1" max="90" value="5">
+                            <span class="input-unit">ngày</span>
+                        </div>
+                    </div>
+                    <div class="stage-hint">Đề xuất: 3 - 5 ngày (để phản hồi khách hàng nhanh)</div>
+                </div>
+
+                <!-- Stage 2 -->
+                <div class="stage-threshold-box">
+                    <div class="stage-box-top">
+                        <span class="stage-number">2</span>
+                        <strong class="stage-name">Đánh giá & Xác định nhu cầu</strong>
+                    </div>
+                    <p class="stage-desc">Thẩm định tính khả thi, phân tích bài toán kỹ thuật.</p>
+                    <div class="threshold-input-line">
+                        <label for="threshStage2">Ngưỡng không hoạt động tối đa:</label>
+                        <div class="input-unit-wrap">
+                            <input id="threshStage2" class="crm-input threshold-val-input" type="number" min="1" max="90" value="7">
+                            <span class="input-unit">ngày</span>
+                        </div>
+                    </div>
+                    <div class="stage-hint">Đề xuất: 5 - 7 ngày</div>
+                </div>
+
+                <!-- Stage 3 -->
+                <div class="stage-threshold-box">
+                    <div class="stage-box-top">
+                        <span class="stage-number">3</span>
+                        <strong class="stage-name">Gửi đề xuất & Báo giá</strong>
+                    </div>
+                    <p class="stage-desc">Đã gửi bản chào giá / đề xuất giải pháp chính thức.</p>
+                    <div class="threshold-input-line">
+                        <label for="threshStage3">Ngưỡng không hoạt động tối đa:</label>
+                        <div class="input-unit-wrap">
+                            <input id="threshStage3" class="crm-input threshold-val-input" type="number" min="1" max="90" value="10">
+                            <span class="input-unit">ngày</span>
+                        </div>
+                    </div>
+                    <div class="stage-hint">Đề xuất: 7 - 10 ngày (tránh để báo giá nguội)</div>
+                </div>
+
+                <!-- Stage 4 -->
+                <div class="stage-threshold-box">
+                    <div class="stage-box-top">
+                        <span class="stage-number">4</span>
+                        <strong class="stage-name">Thương lượng & Đàm phán</strong>
+                    </div>
+                    <p class="stage-desc">Thống nhất điều khoản hợp đồng, giá trị chốt cuối.</p>
+                    <div class="threshold-input-line">
+                        <label for="threshStage4">Ngưỡng không hoạt động tối đa:</label>
+                        <div class="input-unit-wrap">
+                            <input id="threshStage4" class="crm-input threshold-val-input" type="number" min="1" max="90" value="14">
+                            <span class="input-unit">ngày</span>
+                        </div>
+                    </div>
+                    <div class="stage-hint">Đề xuất: 10 - 14 ngày</div>
+                </div>
+            </div>
+
+            <!-- Additional Rules Switches -->
+            <div class="extra-rules-bar">
+                <label class="rule-toggle-item">
+                    <input type="checkbox" id="checkAlertOverdueClose" checked>
+                    <span><strong>Tự động gắn cờ cảnh báo khi quá ngày dự kiến chốt</strong> (Overdue Close Alert)</span>
+                </label>
+
+                <label class="rule-toggle-item">
+                    <input type="checkbox" id="checkCriticalDoubleThreshold" checked>
+                    <span><strong>Nâng mức cảnh báo Nguy kịch (Critical 🚨)</strong> khi thời gian im ắng gấp đôi ngưỡng cho phép</span>
+                </label>
+            </div>
+
+            <div class="config-form-footer">
+                <button type="submit" class="crm-btn crm-btn-primary" style="background:#059669; border-color:#059669;">
+                    💾 Lưu cấu hình & Áp dụng ngay
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <!-- Filters & Toolbar Section -->
+    <section class="crm-card stagnant-toolbar">
+        <div class="toolbar-search-wrap">
+            <svg viewBox="0 0 24 24" class="toolbar-search-icon">
+                <circle cx="11" cy="11" r="7"/>
+                <path d="m20 20-4-4"/>
+            </svg>
+            <input id="filterSearch" class="crm-input" type="search" placeholder="Tìm theo tên cơ hội, tên khách hàng...">
+        </div>
+
+        <div class="toolbar-selects-wrap">
+            <select id="filterSeverity" class="crm-input">
+                <option value="">Tất cả mức độ cảnh báo</option>
+                <option value="CRITICAL">🚨 Nguy kịch (Rủi ro cao nhất)</option>
+                <option value="WARNING">⚠️ Cảnh báo đình trệ</option>
+                <option value="OVERDUE">📅 Quá hạn ngày chốt</option>
+                <option value="INACTIVE">⏳ Không tương tác &gt; N ngày</option>
+                <option value="ALL_OPEN">🟢 Xem toàn bộ cơ hội đang mở</option>
+            </select>
+
+            <select id="filterStage" class="crm-input">
+                <option value="">Tất cả giai đoạn</option>
+                <option value="1">1. Khảo sát nhu cầu</option>
+                <option value="2">2. Đánh giá & Xác định</option>
+                <option value="3">3. Gửi đề xuất & Báo giá</option>
+                <option value="4">4. Thương lượng & Đàm phán</option>
+            </select>
+
+            <select id="filterOwner" class="crm-input">
+                <option value="">Tất cả nhân viên phụ trách</option>
+            </select>
+
+            <button id="btnResetFilters" class="crm-btn crm-btn-secondary" type="button">
+                Đặt lại
+            </button>
+        </div>
+    </section>
+
+    <!-- Stagnant Deals List Table Section -->
+    <section class="crm-card stagnant-table-card">
+        <div class="table-card-head">
+            <div>
+                <h3 id="tableTitle">Danh Sách Cơ Hội Cần Can Thiệp Kịp Thời</h3>
+                <p id="tableSubtitle">Hiển thị các cơ hội đang có cờ cảnh báo đình trệ hoặc quá hạn chốt.</p>
+            </div>
+            <div class="table-view-options">
+                <span id="displayingCountBadge" class="count-badge">0 cơ hội</span>
+            </div>
+        </div>
+
+        <div class="table-scroll-wrapper">
+            <table class="stagnant-table" id="stagnantTable">
+                <thead>
+                    <tr>
+                        <th style="width:110px;">Cảnh báo</th>
+                        <th>Cơ hội & Khách hàng</th>
+                        <th>Giai đoạn</th>
+                        <th style="text-align:right;">Giá trị (VND)</th>
+                        <th>Tương tác cuối</th>
+                        <th>Dự kiến chốt</th>
+                        <th>Lý do cảnh báo</th>
+                        <th>Phụ trách</th>
+                        <th style="text-align:center; width:150px;">Can thiệp nhanh</th>
+                    </tr>
+                </thead>
+                <tbody id="stagnantTableBody">
+                    <tr>
+                        <td colspan="9" style="text-align:center; padding:40px; color:var(--crm-muted);">
+                            Đang phân tích cơ hội...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Empty State (Shown when no stagnant deals match filter) -->
+        <div id="emptyState" class="empty-state" style="display:none;">
+            <div class="empty-icon">🎉</div>
+            <h3>Tuyệt vời! Không có cơ hội nào bị đình trệ</h3>
+            <p>Tất cả cơ hội đều đang có tương tác tích cực đúng tiến độ và không bị quá hạn chốt.</p>
+            <a href="pipeline" class="crm-btn crm-btn-primary" style="margin-top:12px;">
+                Xem Bảng Kanban Pipeline
+            </a>
+        </div>
+    </section>
+
+</main>
+
+<!-- ================= MODALS CAN THIỆP NHANH ================= -->
+
+<!-- 1. Modal Ghi nhận Tương tác Mới (Quick Log Activity) -->
+<div class="modal-overlay" id="logActivityOverlay"></div>
+<aside class="modal-box" id="logActivityModal">
+    <header class="modal-header">
+        <div class="modal-header-title">
+            <span style="font-size:22px;">📞</span>
+            <div>
+                <h3>Ghi Nhận Hoạt Động Mới (Can Thiệp Sớm)</h3>
+                <p id="logActivityDealName" style="font-size:12px; color:var(--crm-muted);">Cơ hội: ...</p>
+            </div>
+        </div>
+        <button class="modal-close-btn" type="button" id="btnCloseLogActivity">✕</button>
+    </header>
+
+    <form id="formLogActivity" class="modal-form">
+        <input type="hidden" id="logActivityOppId">
+
+        <div class="form-group">
+            <label for="activityType">Loại hình tương tác <span style="color:var(--crm-danger);">*</span></label>
+            <select id="activityType" class="crm-input" required>
+                <option value="Cuộc gọi">📞 Cuộc gọi trao đổi / Hâm nóng</option>
+                <option value="Gặp trực tiếp">🤝 Gặp mặt trực tiếp tại văn phòng khách</option>
+                <option value="Họp trực tuyến">💻 Họp trực tuyến (Google Meet / Zoom)</option>
+                <option value="Gửi email">✉️ Gửi email cập nhật báo giá / giải pháp</option>
+                <option value="Demo sản phẩm">🖥️ Demo thử nghiệm tính năng</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="activityDate">Thời điểm thực hiện</label>
+            <input id="activityDate" class="crm-input" type="date" required>
+        </div>
+
+        <div class="form-group">
+            <label for="activitySummary">Tóm tắt kết quả trao đổi <span style="color:var(--crm-danger);">*</span></label>
+            <textarea id="activitySummary" class="crm-input" rows="3" placeholder="Nhập tóm tắt phản hồi từ khách hàng, lý do chậm trễ trước đó và kế hoạch thúc đẩy..." required></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="activityNextStep">Bước hành động tiếp theo</label>
+            <input id="activityNextStep" class="crm-input" type="text" placeholder="Ví dụ: Gửi lại hợp đồng điều chỉnh trước thứ Sáu...">
+        </div>
+
+        <div class="modal-form-actions">
+            <button class="crm-btn crm-btn-secondary" type="button" id="btnCancelLogActivity">Hủy</button>
+            <button class="crm-btn crm-btn-primary" type="submit">
+                ✓ Lưu hoạt động & Gỡ cờ đình trệ
+            </button>
+        </div>
+    </form>
+</aside>
+
+<!-- 2. Modal Gửi Nhắc Nhở Nhân Viên (Remind Sales Rep) -->
+<div class="modal-overlay" id="remindSalesOverlay"></div>
+<aside class="modal-box" id="remindSalesModal">
+    <header class="modal-header">
+        <div class="modal-header-title">
+            <span style="font-size:22px;">🔔</span>
+            <div>
+                <h3>Nhắc Nhở Nhân Viên Phụ Trách Thúc Đẩy Cơ Hội</h3>
+                <p id="remindSalesSubtitle" style="font-size:12px; color:var(--crm-muted);">Gửi thông báo nội bộ tới Sales Rep phụ trách</p>
+            </div>
+        </div>
+        <button class="modal-close-btn" type="button" id="btnCloseRemindSales">✕</button>
+    </header>
+
+    <form id="formRemindSales" class="modal-form">
+        <input type="hidden" id="remindOppId">
+
+        <div class="form-group">
+            <label>Nhân viên phụ trách</label>
+            <input id="remindOwnerName" class="crm-input" type="text" readonly style="background:var(--crm-surface-soft);">
+        </div>
+
+        <div class="form-group">
+            <label>Tên cơ hội & Lý do cảnh báo</label>
+            <div id="remindDealSummary" style="padding:10px; background:#fffbeb; border:1px solid #fef3c7; border-radius:8px; font-size:13px; color:#92400e;">
+                ...
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="remindMessage">Chỉ đạo / Lời nhắc của Trưởng nhóm <span style="color:var(--crm-danger);">*</span></label>
+            <textarea id="remindMessage" class="crm-input" rows="4" required></textarea>
+        </div>
+
+        <div class="modal-form-actions">
+            <button class="crm-btn crm-btn-secondary" type="button" id="btnCancelRemindSales">Hủy</button>
+            <button class="crm-btn crm-btn-primary" type="submit" style="background:#d97706; border-color:#d97706;">
+                🚀 Gửi thông báo nhắc nhở ngay
+            </button>
+        </div>
+    </form>
+</aside>
+
+<!-- 3. Modal Gia hạn Ngày Dự Kiến Chốt (Extend Close Date) -->
+<div class="modal-overlay" id="extendCloseOverlay"></div>
+<aside class="modal-box" id="extendCloseModal">
+    <header class="modal-header">
+        <div class="modal-header-title">
+            <span style="font-size:22px;">📅</span>
+            <div>
+                <h3>Gia Hạn Ngày Dự Kiến Chốt</h3>
+                <p id="extendCloseDealName" style="font-size:12px; color:var(--crm-muted);">Điều chỉnh ngày chốt để tránh cảnh báo quá hạn</p>
+            </div>
+        </div>
+        <button class="modal-close-btn" type="button" id="btnCloseExtendClose">✕</button>
+    </header>
+
+    <form id="formExtendClose" class="modal-form">
+        <input type="hidden" id="extendOppId">
+
+        <div class="form-group">
+            <label>Ngày chốt hiện tại</label>
+            <input id="currentCloseDate" class="crm-input" type="text" readonly style="background:var(--crm-surface-soft);">
+        </div>
+
+        <div class="form-group">
+            <label for="newCloseDate">Ngày dự kiến chốt mới <span style="color:var(--crm-danger);">*</span></label>
+            <input id="newCloseDate" class="crm-input" type="date" required>
+        </div>
+
+        <div class="form-group">
+            <label for="extendReason">Lý do điều chỉnh gia hạn <span style="color:var(--crm-danger);">*</span></label>
+            <select id="extendReason" class="crm-input" required>
+                <option value="Khách hàng xin lùi thời gian phê duyệt ngân sách">Khách hàng xin lùi thời gian phê duyệt ngân sách</option>
+                <option value="Bổ sung thêm yêu cầu kỹ thuật / tính năng mới">Bổ sung thêm yêu cầu kỹ thuật / tính năng mới</option>
+                <option value="Chờ hội đồng quản trị họp duyệt quyết định">Chờ hội đồng quản trị họp duyệt quyết định</option>
+                <option value="Đang hoàn thiện đàm phán hợp đồng pháp lý">Đang hoàn thiện đàm phán hợp đồng pháp lý</option>
+                <option value="Lý do khác">Lý do khác</option>
+            </select>
+        </div>
+
+        <div class="modal-form-actions">
+            <button class="crm-btn crm-btn-secondary" type="button" id="btnCancelExtendClose">Hủy</button>
+            <button class="crm-btn crm-btn-primary" type="submit">
+                ✓ Lưu ngày chốt mới
+            </button>
+        </div>
+    </form>
+</aside>
+
+<!-- Scripts -->
+<script src="js/pages/stagnant-deals.js"></script>
+<script src="js/page-transition.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/shared-shell.js"></script>
+<script src="js/ui-core.js"></script>
+<script src="js/ui-effects.js"></script>
+</body>
+</html>
