@@ -139,15 +139,36 @@
         </div>
 
 
-        <button
-            id="newTask"
-            class="crm-btn crm-btn-primary"
-            type="button"
-        >
-            + Tạo công việc
-        </button>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <a
+                href="calendar.html"
+                class="crm-btn crm-btn-secondary"
+                style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;"
+            >
+                <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4m8-4v4M3 10h18"/></svg>
+                Xem trên Lịch nhóm
+            </a>
+
+            <button
+                id="newTask"
+                class="crm-btn crm-btn-primary"
+                type="button"
+            >
+                + Tạo công việc
+            </button>
+        </div>
 
     </section>
+
+
+    <div style="display:flex; gap:8px; margin-bottom:14px;">
+        <button type="button" class="crm-btn" style="background:var(--crm-primary); color:#fff; border:1px solid var(--crm-primary); font-size:12.5px; font-weight:600; padding:6px 14px; border-radius:6px;">
+            📋 Dạng danh sách
+        </button>
+        <a href="calendar.html" class="crm-btn crm-btn-secondary" style="text-decoration:none; font-size:12.5px; font-weight:600; padding:6px 14px; display:inline-flex; align-items:center; gap:6px; border-radius:6px;">
+            📅 Xem trên Lịch nhóm (Calendar View) →
+        </a>
+    </div>
 
 
     <section class="crm-card tasks-filter">
