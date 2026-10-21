@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRM - Lịch sử thay đổi cơ hội kinh doanh</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+
+  <!-- Header -->
+  <header class="bg-slate-900 text-white shadow-md">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="flex items-center space-x-3">
+        <div class="bg-blue-600 p-2 rounded-lg text-white">
+          <i class="fa-solid fa-chart-line text-xl"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold">Sales Enterprise CRM</h1>
+          <p class="text-xs text-slate-400">Giao diện Trưởng nhóm Kinh doanh</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-1 rounded-full border border-blue-300">
+          <i class="fa-solid fa-user-shield me-1"></i> Trưởng nhóm: Nguyễn Văn Quản Lý
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- Cột trái: Thông tin cơ hội & Thao tác (7 Cột) -->
+    <section class="lg:col-span-7 space-y-6">
+      
+      <!-- Card Chi tiết Cơ hội -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div class="flex justify-between items-start mb-4 border-b border-slate-100 pb-4">
+          <div>
+            <div class="flex items-center space-x-2">
+              <span id="opp-id" class="text-xs font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded">OPP-2026-889</span>
+              <span id="opp-stage-badge" class="bg-amber-100 text-amber-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">Đang đàm phán</span>
+            </div>
+            <h2 id="opp-name" class="text-2xl font-bold text-slate-900 mt-1">Dự án Triển khai ERP - Tập đoàn ABC</h2>
+            <p class="text-sm text-slate-500 mt-0.5"><i class="fa-regular fa-building me-1"></i> Khách hàng: Công ty Cổ phần Tập đoàn ABC</p>
+          </div>
+          <button id="btn-open-edit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm flex items-center gap-2">
+            <i class="fa-solid fa-pen-to-square"></i> Cập nhật cơ hội
+          </button>
+        </div>
+
+        <!-- Metric grid -->
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 pt-2">
+          <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-100">
+            <p class="text-xs text-slate-500 font-medium">Giá trị hợp đồng</p>
+            <p id="opp-amount-display" class="text-lg font-bold text-emerald-600 mt-1">1.200.000.000 VNĐ</p>
+          </div>
+          <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-100">
+            <p class="text-xs text-slate-500 font-medium">Ngày chốt dự kiến</p>
+            <p id="opp-date-display" class="text-lg font-bold text-slate-800 mt-1">15/11/2026</p>
+          </div>
+          <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-100 col-span-2 md:col-span-1">
+            <p class="text-xs text-slate-500 font-medium">Nhân viên phụ trách</p>
+            <p id="opp-owner-display" class="text-sm font-bold text-slate-800 mt-1 flex items-center gap-1.5">
+              <span class="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs flex items-center justify-center font-normal">T</span>
+              Trần Thị Sales
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mẹo dành cho Trưởng nhóm -->
+      <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-3 text-sm text-blue-900">
+        <i class="fa-solid fa-circle-info text-blue-600 text-lg mt-0.5"></i>
+        <div>
+          <span class="font-semibold">Mẹo dành cho Trưởng nhóm:</span> Mọi thay đổi về giá trị, ngày chốt dự kiến hoặc giai đoạn sẽ tự động ghi vết trong nhật ký kiểm toán (Audit Trail) kèm lý do chi tiết. Bạn có thể kiểm tra trực tiếp mà không cần tổ chức họp lại với sales.
+        </div>
+      </div>
+    </section>
+
+    <!-- Cột phải: Audit Log / Timeline Lịch sử thay đổi (5 Cột) -->
+    <section class="lg:col-span-5">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-clock-rotate-left text-blue-600"></i> Lịch sử thay đổi (Audit Log)
+          </h3>
+          <span id="log-count" class="bg-slate-100 text-slate-600 text-xs font-semibold px-2 py-1 rounded-full">0 thay đổi</span>
+        </div>
+
+        <!-- Bộ lọc Nhật ký -->
+        <div class="mb-4">
+          <select id="filter-type" class="w-full text-xs border border-slate-200 rounded-lg p-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="ALL">Tất cả thay đổi</option>
+            <option value="amount">Chỉ xem thay đổi Giá trị</option>
+            <option value="closeDate">Chỉ xem thay đổi Ngày chốt</option>
+            <option value="stage">Chỉ xem thay đổi Tiến độ/Giai đoạn</option>
+          </select>
+        </div>
+
+        <!-- Timeline container -->
+        <div id="timeline-container" class="relative border-l-2 border-slate-200 ml-3 space-y-6">
+          <!-- Render danh sách qua app.js -->
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal Chỉnh sửa Cơ hội -->
+  <div id="edit-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-lg text-slate-900">Cập nhật Cơ hội Kinh doanh</h3>
+        <button id="btn-close-modal" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <form id="edit-form" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Giá trị hợp đồng (VNĐ)</label>
+          <input type="number" id="input-amount" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Ngày chốt dự kiến</label>
+          <input type="date" id="input-date" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Giai đoạn bán hàng</label>
+          <select id="input-stage" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <option value="Tiếp cận">Tiếp cận</option>
+            <option value="Đề xuất giải pháp">Đề xuất giải pháp</option>
+            <option value="Đang đàm phán">Đang đàm phán</option>
+            <option value="Chốt thành công (Won)">Chốt thành công (Won)</option>
+            <option value="Thất bại (Lost)">Thất bại (Lost)</option>
+          </select>
+        </div>
+
+        <!-- Bắt buộc nhập lý do -->
+        <div class="bg-amber-50 p-3 rounded-lg border border-amber-200">
+          <label class="block text-xs font-bold text-amber-900 mb-1">
+            <i class="fa-solid fa-triangle-exclamation text-amber-600 me-1"></i> Lý do thay đổi <span class="text-red-500">*</span>
+          </label>
+          <textarea id="input-reason" rows="3" required placeholder="Ví dụ: Khách cắt giảm ngân sách 20%, dời ngày ký hợp đồng do chờ duyệt..." class="w-full border border-amber-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white"></textarea>
+          <p class="text-[11px] text-amber-700 mt-1">Bắt buộc nhập lý do để Trưởng nhóm tiện theo dõi.</p>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" id="btn-cancel-modal" class="px-4 py-2 border border-slate-300 rounded-lg text-sm text-slate-600 hover:bg-slate-50">Hủy</button>
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 shadow-sm">Lưu & Ghi Lịch Sử</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Custom JS -->
+  <script src="app.js"></script>
+</body>
+</html>
