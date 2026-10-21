@@ -955,3 +955,96 @@
     }
 
 }
+
+/* =========================================================
+   DEAL TEAM AVATAR STACK & QUICK MODAL (SCRUM-82 / SCRUM-211)
+========================================================= */
+.deal-team-stack {
+    display: inline-flex;
+    align-items: center;
+    direction: ltr;
+}
+
+.deal-team-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+    border: 2px solid #fff;
+    margin-left: -6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    transition: transform 150ms ease;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.deal-team-avatar:first-child {
+    margin-left: 0;
+}
+
+.deal-team-avatar:hover {
+    transform: translateY(-2px) scale(1.18);
+    z-index: 5;
+}
+
+.deal-team-owner-avatar {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    box-shadow: 0 0 0 1px #f59e0b;
+}
+
+.deal-team-more-badge {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    color: #475569;
+    font-size: 9.5px;
+    font-weight: 700;
+    display: grid;
+    place-items: center;
+    border: 2px solid #fff;
+    margin-left: -6px;
+    flex-shrink: 0;
+}
+
+.card-title-link {
+    cursor: pointer;
+    transition: color 180ms ease;
+    text-decoration: none;
+    color: inherit;
+}
+
+.card-title-link:hover {
+    color: var(--crm-primary);
+    text-decoration: underline;
+}
+
+/* Quick Deal Team Modal */
+.deal-team-modal-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -46%) scale(0.96);
+    background: var(--crm-surface);
+    width: 92%;
+    max-width: 520px;
+    border-radius: var(--crm-radius-lg);
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 250ms cubic-bezier(.16, 1, .3, 1);
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+}
+
+.deal-team-modal-dialog.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, -50%) scale(1);
+}

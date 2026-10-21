@@ -420,6 +420,16 @@
                 class="crm-input"
             >
                 <option value="">-- Chọn khách hàng --</option>
+                <option value="1">Tập đoàn Công nghiệp Foxconn VN (KH-FOXCONN)</option>
+                <option value="2">Ngân hàng TMCP VPBank - CN Thăng Long (KH-VPBANK)</option>
+                <option value="3">Công ty TNHH Dịch vụ & Du lịch Viettravel Sun (KH-VIETTRAVEL)</option>
+                <option value="4">Chuỗi Bán lẻ Thời trang NEM Fashion (KH-NEM)</option>
+                <option value="5">Công ty Cổ phần Giải pháp Logistics LogiTech Việt Nam (KH-LOGITECH)</option>
+                <option value="6">Công ty Cổ phần Dược phẩm An Sinh Medicare (KH-ANSINH)</option>
+                <option value="7">Tập đoàn Sản xuất & Chế tạo Cơ khí Nam Á (KH-NAMA)</option>
+                <option value="8">Hệ thống Trường Quốc tế Á Châu (Asian School) (KH-ASIAN)</option>
+                <option value="9">Chuỗi Cửa hàng Trà sữa TocoToco (Công ty CP Taco) (KH-TOCO)</option>
+                <option value="10">Công ty Cổ phần Đầu tư Công nghệ Xanh GreenTech (KH-GREENTECH)</option>
             </select>
             <small id="opportunityCustomerError"></small>
         </label>
@@ -878,6 +888,84 @@
     </a>
 
 </nav>
+
+
+<!-- =========================================================
+     QUICK DEAL TEAM MODAL (SCRUM-82 / SCRUM-211)
+========================================================= -->
+<div id="quickDealTeamOverlay" class="crm-modal-overlay"></div>
+<div id="quickDealTeamModal" class="deal-team-modal-dialog">
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:18px 24px; border-bottom:1px solid var(--crm-border);">
+        <div>
+            <h3 style="margin:0; font-size:17px; font-weight:700; color:var(--crm-text);">👥 Quản lý Đội ngũ Cơ hội</h3>
+            <span id="quickTeamDealTitle" style="font-size:12.5px; color:var(--crm-muted); display:block; margin-top:2px;">Cơ hội</span>
+        </div>
+        <button id="btnCloseQuickTeamModal" type="button" style="border:none; background:transparent; font-size:20px; color:var(--crm-muted); cursor:pointer;">&times;</button>
+    </div>
+
+    <div style="padding:20px 24px; overflow-y:auto; max-height:65vh; display:flex; flex-direction:column; gap:16px;">
+        <!-- Owner Info -->
+        <div style="display:flex; align-items:center; gap:12px; padding:12px 14px; background:linear-gradient(135deg, rgba(245,158,11,0.08), rgba(254,243,199,0.3)); border:1px solid rgba(245,158,11,0.25); border-radius:8px;">
+            <div id="quickTeamOwnerAvatar" style="width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; font-weight:700; font-size:15px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                O
+            </div>
+            <div style="flex:1; min-width:0;">
+                <div style="font-size:13.5px; font-weight:700; color:var(--crm-text); display:flex; align-items:center; gap:6px;">
+                    <span id="quickTeamOwnerName">...</span>
+                    <span style="font-size:10.5px; padding:2px 6px; border-radius:4px; background:#fef3c7; color:#b45309; font-weight:700;">👑 Người sở hữu chính</span>
+                </div>
+                <div id="quickTeamOwnerRole" style="font-size:11.5px; color:var(--crm-muted); margin-top:2px;">Chịu trách nhiệm doanh số cao nhất</div>
+            </div>
+        </div>
+
+        <!-- Collaborators Section -->
+        <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <strong style="font-size:13px; color:var(--crm-text);">Thành viên cùng tham gia (Collaborators)</strong>
+                <span id="quickTeamCollabCount" style="font-size:11.5px; color:var(--crm-muted);">0 người</span>
+            </div>
+
+            <div id="quickTeamCollabList" style="display:flex; flex-direction:column; gap:8px;">
+                <!-- Populated dynamically via JS -->
+            </div>
+        </div>
+
+        <!-- Add Collaborator Inline Form -->
+        <div style="background:var(--crm-surface-soft); border:1px dashed var(--crm-border); border-radius:8px; padding:12px;">
+            <strong style="font-size:12.5px; color:var(--crm-text); display:block; margin-bottom:8px;">+ Thêm thành viên phối hợp mới</strong>
+            <form id="formQuickAddCollab" style="display:flex; flex-direction:column; gap:8px;">
+                <select id="quickAddEmpSelect" class="crm-input" style="font-size:12px; padding:6px 8px;" required>
+                    <option value="">-- Chọn nhân sự công ty --</option>
+                </select>
+
+                <div style="display:flex; gap:8px;">
+                    <select id="quickAddRoleSelect" class="crm-input" style="font-size:12px; padding:6px 8px; flex:1;" required>
+                        <option value="Pre-Sales / Kỹ thuật">Kỹ thuật & Pre-Sales</option>
+                        <option value="Chuyên viên Kinh doanh">Kinh doanh Phối hợp</option>
+                        <option value="Kỹ sư Giải pháp">Kỹ sư Giải pháp</option>
+                        <option value="Pháp chế & Hợp đồng">Pháp chế & Hợp đồng</option>
+                        <option value="Quản lý Hỗ trợ">Quản lý Hỗ trợ</option>
+                    </select>
+
+                    <button type="submit" class="crm-btn crm-btn-primary" style="font-size:12px; padding:6px 14px; white-space:nowrap;">
+                        Thêm vào nhóm
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 24px; border-top:1px solid var(--crm-border); background:var(--crm-surface-soft); border-bottom-left-radius:var(--crm-radius-lg); border-bottom-right-radius:var(--crm-radius-lg);">
+        <a id="linkQuickGoToDetail" href="#" style="font-size:12.5px; color:var(--crm-primary); text-decoration:none; font-weight:600;">
+            👁️ Mở trang Chi tiết Cơ hội & Nhật ký →
+        </a>
+
+        <button id="btnDoneQuickTeamModal" type="button" class="crm-btn crm-btn-secondary" style="font-size:12.5px; padding:6px 16px;">
+            Xong
+        </button>
+    </div>
+</div>
+
 
 
 

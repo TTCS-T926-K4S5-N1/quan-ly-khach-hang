@@ -476,7 +476,7 @@
         const itemClean = (item.path || "").replace(/\.html$/, "");
         const currentClean = (currentPage || "").replace(/\.html$/, "");
         const active =
-            currentClean === itemClean
+            currentClean === itemClean || (itemClean === "pipeline" && currentClean === "deal-detail")
             ?
             " active"
             :
