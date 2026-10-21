@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SalesReport Pro - Xuất Báo Cáo Cơ Hội Kinh Doanh</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- SheetJS (xlsx) for Exporting Excel Files -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Header Navigation -->
+    <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-30 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-emerald-600 p-2 rounded-lg text-white">
+                    <i class="fa-solid fa-file-excel text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">SalesReport Pro</h1>
+                    <p class="text-xs text-slate-400">Xuất Báo Cáo Cơ Hội Kinh Doanh cho Ban Giám Đốc</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 pl-4 border-l border-slate-800">
+                    <img class="w-9 h-9 rounded-full border-2 border-emerald-500 object-cover" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Avatar">
+                    <div class="hidden sm:block">
+                        <div class="text-sm font-semibold leading-tight">Nguyễn Văn Bình</div>
+                        <div class="text-xs text-emerald-400 font-medium">Trưởng nhóm Kinh doanh</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col gap-6">
+
+        <!-- Metrics Dashboard -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase">Tổng Cơ Hội (Pipeline)</p>
+                    <p id="metric-count" class="text-2xl font-bold text-slate-900 mt-1">0</p>
+                    <span class="text-xs text-slate-400">Cơ hội đang quản lý</span>
+                </div>
+                <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-filter-circle-dollar"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase">Tổng Giá Trị Hợp Đồng</p>
+                    <p id="metric-total-value" class="text-2xl font-bold text-blue-600 mt-1">0 ₫</p>
+                    <span class="text-xs text-slate-400">Giá trị niêm yết</span>
+                </div>
+                <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-sack-dollar"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase">Doanh Thu Dự Kiến (Weighted)</p>
+                    <p id="metric-weighted-value" class="text-2xl font-bold text-emerald-600 mt-1">0 ₫</p>
+                    <span class="text-xs text-emerald-600 font-medium"><i class="fa-solid fa-chart-line mr-1"></i>Tính theo tỷ lệ chốt %</span>
+                </div>
+                <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-calculator"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase">Tỷ Lệ Thắng Trung Bình</p>
+                    <p id="metric-avg-win" class="text-2xl font-bold text-amber-600 mt-1">0%</p>
+                    <span class="text-xs text-slate-400">Trọng số thành công</span>
+                </div>
+                <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter & Excel Export Toolbar -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2 text-sm">
+                    <i class="fa-solid fa-sliders text-blue-600"></i> Bộ Lọc Dữ Liệu Báo Cáo
+                </h3>
+                <span class="text-xs text-slate-400">Chọn điều kiện trước khi kết xuất tệp Excel</span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Giai Đoạn Bán Hàng</label>
+                    <select id="filter-stage" onchange="applyFilters()" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none font-medium text-slate-700 focus:ring-2 focus:ring-blue-500">
+                        <option value="ALL">Tất cả giai đoạn</option>
+                        <option value="Tiếp cận (Lead)">Tiếp cận (Lead)</option>
+                        <option value="Demo / Tư vấn">Demo / Tư vấn</option>
+                        <option value="Gửi Báo giá">Gửi Báo giá</option>
+                        <option value="Đàm phán Hợp đồng">Đàm phán Hợp đồng</option>
+                        <option value="Chốt thành công (Won)">Chốt thành công (Won)</option>
+                        <option value="Thất bại (Lost)">Thất bại (Lost)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Nhân Viên Phụ Trách</label>
+                    <select id="filter-owner" onchange="applyFilters()" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none font-medium text-slate-700 focus:ring-2 focus:ring-blue-500">
+                        <option value="ALL">Tất cả nhân viên</option>
+                        <option value="Trần Văn Nam">Trần Văn Nam</option>
+                        <option value="Lê Thị Mai">Lê Thị Mai</option>
+                        <option value="Hoàng Minh Tuấn">Hoàng Minh Tuấn</option>
+                        <option value="Phạm Quốc Bảo">Phạm Quốc Bảo</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Tìm kiếm Từ khóa</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="filter-search" onkeyup="applyFilters()" placeholder="Tên cơ hội, tên khách..." class="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Mẫu Báo Cáo Excel</label>
+                    <select id="export-template" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none font-medium text-slate-700">
+                        <option value="BOD_SUMMARY">Mẫu Ban Giám Đốc (Có Tổng Doanh Thu Dự Kiến)</option>
+                        <option value="SALES_DETAIL">Mẫu Chi Tiết Sales (Kèm lịch sử chăm sóc)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-center justify-between border-t border-slate-100 pt-4 gap-3">
+                <div class="text-xs text-slate-500">
+                    Hiển thị <span id="filtered-count" class="font-bold text-slate-900">0</span> / <span id="total-count">0</span> cơ hội phù hợp
+                </div>
+
+                <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                    <button onclick="openAddModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus"></i> Thêm Cơ Hội Mới
+                    </button>
+                    <button onclick="exportToExcel()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition flex items-center gap-2 shadow-sm">
+                        <i class="fa-solid fa-file-excel text-sm"></i> XUẤT BÁO CÁO EXCEL (.XLSX)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Table -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-1">
+            <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-table text-slate-500"></i> Xem Trước Danh Sách Cơ Hội Báo Cáo
+                </h4>
+                <span class="text-xs text-slate-400">*Bảng dưới đây là dữ liệu sẽ được xuất ra tệp Excel</span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs text-slate-600">
+                    <thead class="bg-slate-100 text-slate-700 font-bold uppercase border-b border-slate-200">
+                        <tr>
+                            <th class="p-3">Mã Deals</th>
+                            <th class="p-3">Tên Cơ Hội / Khách Hàng</th>
+                            <th class="p-3">Nhân Viên</th>
+                            <th class="p-3">Giai Đoạn</th>
+                            <th class="p-3 text-right">Giá Trị Đơn Hàng</th>
+                            <th class="p-3 text-center">Tỷ Lệ Chốt (%)</th>
+                            <th class="p-3 text-right">Doanh Thu Dự Kiến</th>
+                            <th class="p-3 text-center">Ngày Chốt Dự Kiến</th>
+                        </tr>
+                    </thead>
+                    <tbody id="opp-table-body" class="divide-y divide-slate-100">
+                        <!-- Dynamic Content -->
+                    </tbody>
+                    <tfoot id="opp-table-foot" class="bg-slate-900 text-white font-bold border-t-2 border-slate-800">
+                        <!-- Summary Row -->
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal: Thêm Cơ Hội Mới -->
+    <div id="modal-add" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-circle-plus text-blue-600"></i> Thêm Cơ Hội Kinh Doanh Mới
+                </h3>
+                <button onclick="closeAddModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form onsubmit="handleAddOpportunity(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Tên Cơ Hội / Dự Án</label>
+                    <input type="text" id="new-title" required placeholder="VD: Hợp đồng triển khai phần mềm CRM" class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Tên Khách Hàng</label>
+                        <input type="text" id="new-customer" required placeholder="VD: Tập đoàn Hòa Phát" class="w-full p-2.5 border border-slate-300 rounded-lg outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Nhân Viên Phụ Trách</label>
+                        <select id="new-owner" class="w-full p-2.5 border border-slate-300 rounded-lg bg-white outline-none">
+                            <option value="Trần Văn Nam">Trần Văn Nam</option>
+                            <option value="Lê Thị Mai">Lê Thị Mai</option>
+                            <option value="Hoàng Minh Tuấn">Hoàng Minh Tuấn</option>
+                            <option value="Phạm Quốc Bảo">Phạm Quốc Bảo</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Giá Trị (VNĐ)</label>
+                        <input type="number" id="new-amount" required value="100000000" step="1000000" class="w-full p-2.5 border border-slate-300 rounded-lg font-bold text-blue-600 outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Giai Đoạn</label>
+                        <select id="new-stage" onchange="autoFillWinRate()" class="w-full p-2.5 border border-slate-300 rounded-lg bg-white outline-none">
+                            <option value="Tiếp cận (Lead)">Tiếp cận (Lead)</option>
+                            <option value="Demo / Tư vấn">Demo / Tư vấn</option>
+                            <option value="Gửi Báo giá" selected>Gửi Báo giá</option>
+                            <option value="Đàm phán Hợp đồng">Đàm phán Hợp đồng</option>
+                            <option value="Chốt thành công (Won)">Chốt thành công (Won)</option>
+                            <option value="Thất bại (Lost)">Thất bại (Lost)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Tỷ Lệ Thành Công (%)</label>
+                        <input type="number" id="new-probability" min="0" max="100" value="50" class="w-full p-2.5 border border-slate-300 rounded-lg font-bold text-emerald-600 outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Ngày Chốt Dự Kiến</label>
+                        <input type="date" id="new-close-date" required class="w-full p-2.5 border border-slate-300 rounded-lg outline-none">
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium">Hủy</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold">Lưu Cơ Hội</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Application JavaScript Logic -->
+    <script src="app.js"></script>
+</body>
+</html>
