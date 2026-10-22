@@ -676,22 +676,93 @@ function priorityLabel(value) {
 
 
 function loadActivities() {
+    try {
+        const stored = JSON.parse(localStorage.getItem("crm_ui_activities"));
+        if (Array.isArray(stored) && stored.length > 0) {
+            return stored;
+        }
+    } catch (_) {}
+
+    const defaultTasks = [
+        {
+            id: "act-104",
+            type: "task",
+            title: "Dự toán chi phí triển khai hệ thống Foxconn",
+            relation: "Tập đoàn Công nghiệp Foxconn VN",
+            date: "2026-10-20",
+            time: "16:00",
+            owner: "Bùi Đức Thành",
+            priority: "high",
+            status: "done",
+            description: "Tính toán số lượng server và license database cho 3 nhà máy tại KCN Đình Trám và Quế Võ."
+        },
+        {
+            id: "act-108",
+            type: "task",
+            title: "Hoàn thiện bản dự thảo hợp đồng VPBank",
+            relation: "Ngân hàng TMCP VPBank - CN Thăng Long",
+            date: "2026-10-21",
+            time: "17:00",
+            owner: "Võ Minh Thư",
+            priority: "high",
+            status: "open",
+            description: "Kiểm tra các điều khoản bảo mật SLA và trách nhiệm bảo hành nâng cấp định kỳ 3 năm."
+        },
+        {
+            id: "act-112",
+            type: "task",
+            title: "Gửi tài liệu giải pháp bảo mật cho khách hàng Foxconn",
+            relation: "Tập đoàn Công nghiệp Foxconn VN",
+            date: "2026-10-22",
+            time: "16:30",
+            owner: "Bùi Đức Thành",
+            priority: "medium",
+            status: "open",
+            description: "Đóng gói bộ slide Security Whitepaper và chứng chỉ ISO/IEC 27001 gửi qua email."
+        },
+        {
+            id: "act-114",
+            type: "task",
+            title: "Tổng hợp báo cáo tuần của Khối Kinh doanh",
+            relation: "Nội bộ Khối Kinh doanh",
+            date: "2026-10-23",
+            time: "11:00",
+            owner: "Trần Thị Thu Hà",
+            priority: "medium",
+            status: "open",
+            description: "Tổng kết doanh số đạt được trong tuần, các cơ hội mới vào phễu và tỷ lệ Win/Loss."
+        },
+        {
+            id: "act-117",
+            type: "task",
+            title: "Đánh giá Win/Loss các cơ hội đóng trong tuần",
+            relation: "Nội bộ CRM",
+            date: "2026-10-24",
+            time: "15:00",
+            owner: "Trần Thị Thu Hà",
+            priority: "medium",
+            status: "open",
+            description: "Phân tích nguyên nhân thua thầu tại dự án Logistics Hải Phòng để cải tiến quy trình báo giá."
+        },
+        {
+            id: "act-120",
+            type: "task",
+            title: "Hạn nộp mục tiêu doanh số tháng 11/2026",
+            relation: "Toàn bộ thành viên Khối Kinh doanh",
+            date: "2026-10-30",
+            time: "17:00",
+            owner: "Trần Thị Thu Hà",
+            priority: "high",
+            status: "open",
+            description: "Mỗi chuyên viên kinh doanh nộp bản kế hoạch hành động và mục tiêu số lượng cuộc gặp tháng 11."
+        }
+    ];
 
     try {
+        localStorage.setItem("crm_ui_activities", JSON.stringify(defaultTasks));
+    } catch (_) {}
 
-        return JSON.parse(
-            localStorage.getItem(
-                "crm_ui_activities"
-            )
-        )
-        ||
-        [];
-
-    } catch {
-
-        return [];
-    }
-
+    return defaultTasks;
 }
 
 

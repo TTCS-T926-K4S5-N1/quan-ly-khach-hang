@@ -4,62 +4,34 @@
 <script>
 (function () {
     try {
-        var theme =
-            localStorage.getItem("crm_ui_theme");
-
-        document.documentElement.setAttribute(
-            "data-theme",
-            theme === "dark"
-                ? "dark"
-                : "light"
-        );
-
-        document.documentElement.removeAttribute(
-            "data-crm-theme"
-        );
+        var theme = localStorage.getItem("crm_ui_theme");
+        document.documentElement.setAttribute("data-theme", theme === "dark" ? "dark" : "light");
+        document.documentElement.removeAttribute("data-crm-theme");
     } catch (e) {
-        document.documentElement.setAttribute(
-            "data-theme",
-            "light"
-        );
+        document.documentElement.setAttribute("data-theme", "light");
     }
 })();
 </script>
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-
-<title>Lịch CRM</title>
+<title>Lịch làm việc & Nhóm - Corporate CRM</title>
 
 <link rel="stylesheet" href="css/design-system.css">
 <link rel="stylesheet" href="css/app-shell.css">
 <link rel="stylesheet" href="css/pages/calendar.css">
-
-
-
-
-
-
-
-
-
-
-
 <link rel="stylesheet" href="css/animations.css">
 </head>
 
 <body class="crm-private">
 
-
 <aside class="crm-sidebar">
-
     <div class="crm-brand">
         <div class="crm-brand-mark">C</div>
         <span class="crm-brand-name">Corporate CRM</span>
     </div>
 
     <nav class="crm-nav">
-
         <a href="dashboard" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
             <span class="crm-nav-label">Tổng quan</span>
@@ -89,151 +61,244 @@
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4m8-4v4M3 10h18"/></svg></span>
             <span class="crm-nav-label">Lịch</span>
         </a>
-
     </nav>
-
-    
-
 </aside>
 
-
 <header class="crm-topbar">
-
     <div class="crm-search">
-
         <svg viewBox="0 0 24 24">
             <circle cx="11" cy="11" r="7"/>
             <path d="m20 20-4-4"/>
         </svg>
-
-        <input id="globalSearch" type="search" placeholder="Tìm kiếm...">
+        <input id="globalSearch" type="search" placeholder="Tìm kiếm lịch, công việc, khách hàng...">
         <kbd>Ctrl K</kbd>
-
     </div>
 
     <div class="crm-top-actions">
-        <div class="crm-avatar">U</div>
+        <div class="crm-avatar" style="background:#2563eb; color:#fff; font-weight:700;">H</div>
     </div>
-
 </header>
-
 
 <main class="crm-main calendar-page">
 
+    <!-- PAGE HEADER -->
     <section class="calendar-head">
-
         <div>
-
-            <p>
-                CRM / Lịch
-            </p>
-
-            <h1>
-                Lịch hoạt động
-            </h1>
-
-            <span>
-                Xem lịch cuộc gọi, họp, email và công việc.
-            </span>
-
+            <p>CRM / Lịch làm việc</p>
+            <h1>Lịch cá nhân & Đội ngũ (Team Calendar)</h1>
+            <span>Theo dõi các cuộc gặp khách hàng, công việc có hạn và phát hiện chồng chéo lịch trình nhóm.</span>
         </div>
 
+        <div class="calendar-head-actions">
+            <!-- Conflict Indicator Button -->
+            <button id="btnHeaderConflicts" type="button" class="crm-btn" style="background:#fee2e2; color:#dc2626; border:1px solid #f87171; display:none; align-items:center; gap:6px;">
+                <span>⚠️</span>
+                <span id="headerConflictText">0 Xung đột lịch</span>
+            </button>
 
-        <a
-            href="activities"
-            class="crm-btn crm-btn-primary"
-            style="text-decoration:none"
-        >
-            + Tạo hoạt động
-        </a>
-
+            <!-- New Event Button -->
+            <button id="btnOpenNewEventModal" type="button" class="crm-btn crm-btn-primary" style="display:inline-flex; align-items:center; gap:6px;">
+                <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14m-7-7h14"/></svg>
+                + Đặt lịch mới
+            </button>
+        </div>
     </section>
 
-
-    <section class="crm-card calendar-card">
-
-        <header class="calendar-toolbar">
-
-            <div class="month-controls">
-
-                <button
-                    id="previousMonth"
-                    type="button"
-                >
-                    <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>
-                </button>
-
-                <button
-                    id="todayButton"
-                    type="button"
-                >
-                    Hôm nay
-                </button>
-
-                <button
-                    id="nextMonth"
-                    type="button"
-                >
-                    <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
-                </button>
-
+    <!-- SCHEDULE CONFLICT ALERT BANNER -->
+    <section id="calendarConflictBanner" class="calendar-conflict-banner">
+        <div class="calendar-conflict-banner-info">
+            <div class="conflict-icon-pulse">⚠️</div>
+            <div class="calendar-conflict-banner-text">
+                <strong id="bannerConflictTitle">Phát hiện khung giờ bị trùng lịch trong nhóm!</strong>
+                <span id="bannerConflictDesc">Có 2 cuộc gặp của các thành viên đang diễn ra cùng thời điểm. Trưởng nhóm nên bố trí lại lịch để tránh chồng chéo.</span>
             </div>
-
-
-            <h2 id="calendarTitle">
-                —
-            </h2>
-
-
-            <select
-                id="calendarTypeFilter"
-                class="crm-input"
-            >
-                <option value="">
-                    Tất cả hoạt động
-                </option>
-
-                <option value="call">
-                    Cuộc gọi
-                </option>
-
-                <option value="meeting">
-                    Cuộc họp
-                </option>
-
-                <option value="task">
-                    Công việc
-                </option>
-
-                <option value="email">
-                    Email
-                </option>
-
-                <option value="note">
-                    Ghi chú
-                </option>
-            </select>
-
-        </header>
-
-
-        <div class="calendar-weekdays">
-
-            <span>T2</span>
-            <span>T3</span>
-            <span>T4</span>
-            <span>T5</span>
-            <span>T6</span>
-            <span>T7</span>
-            <span>CN</span>
-
         </div>
 
+        <button id="btnBannerViewConflicts" type="button" class="btn-resolve-conflicts">
+            Xem chi tiết & Điều chỉnh →
+        </button>
+    </section>
 
-        <div
-            id="calendarGrid"
-            class="calendar-grid"
-        ></div>
+    <!-- CALENDAR CARD -->
+    <section class="crm-card calendar-card">
+
+        <!-- TOOLBAR -->
+        <header class="calendar-toolbar">
+            <!-- Row 1: Nav controls & View mode pills -->
+            <div class="calendar-toolbar-row-top">
+                <div class="calendar-nav-group">
+                    <button id="btnPrevDate" class="calendar-nav-btn" type="button" title="Kỳ trước">
+                        <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>
+                    </button>
+
+                    <button id="btnToday" class="calendar-nav-btn" type="button">
+                        Hôm nay
+                    </button>
+
+                    <button id="btnNextDate" class="calendar-nav-btn" type="button" title="Kỳ sau">
+                        <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+                    </button>
+                </div>
+
+                <h2 id="calendarTitleHeading" class="calendar-title-heading">
+                    Tháng 10 / 2026
+                </h2>
+
+                <!-- View Mode Switcher -->
+                <div class="calendar-view-pills">
+                    <button id="pillViewMonth" class="calendar-view-pill active" type="button" data-view="month">
+                        <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                        Tháng
+                    </button>
+
+                    <button id="pillViewWeek" class="calendar-view-pill" type="button" data-view="week">
+                        <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18M3 10h18M3 16h18M3 20h18"/></svg>
+                        Tuần
+                    </button>
+
+                    <button id="pillViewDay" class="calendar-view-pill" type="button" data-view="day">
+                        <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+                        Ngày
+                    </button>
+                </div>
+            </div>
+
+            <!-- Row 2: Secondary Filter Bar & Legend -->
+            <div class="calendar-toolbar-row-bottom">
+                <div class="calendar-filters-left">
+                    <!-- Team Member Filter -->
+                    <div class="filter-item-wrapper">
+                        <span class="filter-item-label">👤 Thành viên:</span>
+                        <select id="calendarMemberFilter" class="crm-input calendar-select-filter">
+                            <option value="ALL">👥 Tất cả thành viên trong nhóm</option>
+                            <option value="MY">⭐ Lịch của tôi (Thu Hà)</option>
+                            <option value="1">Trần Thị Thu Hà (Trưởng nhóm)</option>
+                            <option value="2">Lê Hoàng Nam (Senior Sales B2B)</option>
+                            <option value="3">Phạm Mai Phương (Sales)</option>
+                            <option value="4">Bùi Đức Thành (Solution Architect)</option>
+                            <option value="5">Võ Minh Thư (Pháp chế & HĐ)</option>
+                            <option value="6">Phan Văn Trung (Trưởng nhóm MT)</option>
+                        </select>
+                    </div>
+
+                    <!-- Activity Type Filter -->
+                    <div class="filter-item-wrapper">
+                        <span class="filter-item-label">🏷️ Phân loại:</span>
+                        <select id="calendarTypeFilter" class="crm-input calendar-select-filter">
+                            <option value="">Tất cả hoạt động</option>
+                            <option value="meeting">📅 Cuộc gặp / Họp (Meetings)</option>
+                            <option value="task">📋 Công việc có hạn (Tasks)</option>
+                            <option value="call">📞 Cuộc gọi tư vấn</option>
+                            <option value="email">📧 Email trao đổi</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="calendar-legend">
+                    <span class="legend-item"><span class="legend-dot meeting"></span> Họp/Gặp</span>
+                    <span class="legend-item"><span class="legend-dot task"></span> Công việc</span>
+                    <span class="legend-item"><span class="legend-dot call"></span> Cuộc gọi</span>
+                    <span class="legend-item"><span class="legend-dot conflict"></span> Trùng lịch</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- =========================================================
+             VIEW 1: MONTH VIEW
+        ========================================================= -->
+        <div id="calendarViewMonth" class="calendar-view-month">
+            <div class="calendar-weekdays">
+                <span>Thứ 2</span>
+                <span>Thứ 3</span>
+                <span>Thứ 4</span>
+                <span>Thứ 5</span>
+                <span>Thứ 6</span>
+                <span>Thứ 7</span>
+                <span>Chủ nhật</span>
+            </div>
+            <div id="calendarMonthGrid" class="calendar-grid"></div>
+        </div>
+
+        <!-- =========================================================
+             VIEW 2: WEEK VIEW (TIME GRID 07:00 -> 19:00)
+        ========================================================= -->
+        <div id="calendarViewWeek" class="calendar-view-week">
+            <div class="week-grid-container">
+                <!-- Week Headers -->
+                <div id="weekHeaderRow" class="week-header-row">
+                    <div class="week-header-col-time">Giờ</div>
+                    <!-- 7 days columns populated via JS -->
+                </div>
+
+                <!-- All-Day Tasks Row -->
+                <div id="weekAllDayRow" class="week-all-day-row">
+                    <div class="week-all-day-label">Hạn chót</div>
+                    <!-- 7 all-day cells populated via JS -->
+                </div>
+
+                <!-- Week Time Body Grid -->
+                <div class="week-body">
+                    <!-- Left Time labels: 07:00 to 18:00 -->
+                    <div class="week-time-labels">
+                        <div class="time-slot-label">07:00</div>
+                        <div class="time-slot-label">08:00</div>
+                        <div class="time-slot-label">09:00</div>
+                        <div class="time-slot-label">10:00</div>
+                        <div class="time-slot-label">11:00</div>
+                        <div class="time-slot-label">12:00</div>
+                        <div class="time-slot-label">13:00</div>
+                        <div class="time-slot-label">14:00</div>
+                        <div class="time-slot-label">15:00</div>
+                        <div class="time-slot-label">16:00</div>
+                        <div class="time-slot-label">17:00</div>
+                        <div class="time-slot-label">18:00</div>
+                    </div>
+
+                    <!-- 7 Day Columns -->
+                    <div id="weekDayColsContainer" style="display:contents;">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================================================
+             VIEW 3: DAY VIEW (TIMELINE & TEAM SWIMLANES)
+        ========================================================= -->
+        <div id="calendarViewDay" class="calendar-view-day">
+            <!-- Day Sub-Navigation -->
+            <div class="day-view-subnav">
+                <div class="day-subnav-pills">
+                    <button id="btnDaySubTimeline" class="day-subnav-btn active" type="button" data-sub="timeline">
+                        📋 Dòng thời gian chi tiết
+                    </button>
+                    <button id="btnDaySubSwimlanes" class="day-subnav-btn" type="button" data-sub="swimlanes">
+                        👥 Lịch phân bổ cả nhóm (Team Swimlanes)
+                    </button>
+                </div>
+                <div id="dayCurrentDateBadge" style="font-size:12.5px; font-weight:700; color:var(--crm-text);">
+                    Hôm nay, 21/10/2026
+                </div>
+            </div>
+
+            <!-- Submode A: Timeline -->
+            <div id="dayTimelineView" class="day-timeline-container">
+                <!-- Injected via JS -->
+            </div>
+
+            <!-- Submode B: Team Swimlanes -->
+            <div id="daySwimlanesView" class="day-swimlanes-container" style="display:none;">
+                <div class="swimlanes-grid-wrapper">
+                    <div id="swimlanesHeaderRow" class="swimlanes-header-row">
+                        <!-- Populated via JS: Time Col + Member Cols -->
+                    </div>
+                    <div id="swimlanesBodyGrid" class="swimlanes-body-grid">
+                        <!-- Populated via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
 
     </section>
 
@@ -243,75 +308,228 @@
 <div id="drawerOverlay" class="crm-drawer-overlay"></div>
 <aside id="mobileDrawer" class="crm-mobile-drawer"></aside>
 
-
-<!-- DETAIL MODAL -->
-
-<div
-    id="calendarOverlay"
-    class="calendar-overlay"
-></div>
-
-
-<section
-    id="calendarModal"
-    class="calendar-modal crm-card"
->
-
+<!-- =========================================================
+     MODAL 1: EVENT DETAIL MODAL
+========================================================= -->
+<div id="calendarOverlay" class="calendar-overlay"></div>
+<section id="calendarModal" class="calendar-modal crm-card" style="width:min(520px, calc(100% - 30px));">
     <header>
-
-        <strong id="calendarModalTitle">
-            Chi tiết
-        </strong>
-
-        <button
-            id="closeCalendarModal"
-            type="button"
-        >
-            <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
-        </button>
-
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span id="detailTypeBadge" style="padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700;">Loại</span>
+            <strong id="calendarModalTitle" style="font-size:15px; color:var(--crm-text);">Chi tiết hoạt động</strong>
+        </div>
+        <button id="closeCalendarModal" type="button" style="border:none; background:transparent; font-size:22px; cursor:pointer; color:var(--crm-muted);">&times;</button>
     </header>
 
-
     <div class="calendar-detail">
-
-        <div>
-            <span>Loại</span>
-            <strong id="detailActivityType">—</strong>
+        <div id="detailConflictAlertBox" style="display:none; padding:10px 12px; background:#fee2e2; border:1px solid #f87171; border-radius:6px; margin-bottom:12px; color:#b91c1c; font-size:12px; font-weight:600;">
+            ⚠️ Sự kiện này đang bị trùng khung giờ với một hoạt động khác của nhóm!
         </div>
 
         <div>
-            <span>Liên quan</span>
-            <strong id="detailActivityRelation">—</strong>
+            <span>Khách hàng / Cơ hội liên quan</span>
+            <strong id="detailActivityRelation" style="font-size:13.5px; color:var(--crm-primary);">—</strong>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div>
+                <span>Thời gian diễn ra</span>
+                <strong id="detailActivityDate">—</strong>
+            </div>
+            <div>
+                <span>Địa điểm / Hình thức</span>
+                <strong id="detailActivityLocation">—</strong>
+            </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div>
+                <span>Người phụ trách chính</span>
+                <strong id="detailActivityOwner">—</strong>
+            </div>
+            <div>
+                <span>Mức độ ưu tiên & Trạng thái</span>
+                <strong id="detailActivityStatus">—</strong>
+            </div>
+        </div>
+
+        <div id="detailAttendeesRow" style="display:none;">
+            <span>Thành viên cùng tham gia</span>
+            <strong id="detailActivityAttendees">—</strong>
         </div>
 
         <div>
-            <span>Lịch</span>
-            <strong id="detailActivityDate">—</strong>
+            <span>Nội dung ghi chú</span>
+            <p id="detailActivityDescription" style="margin-top:6px; color:var(--crm-text); font-size:12.5px;"></p>
         </div>
 
-        <div>
-            <span>Người phụ trách</span>
-            <strong id="detailActivityOwner">—</strong>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding-top:12px; border-top:1px solid var(--crm-border);">
+            <button id="btnDeleteEvent" type="button" class="crm-btn" style="background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; font-size:12px; padding:6px 12px;">
+                Xóa lịch
+            </button>
+
+            <div style="display:flex; gap:8px;">
+                <button id="btnToggleDoneEvent" type="button" class="crm-btn crm-btn-secondary" style="font-size:12px; padding:6px 14px;">
+                    Đánh dấu Hoàn thành
+                </button>
+                <button id="btnEditEventFromDetail" type="button" class="crm-btn crm-btn-primary" style="font-size:12px; padding:6px 14px;">
+                    Sửa thông tin
+                </button>
+            </div>
         </div>
-
-        <p id="detailActivityDescription"></p>
-
     </div>
-
 </section>
 
+<!-- =========================================================
+     MODAL 2: NEW / EDIT EVENT MODAL WITH REAL-TIME CONFLICT CHECK
+========================================================= -->
+<div id="eventFormOverlay" class="crm-modal-overlay"></div>
+<div id="eventFormModal" class="conflict-modal-dialog" style="width:min(580px, calc(100% - 30px));">
+    <div class="conflict-modal-header" style="background:var(--crm-surface-soft);">
+        <h3 id="eventFormModalTitle" style="color:var(--crm-text); font-size:16px;">
+            📅 Đặt lịch làm việc mới
+        </h3>
+        <button id="btnCloseEventForm" type="button" style="border:none; background:transparent; font-size:22px; cursor:pointer; color:var(--crm-muted);">&times;</button>
+    </div>
 
+    <form id="formCreateOrEditEvent" style="padding:20px; overflow-y:auto; max-height:75vh; display:flex; flex-direction:column; gap:14px;">
+        <input type="hidden" id="eventFormId">
 
+        <div class="event-form-grid">
+            <div>
+                <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px; color:var(--crm-text);">
+                    Loại hoạt động <em>*</em>
+                </label>
+                <select id="eventFormType" class="crm-input" required>
+                    <option value="meeting">📅 Cuộc gặp / Họp (Meeting)</option>
+                    <option value="task">📋 Công việc (Task)</option>
+                    <option value="call">📞 Cuộc gọi tư vấn (Call)</option>
+                    <option value="email">📧 Email trao đổi</option>
+                </select>
+            </div>
 
+            <div>
+                <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px; color:var(--crm-text);">
+                    Mức độ ưu tiên
+                </label>
+                <select id="eventFormPriority" class="crm-input">
+                    <option value="high">Cao</option>
+                    <option value="medium" selected>Trung bình</option>
+                    <option value="low">Thấp</option>
+                </select>
+            </div>
+
+            <div class="field-full-width">
+                <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px; color:var(--crm-text);">
+                    Tiêu đề sự kiện <em>*</em>
+                </label>
+                <input id="eventFormTitle" class="crm-input" type="text" placeholder="Ví dụ: Demo giải pháp Cloud ERP cho Foxconn VN" required>
+            </div>
+
+            <div class="field-full-width">
+                <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px; color:var(--crm-text);">
+                    Khách hàng liên quan
+                </label>
+                <select id="eventFormCustomer" class="crm-input">
+                    <option value="">-- Chọn khách hàng --</option>
+                    <option value="Tập đoàn Công nghiệp Foxconn VN">Tập đoàn Công nghiệp Foxconn VN</option>
+                    <option value="Ngân hàng TMCP VPBank - CN Thăng Long">Ngân hàng TMCP VPBank - CN Thăng Long</option>
+                    <option value="Công ty TNHH Dịch vụ & Du lịch Viettravel Sun">Công ty TNHH Dịch vụ & Du lịch Viettravel Sun</option>
+                    <option value="Chuỗi Bán lẻ Thời trang NEM Fashion">Chuỗi Bán lẻ Thời trang NEM Fashion</option>
+                    <option value="Công ty CP Logistics LogiTech Việt Nam">Công ty CP Logistics LogiTech Việt Nam</option>
+                    <option value="Hệ thống Trường Quốc tế Á Châu (Asian School)">Hệ thống Trường Quốc tế Á Châu</option>
+                </select>
+            </div>
+
+            <div>
+                <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px; color:var(--crm-text);">
+                    Ngày diễn ra <em>*</em>
+                </label>
+                <input id="eventFormDate" class="crm-input" type="date" required>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                <div>
+                    <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px; color:var(--crm-text);">
+                        Bắt đầu
+                    </label>
+                    <input id="eventFormStartTime" class="crm-input" type="time" value="09:00">
+                </div>
+                <div>
+                    <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px; color:var(--crm-text);">
+                        Kết thúc
+                    </label>
+                    <input id="eventFormEndTime" class="crm-input" type="time" value="10:30">
+                </div>
+            </div>
+
+            <div>
+                <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px; color:var(--crm-text);">
+                    Người phụ trách chính <em>*</em>
+                </label>
+                <select id="eventFormOwner" class="crm-input" required>
+                    <option value="Trần Thị Thu Hà">Trần Thị Thu Hà (Trưởng nhóm)</option>
+                    <option value="Lê Hoàng Nam" selected>Lê Hoàng Nam (Senior Sales)</option>
+                    <option value="Phạm Mai Phương">Phạm Mai Phương (Sales)</option>
+                    <option value="Bùi Đức Thành">Bùi Đức Thành (Solution Architect)</option>
+                    <option value="Võ Minh Thư">Võ Minh Thư (Pháp chế)</option>
+                    <option value="Phan Văn Trung">Phan Văn Trung (Trưởng nhóm MT)</option>
+                </select>
+            </div>
+
+            <div>
+                <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px; color:var(--crm-text);">
+                    Địa điểm / Hình thức
+                </label>
+                <input id="eventFormLocation" class="crm-input" type="text" placeholder="Tại VP khách hàng / Google Meet / Trụ sở CRM">
+            </div>
+
+            <div class="field-full-width">
+                <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px; color:var(--crm-text);">
+                    Ghi chú / Kế hoạch chi tiết
+                </label>
+                <textarea id="eventFormDesc" class="crm-input" rows="3" placeholder="Mục tiêu buổi làm việc, nội dung cần chuẩn bị..."></textarea>
+            </div>
+        </div>
+
+        <!-- Realtime Conflict Warning inside Form -->
+        <div id="formConflictWarning" class="form-conflict-warning">
+            ⚠️ <strong>Cảnh báo trùng lịch:</strong> <span id="formConflictMsg"></span>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px; padding-top:12px; border-top:1px solid var(--crm-border);">
+            <button id="btnCancelEventForm" type="button" class="crm-btn crm-btn-secondary" style="padding:8px 16px;">Hủy</button>
+            <button type="submit" class="crm-btn crm-btn-primary" style="padding:8px 20px;">Lưu lịch</button>
+        </div>
+    </form>
+</div>
+
+<!-- =========================================================
+     MODAL 3: CONFLICT RESOLUTION MODAL
+========================================================= -->
+<div id="conflictListOverlay" class="conflict-modal-overlay"></div>
+<div id="conflictListModal" class="conflict-modal-dialog">
+    <div class="conflict-modal-header">
+        <h3>
+            <span>⚠️</span>
+            <span>Các khung giờ bị trùng lịch trong nhóm</span>
+        </h3>
+        <button id="btnCloseConflictModal" type="button" style="border:none; background:transparent; font-size:22px; cursor:pointer; color:var(--crm-muted);">&times;</button>
+    </div>
+
+    <div class="conflict-modal-body">
+        <p style="margin:0; font-size:12.5px; color:var(--crm-muted); line-height:1.5;">
+            Trưởng nhóm có thể xem danh sách các cuộc gặp bị chồng chéo thời gian bên dưới, và nhấn nút <strong>"Dời lịch sang khung giờ trống"</strong> để tự động điều chỉnh mà không bị trùng.
+        </p>
+
+        <div id="conflictCardsList" style="display:flex; flex-direction:column; gap:14px;">
+            <!-- Populated via JS -->
+        </div>
+    </div>
+</div>
 
 <script src="js/pages/calendar.js"></script>
-
 <script src="js/page-transition.js"></script>
-
-
-
-
 <script src="js/theme.js"></script>
 <script src="js/shared-shell.js"></script>
 <script src="js/ui-core.js"></script>
