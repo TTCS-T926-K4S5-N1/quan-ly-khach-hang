@@ -1,0 +1,101 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Customer {
+  id              String                @id @default(uuid())
+  customerCode    String                @unique
+  customerName    String
+  phone           String?
+  email           String?
+  address         String?
+  lastContactAt   DateTime?
+  lastContactNote String?
+  careStatus      String                @default("NEEDS_CARE")
+  syncedAt        DateTime?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  contracts       Contract[]
+  careHistories   CustomerCareHistory[]
+
+  @@index([syncedAt])
+  @@index([lastContactAt])
+  @@index([customerCode])
+}
+
+model Contract {
+  id             String    @id @default(uuid())
+  customerId     String
+  contractNumber String    @unique
+  status         String    @default("ACTIVE")
+  startDate      DateTime?
+  endDate        DateTime?
+  value          Float?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  customer       Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+}
+
+model CustomerCareHistory {
+  id            String    @id @default(uuid())
+  customerId    String
+  contactedById String?
+  contactedAt   DateTime  @default(now())
+  note          String?
+  channel       String    @default("PHONE")
+  createdAt     DateTime  @default(now())
+
+  customer      Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([contactedAt])
+}
+
+model SystemConfig {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+model User {
+  id          String   @id @default(uuid())
+  username    String   @unique
+  name        String
+  role        String   @default("CARE_STAFF")
+  permissions String   @default("CUSTOMER_CARE_VIEW,CUSTOMER_CARE_MANAGE")
+  createdAt   DateTime @default(now())
+}
+
+model Lead {
+  id          String   @id @default(uuid())
+  leadCode    String?  @unique
+  fullName    String
+  email       String?
+  phone       String?
+  company     String?
+  jobTitle    String?
+  address     String?
+  source      String
+  status      String   @default("NEW")
+  notes       String?
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([source])
+  @@index([phone])
+  @@index([email])
+  @@index([createdAt])
+}
+
