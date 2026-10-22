@@ -3,6 +3,7 @@ package com.crm.service.pipeline;
 import com.crm.dao.customfields.CustomFieldValueDAO;
 import com.crm.dao.pipeline.OpportunityDAO;
 import com.crm.dao.pipeline.PipelineStageDAO;
+import com.crm.dto.pipeline.OpportunityFilterCriteria;
 import com.crm.dto.pipeline.OpportunityWriteRequest;
 import com.crm.service.permissions.DataScopeContext;
 import com.crm.service.permissions.DataScopeService;
@@ -18,14 +19,37 @@ public class OpportunityService {
 
     public List<Map<String, Object>> search(
             long currentUserId,
+            OpportunityFilterCriteria criteria
+    ) throws Exception {
+        if (criteria == null) {
+            criteria = new OpportunityFilterCriteria();
+        }
+        criteria.resolveDateRange();
+        DataScopeContext scope = dataScopeService.resolve(currentUserId, "opportunity", "read");
+
+        // Nếu người dùng chọn lọc "Cơ hội do tôi phụ trách" (MINE)
+        if ("MINE".equalsIgnoreCase(criteria.getOwnerFilter())) {
+            criteria.setOwnerId(currentUserId);
+        }
+
+        return opportunityDAO.search(scope, criteria);
+    }
+
+    public List<Map<String, Object>> search(
+            long currentUserId,
             Long stageId,
             String status,
             String keyword,
             int page,
             int size
     ) throws Exception {
-        DataScopeContext scope = dataScopeService.resolve(currentUserId, "opportunity", "read");
-        return opportunityDAO.search(scope, stageId, status, keyword, page, size);
+        OpportunityFilterCriteria criteria = new OpportunityFilterCriteria();
+        criteria.setStageId(stageId);
+        criteria.setStatus(status);
+        criteria.setKeyword(keyword);
+        criteria.setPage(page);
+        criteria.setSize(size);
+        return search(currentUserId, criteria);
     }
 
     public Map<String, Object> getById(long currentUserId, long id) throws Exception {

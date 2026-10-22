@@ -207,40 +207,94 @@
     </section>
 
 
-    <section class="pipeline-filter crm-card">
+    <!-- ================= DẢI BỘ LỌC HAY DÙNG (SAVED FILTERS BAR - SCRUM-81) ================= -->
+    <section class="saved-filters-bar crm-card" style="margin-bottom: 12px; padding: 12px 16px; background: #f8fafc; border: 1px solid var(--crm-border);">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <span style="font-size: 12px; font-weight: 700; color: var(--crm-muted); text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 4px;">
+                    ⭐ Bộ lọc hay dùng:
+                </span>
+                <div id="savedFilterChips" style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+                    <!-- Dynamic saved filter chips will be rendered here -->
+                </div>
+            </div>
 
-        <input
-            id="pipelineSearch"
-            class="crm-input"
-            type="search"
-            placeholder="Tìm tên cơ hội / khách hàng..."
-        >
+            <button
+                id="btnOpenSaveFilterModal"
+                type="button"
+                class="crm-btn"
+                style="font-size: 12px; padding: 6px 12px; background: #fff; border: 1px dashed var(--crm-primary); color: var(--crm-primary); font-weight: 600;"
+            >
+                💾 Lưu bộ lọc hiện tại
+            </button>
+        </div>
+    </section>
 
-        <select
-            id="ownerFilter"
-            class="crm-input"
-        >
-            <option value="">
-                Tất cả người sở hữu
-            </option>
+    <!-- ================= THANH TÌM KIẾM & BỘ LỌC ĐA ĐIỀU KIỆN (SCRUM-81) ================= -->
+    <section class="pipeline-filter-advanced crm-card" style="margin-bottom: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+        <!-- Hàng 1: Từ khóa tìm kiếm, Giai đoạn, Sản phẩm, Người sở hữu -->
+        <div style="display: flex; flex-wrap: wrap; gap: 12px; width: 100%; align-items: center;">
+            <div style="flex: 2; min-width: 240px;">
+                <input
+                    id="pipelineSearch"
+                    class="crm-input"
+                    type="search"
+                    placeholder="🔍 Tìm theo tên cơ hội, khách hàng, người liên hệ..."
+                >
+            </div>
 
-            <option value="Tôi">
-                Tôi
-            </option>
+            <div style="flex: 1.2; min-width: 170px;">
+                <select id="stageFilter" class="crm-input">
+                    <option value="">-- Tất cả giai đoạn --</option>
+                </select>
+            </div>
 
-            <option value="Nhóm">
-                Nhóm
-            </option>
-        </select>
+            <div style="flex: 1.5; min-width: 190px;">
+                <select id="productFilter" class="crm-input">
+                    <option value="">-- Lọc theo sản phẩm --</option>
+                </select>
+            </div>
 
-        <button
-            id="resetPipelineFilter"
-            class="crm-btn crm-btn-secondary"
-            type="button"
-        >
-            Đặt lại
-        </button>
+            <div style="flex: 1.2; min-width: 160px;">
+                <select id="ownerFilter" class="crm-input">
+                    <option value="">Tất cả người sở hữu</option>
+                    <option value="MINE">Tôi phụ trách</option>
+                </select>
+            </div>
+        </div>
 
+        <!-- Hàng 2: Khoảng giá trị, Khoảng ngày chốt, Phím tắt tuần/tháng, Nút hành động -->
+        <div style="display: flex; flex-wrap: wrap; gap: 12px; width: 100%; align-items: center; justify-content: space-between; border-top: 1px solid var(--crm-border); padding-top: 12px;">
+            <!-- Khoảng giá trị -->
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <span style="font-size: 12px; font-weight: 600; color: var(--crm-muted);">Giá trị (₫):</span>
+                <input id="minAmountFilter" class="crm-input" type="number" min="0" step="1000000" placeholder="Từ..." style="width: 110px;">
+                <span>-</span>
+                <input id="maxAmountFilter" class="crm-input" type="number" min="0" step="1000000" placeholder="Đến..." style="width: 110px;">
+            </div>
+
+            <!-- Khoảng ngày chốt -->
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <span style="font-size: 12px; font-weight: 600; color: var(--crm-muted);">Ngày chốt:</span>
+                <input id="closeDateFromFilter" class="crm-input" type="date" style="width: 130px;">
+                <span>-</span>
+                <input id="closeDateToFilter" class="crm-input" type="date" style="width: 130px;">
+
+                <!-- Nút chọn nhanh: Tuần này, Tháng này -->
+                <button type="button" class="quick-date-btn" data-quick-date="THIS_WEEK">Tuần này</button>
+                <button type="button" class="quick-date-btn" data-quick-date="THIS_MONTH">Tháng này</button>
+            </div>
+
+            <!-- Nút lọc và đặt lại -->
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <button id="btnApplyPipelineFilter" class="crm-btn crm-btn-primary" type="button" style="padding: 7px 16px; font-size: 13px;">
+                    🔍 Áp dụng lọc
+                </button>
+                <button id="resetPipelineFilter" class="crm-btn crm-btn-secondary" type="button" style="padding: 7px 14px; font-size: 13px;">
+                    ↺ Đặt lại
+                </button>
+            </div>
+        </div>
     </section>
 
 
@@ -877,11 +931,28 @@
         <span>Lịch</span>
     </a>
 
-</nav>
-
-
-
-
+<!-- ================= MODAL LƯU BỘ LỌC (SCRUM-81) ================= -->
+<div id="saveFilterModal" class="crm-modal" style="display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(15, 23, 42, 0.5); align-items: center; justify-content: center;">
+    <div class="crm-modal-content" style="background: #fff; width: 100%; max-width: 440px; border-radius: 12px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: #0f172a;">💾 Lưu bộ lọc cơ hội</h3>
+            <button type="button" id="closeSaveFilterModal" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b;">✕</button>
+        </header>
+        <form id="saveFilterForm">
+            <label style="display: block; margin-bottom: 12px; font-size: 13px; font-weight: 600; color: #334155;">
+                Tên bộ lọc: <em>*</em>
+                <input id="saveFilterName" class="crm-input" type="text" placeholder="VD: Thương vụ chốt tuần này..." required style="margin-top: 6px; width: 100%;">
+            </label>
+            <div id="saveFilterSummary" style="font-size: 12px; color: #64748b; background: #f1f5f9; padding: 10px; border-radius: 6px; margin-bottom: 16px;">
+                Đang lưu các điều kiện lọc hiện tại...
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                <button type="button" id="cancelSaveFilter" class="crm-btn crm-btn-secondary">Hủy</button>
+                <button type="submit" class="crm-btn crm-btn-primary">Lưu bộ lọc</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <script src="js/pages/pipeline.js"></script>
 
