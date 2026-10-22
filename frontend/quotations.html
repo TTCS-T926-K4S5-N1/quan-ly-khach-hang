@@ -81,7 +81,17 @@
             <span class="crm-nav-label">Báo giá</span>
         </a>
 
-        <a href="#" class="crm-nav-item">
+        <a href="contracts.html" class="crm-nav-item">
+            <span class="crm-nav-icon">📑</span>
+            <span class="crm-nav-label">Hợp đồng</span>
+        </a>
+
+        <a href="activities.html" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m7 12 3 3 7-7"/></svg></span>
+            <span class="crm-nav-label">Hoạt động</span>
+        </a>
+
+        <a href="calendar.html" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4m8-4v4M3 10h18"/></svg></span>
             <span class="crm-nav-label">Lịch</span>
         </a>
@@ -183,13 +193,22 @@
 
         </div>
 
-        <a
-            href="quote-editor.html"
-            class="crm-btn crm-btn-primary"
-            style="text-decoration:none"
-        >
-            + Tạo báo giá
-        </a>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <a
+                href="contracts.html"
+                class="crm-btn crm-btn-secondary"
+                style="text-decoration:none"
+            >
+                📑 Danh sách Hợp đồng
+            </a>
+            <a
+                href="quote-editor.html"
+                class="crm-btn crm-btn-primary"
+                style="text-decoration:none"
+            >
+                + Tạo báo giá
+            </a>
+        </div>
 
     </section>
 
@@ -220,7 +239,11 @@
             </option>
 
             <option value="approved">
-                Đã duyệt
+                Đã duyệt (Chờ tạo HĐ)
+            </option>
+
+            <option value="converted">
+                Đã tạo Hợp đồng
             </option>
 
             <option value="rejected">
