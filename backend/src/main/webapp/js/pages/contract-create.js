@@ -230,7 +230,11 @@ async function initContractPage() {
 function showBlockedState(title, message) {
     if (blocked) {
         blocked.hidden = false;
-        if (blockedReasonTitle) blockedReasonTitle.textContent = title;
+        if (blockedReasonTitle) {
+            blockedReasonTitle.textContent = title;
+        } else {
+            blocked.innerHTML = `<strong>${title}</strong><br>${message}`;
+        }
         if (blockedReasonDesc) blockedReasonDesc.innerHTML = message;
     }
     if (createButton) createButton.disabled = true;
@@ -279,6 +283,11 @@ function renderQuoteData(quote) {
     text("contractOpportunity", quote.opportunity || "Cơ hội kinh doanh");
     text("contractTotal", money(quote.total));
 
+    const ptArea = document.getElementById("contractPaymentTerms");
+    if (ptArea && quote.paymentTerms) {
+        ptArea.value = quote.paymentTerms;
+    }
+
     const body = document.getElementById("contractLines");
     if (!body) return;
     body.innerHTML = "";
@@ -297,7 +306,7 @@ function renderQuoteData(quote) {
         const discount = Number(line.discount || line.discountPercent || 0);
         const vat = Number(line.vat || line.vatPercent || 10);
         
-        let lineTotal = line.total || (qty * price * (1 - discount / 100));
+        let lineTotal = line.total !== undefined ? line.total : (qty * price * (1 - discount / 100));
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
@@ -317,7 +326,7 @@ function renderQuoteData(quote) {
 /* =========================================================
    FORM SUBMISSION & VALIDATION
 ========================================================= */
-document.addEventListener("DOMContentLoaded", () => {
+function bindPageEvents() {
     initContractPage();
 
     // Nút tự sinh số HĐ
@@ -384,7 +393,13 @@ document.addEventListener("DOMContentLoaded", () => {
         // Lưu Hợp đồng & Đồng bộ trạng thái
         await processContractCreation();
     });
-});
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bindPageEvents);
+} else {
+    bindPageEvents();
+}
 
 /* =========================================================
    VALIDATION HELPERS
@@ -507,7 +522,7 @@ async function processContractCreation() {
             })
         });
     } catch (_) {
-        // Backend có thể chưa chạy, dữ liệu đã lưu trữ hoàn hảo trên localStorage
+        // Backend có thể chưa chạy, dữ liệu đã lưu trữ trên localStorage
     }
 
     // 6. Hiển thị Modal thông báo thành công

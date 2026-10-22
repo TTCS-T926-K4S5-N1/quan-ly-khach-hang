@@ -390,6 +390,10 @@ function getRichMockActivities() {
    4. DATA SERVICE LAYER
    ========================================================================== */
 const ActivityService = {
+    /**
+     * Tải danh sách hoạt động từ API hoặc local/mock
+     * @returns {Promise<Activity[]>}
+     */
     async fetchActivities() {
         isLoading = true;
         renderLoadingSkeleton();
@@ -413,6 +417,14 @@ const ActivityService = {
                 headers,
                 signal: AbortSignal.timeout(2000)
             });
+
+            // Xử lý hết hạn phiên đăng nhập (SCRUM-75 / SCRUM-221)
+            if (response.status === 401) {
+                localStorage.removeItem("crm_ui_session");
+                localStorage.removeItem("crm_token");
+                window.location.href = "login";
+                throw new Error("Phiên đăng nhập đã hết hạn.");
+            }
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -663,6 +675,7 @@ const ActivityStatsComponent = {
                 }
 
                 setValue("activityMemberFilter", filterState.member);
+
                 currentPage = 1;
                 applyFilterAndRender();
             });
@@ -833,6 +846,11 @@ const ActivityFilterComponent = {
    8. COMPONENT: ACTIVITY TABLE (HTML TABLE)
    ========================================================================== */
 const ActivityTableComponent = {
+    /**
+     * Render bảng hoạt động chi tiết
+     * @param {Activity[]} pagedItems 
+     * @param {number} totalFiltered 
+     */
     render(pagedItems, totalFiltered) {
         if (!tableBody) return;
         tableBody.innerHTML = "";
@@ -997,10 +1015,12 @@ function applyFilterAndRender() {
     const now = todayString();
     const query = filterState.search.toLowerCase().trim();
 
+    // 1. Thống kê KPI & Chăm sóc khách hàng
     ActivityStatsComponent.updateKpis(allActivities);
     ActivityStatsComponent.updateTypeBreakdown(allActivities);
     ActivityStatsComponent.renderMemberCareGrid(allActivities);
 
+    // 2. Lọc danh sách hoạt động
     filteredActivities = allActivities.filter(item => {
         if (query) {
             const text = `${item.title} ${item.relation} ${item.description} ${item.owner}`.toLowerCase();
@@ -1032,15 +1052,18 @@ function applyFilterAndRender() {
         return true;
     });
 
+    // 3. Cập nhật số lượng
     const filterCountEl = document.getElementById("filterResultCount");
     if (filterCountEl) {
         filterCountEl.innerHTML = `Hiển thị: <strong>${filteredActivities.length}</strong> hoạt động`;
     }
 
+    // 4. Phân trang
     const totalFiltered = filteredActivities.length;
     const startIndex = (currentPage - 1) * pageSize;
     const pagedItems = filteredActivities.slice(startIndex, startIndex + pageSize);
 
+    // 5. Render Table & Pagination
     ActivityTableComponent.render(pagedItems, totalFiltered);
     ActivityPaginationComponent.update(totalFiltered);
 }
@@ -1184,7 +1207,7 @@ async function saveActivityFromDrawer() {
 
 /* ==========================================================================
    12. SKELETON & ERROR CONTROLS
-   ========================================================================== */
+   ========================================================================= */
 function showError(message) {
     if (errorBanner) {
         if (errorMsgEl) errorMsgEl.textContent = message;
@@ -1257,8 +1280,7 @@ function escapeHtml(val) {
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+        .replace(/"/g, "&quot;");
 }
 
 /* ==========================================================================
