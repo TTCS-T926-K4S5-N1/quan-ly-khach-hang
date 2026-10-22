@@ -473,8 +473,135 @@ document.addEventListener("click", async event => {
 });
 
 /* =========================================================
-   STAGE ADVANCEMENT & TRANSITION
+   STAGE ADVANCEMENT & TRANSITION (SCRUM-75)
 ========================================================= */
+let pendingStageOverride = null;
+
+function showToast(message, type = "info") {
+    let container = document.getElementById("toastContainer");
+    if (!container) {
+        container = document.createElement("div");
+        container.id = "toastContainer";
+        container.style.cssText = "position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none;";
+        document.body.appendChild(container);
+    }
+    const toast = document.createElement("div");
+    toast.className = `crm-toast ${type}`;
+    toast.style.cssText = "padding:12px 18px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:0 10px 25px -5px rgba(0,0,0,0.1),0 8px 10px -6px rgba(0,0,0,0.1);display:flex;align-items:center;gap:10px;pointer-events:auto;transition:all 250ms ease;min-width:280px;background:#fff;border:1px solid #e2e8f0;color:#1e293b;";
+    if (type === "success") {
+        toast.style.background = "#f0fdf4";
+        toast.style.border = "1px solid #bbf7d0";
+        toast.style.color = "#166534";
+    } else if (type === "error") {
+        toast.style.background = "#fef2f2";
+        toast.style.border = "1px solid #fecaca";
+        toast.style.color = "#991b1b";
+    }
+    const icon = type === "success" ? "✅" : type === "error" ? "❌" : "ℹ️";
+    toast.innerHTML = `<span>${icon}</span> <span>${escapeHtml(message)}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(10px)";
+        setTimeout(() => toast.remove(), 250);
+    }, 3500);
+}
+
+function handleStageTransitionError(opp, targetStage, err) {
+    const data = err.data;
+    if (data && data.requiresOverride) {
+        if (data.canOverride) {
+            openStageOverrideModal(opp, targetStage, data);
+        } else {
+            const missing = (data.missingConditions || []).map(m => `• ${m}`).join("\n");
+            alert(`⚠️ Không thể chuyển giai đoạn!\n\nCơ hội chưa thỏa mãn điều kiện bắt buộc rời giai đoạn "${data.currentStageName || ''}":\n${missing}\n\n(Chỉ Trưởng nhóm trở lên mới có quyền ghi đè kèm lý do).`);
+        }
+    } else {
+        alert("Không thể chuyển giai đoạn: " + (err.message || "Lỗi không xác định"));
+    }
+}
+
+function openStageOverrideModal(opp, targetStage, data) {
+    pendingStageOverride = {
+        oppId: opp.id,
+        targetStageId: targetStage.id
+    };
+
+    const modal = document.getElementById("stageOverrideModal");
+    const overlay = document.getElementById("stageOverrideOverlay");
+    const oppNameEl = document.getElementById("overrideOppName");
+    const fromStageEl = document.getElementById("overrideFromStage");
+    const toStageEl = document.getElementById("overrideToStage");
+    const missingListEl = document.getElementById("stageOverrideMissingList");
+    const reasonInput = document.getElementById("stageOverrideReason");
+    const errorEl = document.getElementById("stageOverrideError");
+
+    if (oppNameEl) oppNameEl.textContent = opp.name || "Cơ hội #" + opp.id;
+    if (fromStageEl) fromStageEl.textContent = data.currentStageName || "Giai đoạn hiện tại";
+    if (toStageEl) toStageEl.textContent = data.targetStageName || targetStage.name || "Giai đoạn đích";
+    if (reasonInput) reasonInput.value = "";
+    if (errorEl) errorEl.textContent = "";
+
+    if (missingListEl) {
+        missingListEl.innerHTML = "";
+        const list = (data.missingConditions && data.missingConditions.length > 0)
+            ? data.missingConditions
+            : ["Chưa thỏa mãn điều kiện rời giai đoạn: " + (data.exitCondition || "")];
+        list.forEach(cond => {
+            const li = document.createElement("li");
+            li.textContent = cond;
+            missingListEl.appendChild(li);
+        });
+    }
+
+    overlay?.classList.add("open");
+    modal?.classList.add("open");
+    setTimeout(() => reasonInput?.focus(), 100);
+}
+
+function closeStageOverrideModal() {
+    pendingStageOverride = null;
+    const modal = document.getElementById("stageOverrideModal");
+    const overlay = document.getElementById("stageOverrideOverlay");
+    overlay?.classList.remove("open");
+    modal?.classList.remove("open");
+}
+
+async function submitStageOverride(e) {
+    if (e) e.preventDefault();
+    if (!pendingStageOverride) return;
+
+    const reasonInput = document.getElementById("stageOverrideReason");
+    const errorEl = document.getElementById("stageOverrideError");
+    const reason = (reasonInput?.value || "").trim();
+
+    if (!reason || reason.length < 5) {
+        if (errorEl) errorEl.textContent = "Vui lòng nhập lý do ghi đè chi tiết (tối thiểu 5 ký tự).";
+        reasonInput?.focus();
+        return;
+    }
+
+    try {
+        await api(`/api/opportunities/${pendingStageOverride.oppId}/stage`, {
+            method: "POST",
+            body: JSON.stringify({
+                stageId: pendingStageOverride.targetStageId,
+                overrideReason: reason
+            })
+        });
+        closeStageOverrideModal();
+        showToast("Đã ghi đè điều kiện và chuyển giai đoạn thành công!", "success");
+        await loadOpportunities();
+    } catch (err) {
+        if (errorEl) errorEl.textContent = err.message || "Không thể ghi đè chuyển giai đoạn.";
+    }
+}
+
+document.getElementById("closeStageOverrideX")?.addEventListener("click", closeStageOverrideModal);
+document.getElementById("cancelStageOverrideBtn")?.addEventListener("click", closeStageOverrideModal);
+document.getElementById("stageOverrideOverlay")?.addEventListener("click", closeStageOverrideModal);
+document.getElementById("stageOverrideForm")?.addEventListener("submit", submitStageOverride);
+
 async function moveStageRelatively(oppId, direction) {
     const opp = opportunities.find(o => o.id === oppId);
     if (!opp) return;
@@ -501,9 +628,10 @@ async function moveStageRelatively(oppId, direction) {
             method: "POST",
             body: JSON.stringify({ stageId: targetStage.id })
         });
+        showToast("Chuyển giai đoạn thành công", "success");
         await loadOpportunities();
     } catch (err) {
-        alert("Không thể chuyển giai đoạn: " + err.message);
+        handleStageTransitionError(opp, targetStage, err);
     }
 }
 
@@ -528,9 +656,10 @@ async function moveStageTo(oppId, targetStageId) {
             method: "POST",
             body: JSON.stringify({ stageId: targetStageId })
         });
+        showToast("Chuyển giai đoạn thành công", "success");
         await loadOpportunities();
     } catch (err) {
-        alert("Không thể chuyển giai đoạn: " + err.message);
+        handleStageTransitionError(opp, targetStage, err);
         render(); // Rollback UI
     }
 }
