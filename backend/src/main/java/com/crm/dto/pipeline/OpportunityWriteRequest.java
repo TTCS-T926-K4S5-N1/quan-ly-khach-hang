@@ -1,6 +1,7 @@
 package com.crm.dto.pipeline;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 public class OpportunityWriteRequest {
@@ -8,6 +9,7 @@ public class OpportunityWriteRequest {
     private Long customerId;
     private String contactName;
     private BigDecimal amount;
+    private BigDecimal annualAmount;
     private Long stageId;
     private Integer probability;
     private String expectedCloseDate;
@@ -18,6 +20,7 @@ public class OpportunityWriteRequest {
     private String lostReason;
     private Long ownerUserId;
     private Map<String, Object> customFields;
+    private List<OpportunityItemDTO> items;
 
     public String getName() {
         return name;
@@ -129,5 +132,21 @@ public class OpportunityWriteRequest {
 
     public void setCustomFields(Map<String, Object> customFields) {
         this.customFields = customFields;
+    }
+
+    public BigDecimal getAnnualAmount() {
+        return annualAmount != null ? annualAmount : BigDecimal.ZERO;
+    }
+
+    public void setAnnualAmount(BigDecimal annualAmount) {
+        this.annualAmount = annualAmount;
+    }
+
+    public List<OpportunityItemDTO> getItems() {
+        return items;
+    }
+
+    public void setItems(List<OpportunityItemDTO> items) {
+        this.items = items;
     }
 }

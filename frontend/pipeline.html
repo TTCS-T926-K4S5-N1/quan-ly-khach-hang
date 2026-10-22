@@ -425,10 +425,104 @@
         </label>
 
 
+        <!-- SCRUM-74: Sản phẩm & Dịch vụ cơ hội -->
+        <div class="opp-products-section">
+            <div class="opp-products-title">
+                <strong>Sản phẩm &amp; Dịch vụ cơ hội</strong>
+                <span class="opp-products-subtitle">Chọn sản phẩm từ danh mục để tính giá trị hợp đồng chính xác, có căn cứ</span>
+            </div>
+
+            <div class="opp-product-add-card">
+                <div>
+                    <label style="font-size: 12px; font-weight: 500; display: block; margin-bottom: 4px;">Chọn sản phẩm từ danh mục:</label>
+                    <select id="oppProductSelect" class="crm-input">
+                        <option value="">-- Chọn sản phẩm / dịch vụ --</option>
+                    </select>
+                </div>
+
+                <div class="opp-product-config-row">
+                    <div>
+                        <label style="font-size: 12px; font-weight: 500; display: block; margin-bottom: 4px;">Số lượng:</label>
+                        <input id="oppItemQuantity" class="crm-input" type="number" min="1" step="1" value="1">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; font-weight: 500; display: block; margin-bottom: 4px;">Đơn giá áp dụng (₫):</label>
+                        <input id="oppItemUnitPrice" class="crm-input" type="number" min="0" step="1000" placeholder="Lấy từ bảng giá niêm yết">
+                        <span id="oppItemListPriceHint" class="opp-hint"></span>
+                    </div>
+                </div>
+
+                <div id="oppRecurringOptions" class="opp-recurring-box" style="display: none;">
+                    <span class="opp-badge-recurring">Dịch vụ thuê bao</span>
+                    <div class="opp-product-config-row">
+                        <div>
+                            <label style="font-size: 12px; font-weight: 500; display: block; margin-bottom: 4px;">Kỳ thanh toán:</label>
+                            <select id="oppItemBillingCycle" class="crm-input">
+                                <option value="MONTHLY">Theo tháng</option>
+                                <option value="QUARTERLY">Theo quý (3 tháng)</option>
+                                <option value="SEMI_ANNUAL">Nửa năm (6 tháng)</option>
+                                <option value="ANNUAL">Theo năm (12 tháng)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; font-weight: 500; display: block; margin-bottom: 4px;">Số kỳ thuê bao:</label>
+                            <input id="oppItemTermCount" class="crm-input" type="number" min="1" step="1" value="12" placeholder="VD: 12 kỳ">
+                        </div>
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; font-weight: 500; display: block; margin-bottom: 4px;">Giá trị HĐ theo năm (ACV):</label>
+                        <input id="oppItemAnnualAmount" class="crm-input" type="number" min="0" step="1000" placeholder="Tự động tính hoặc nhập riêng">
+                        <span class="opp-hint">Khai báo số kỳ và giá trị hợp đồng theo năm</span>
+                    </div>
+                </div>
+
+                <div class="opp-product-btn-row">
+                    <button id="oppAddItemBtn" class="crm-btn crm-btn-secondary" type="button" style="padding: 6px 12px; font-size: 12px;">
+                        + Thêm vào cơ hội
+                    </button>
+                </div>
+            </div>
+
+            <div class="opp-items-container">
+                <table class="opp-items-table" id="oppItemsTable">
+                    <thead>
+                        <tr>
+                            <th>Sản phẩm</th>
+                            <th>SL</th>
+                            <th>Đơn giá</th>
+                            <th>Số kỳ</th>
+                            <th>ACV/Năm</th>
+                            <th>Thành tiền</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="oppItemsBody">
+                        <tr id="emptyItemsRow">
+                            <td colspan="7" style="text-align: center; color: var(--crm-muted); padding: 12px;">
+                                Chưa có dòng sản phẩm nào. Chọn sản phẩm phía trên để tính giá trị hợp đồng.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="opp-summary-banner">
+                <div class="opp-summary-item">
+                    <span class="opp-summary-label">Tổng giá trị hợp đồng:</span>
+                    <strong id="oppSummaryTotal" class="opp-summary-val">0 ₫</strong>
+                </div>
+                <div class="opp-summary-item" id="oppSummaryAnnualBox" style="display: none;">
+                    <span class="opp-summary-label">Giá trị theo năm (ACV):</span>
+                    <strong id="oppSummaryAnnual" class="opp-summary-val-acv">0 ₫</strong>
+                </div>
+            </div>
+        </div>
+
+
         <div class="form-grid">
 
             <label>
-                Giá trị dự kiến
+                Giá trị cơ hội (tính từ sản phẩm)
 
                 <input
                     id="opportunityValue"
@@ -436,6 +530,8 @@
                     type="number"
                     min="0"
                     step="1000"
+                    readonly
+                    style="background: #f1f5f9; font-weight: 600;"
                 >
             </label>
 
