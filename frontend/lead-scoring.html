@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<script>
+(function () {
+    try {
+        var theme = localStorage.getItem("crm_ui_theme");
+        document.documentElement.setAttribute(
+            "data-theme",
+            theme === "dark" ? "dark" : "light"
+        );
+        document.documentElement.removeAttribute("data-crm-theme");
+    } catch (e) {
+        document.documentElement.setAttribute("data-theme", "light");
+    }
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Cấu hình Chấm điểm Lead | Corporate CRM</title>
+
+<link rel="stylesheet" href="css/design-system.css">
+<link rel="stylesheet" href="css/app-shell.css">
+<link rel="stylesheet" href="css/pages/lead-scoring.css">
+<link rel="stylesheet" href="css/animations.css">
+</head>
+
+<body class="crm-private">
+
+<!-- SIDEBAR -->
+<aside class="crm-sidebar">
+    <div class="crm-brand">
+        <div class="crm-brand-mark">C</div>
+        <span class="crm-brand-name">Corporate CRM</span>
+    </div>
+
+    <nav class="crm-nav">
+        <div class="crm-nav-section">Không gian làm việc</div>
+
+        <a href="dashboard" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+            <span class="crm-nav-label">Tổng quan</span>
+        </a>
+
+        <a href="customers" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
+            <span class="crm-nav-label">Khách hàng</span>
+        </a>
+
+        <a href="pipeline" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 9-8 9-8-9 8-9Z"/></svg></span>
+            <span class="crm-nav-label">Cơ hội</span>
+        </a>
+
+        <a href="calendar" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span>
+            <span class="crm-nav-label">Lịch</span>
+        </a>
+
+        <div class="crm-nav-section">Cấu hình & Quản trị</div>
+
+        <a href="lead-scoring" class="crm-nav-item active">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+            <span class="crm-nav-label">Chấm điểm Lead</span>
+        </a>
+
+        <a href="pipeline-settings" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m9 3 6 0 1 4 4 1 1 6-4 2-1 4-6 1-2-4-4-1-1-6 4-2 1-4Z"/></svg></span>
+            <span class="crm-nav-label">Cấu hình Pipeline</span>
+        </a>
+
+        <a href="win-loss-settings" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg></span>
+            <span class="crm-nav-label">Win / Loss</span>
+        </a>
+
+        <a href="master-data" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1"/></svg></span>
+            <span class="crm-nav-label">Danh mục dùng chung</span>
+        </a>
+
+        <a href="custom-fields" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18M3 12h18"/></svg></span>
+            <span class="crm-nav-label">Trường tùy chỉnh</span>
+        </a>
+
+        <a href="organization" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="5"/><rect x="3" y="16" width="6" height="5"/><rect x="15" y="16" width="6" height="5"/><path d="M12 8v4M6 16v-4h12v4"/></svg></span>
+            <span class="crm-nav-label">Cơ cấu tổ chức</span>
+        </a>
+    </nav>
+</aside>
+
+<!-- TOPBAR -->
+<header class="crm-topbar">
+    <div class="crm-search">
+        <svg viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="7"/>
+            <path d="m20 20-4-4"/>
+        </svg>
+        <input id="globalSearch" type="search" placeholder="Tìm kiếm chức năng, cấu hình... (Ctrl + K)">
+        <kbd>Ctrl K</kbd>
+    </div>
+
+    <div class="crm-top-actions">
+        <button id="themeToggle" class="crm-shell-icon-button" type="button" title="Đổi giao diện">
+            <svg viewBox="0 0 24 24"><path d="M20 15a8 8 0 1 1-11-11 7 7 0 0 0 11 11Z"/></svg>
+        </button>
+
+        <button id="notificationButton" class="crm-shell-icon-button crm-notification-button" type="button" title="Thông báo">
+            <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+            <span class="crm-notification-dot"></span>
+        </button>
+
+        <div class="crm-user">
+            <button id="userButton" class="crm-user-button" type="button">
+                <div class="crm-avatar">G</div>
+                <div class="crm-user-copy">
+                    <span id="shellUserName" class="crm-user-name">Giám đốc Kinh doanh</span>
+                    <span id="shellUserRole" class="crm-user-role">Giám đốc kinh doanh</span>
+                </div>
+                <span class="crm-user-arrow">⌄</span>
+            </button>
+
+            <div id="userDropdown" class="crm-user-dropdown">
+                <div id="shellUserTeam" style="padding: 10px 14px; font-size: 12px; opacity: .7;">
+                    Nhóm: Khối Kinh doanh Toàn quốc
+                </div>
+                <a href="profile">Hồ sơ cá nhân</a>
+                <a href="change-password">Đổi mật khẩu</a>
+                <button id="logoutButton" type="button">Đăng xuất</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- MAIN CONTENT -->
+<main class="crm-main leadscoring-page">
+
+    <!-- Header Section -->
+    <section class="leadscoring-head">
+        <div>
+            <p class="leadscoring-kicker">Cấu hình / Chấm điểm Lead (SCRUM-179)</p>
+            <h1>Cấu hình Chấm điểm & Xếp hạng Lead</h1>
+            <p class="leadscoring-subtitle">
+                Thiết lập bộ quy tắc cộng/trừ điểm theo 4 nhóm tiêu chí và ngưỡng nhiệt độ Nóng - Ấm - Lạnh. 
+                Hệ thống tự động tính lại tổng điểm khi thông tin thay đổi và sắp xếp ưu tiên lead để nhân viên gọi những khách hàng tiềm năng nhất trước (không tự động loại lead).
+            </p>
+        </div>
+
+        <div class="leadscoring-actions">
+            <button id="btnOpenAddRuleModal" class="crm-btn crm-btn-primary" type="button">
+                <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                + Thêm quy tắc
+            </button>
+            <button id="btnResetAllConfig" class="crm-btn crm-btn-secondary" type="button" title="Khôi phục cấu hình tiêu chuẩn ban đầu">
+                🔄 Mặc định
+            </button>
+            <button id="btnSaveAllConfig" class="crm-btn crm-btn-primary" type="button" style="background:#059669; border-color:#059669;">
+                💾 Lưu cấu hình
+            </button>
+        </div>
+    </section>
+
+    <!-- KPI Metrics Ribbon -->
+    <section class="leadscoring-metrics">
+        <div class="crm-card metric-card">
+            <div class="metric-icon-wrap metric-icon-blue">⚙️</div>
+            <div class="metric-info">
+                <div class="metric-label">Quy tắc đang bật</div>
+                <div id="metricActiveRules" class="metric-val">18 / 18</div>
+                <div class="metric-sub">Thuộc 4 nhóm tiêu chí</div>
+            </div>
+        </div>
+
+        <div class="crm-card metric-card">
+            <div class="metric-icon-wrap metric-icon-purple">🎯</div>
+            <div class="metric-info">
+                <div class="metric-label">Điểm tối đa có thể đạt</div>
+                <div id="metricMaxScore" class="metric-val">100 điểm</div>
+                <div class="metric-sub">Thang điểm chuẩn 0 - 100</div>
+            </div>
+        </div>
+
+        <div class="crm-card metric-card">
+            <div class="metric-icon-wrap metric-icon-amber">🌡️</div>
+            <div class="metric-info">
+                <div class="metric-label">Ngưỡng nhiệt độ</div>
+                <div id="metricThresholdSummary" class="metric-val">🔥 ≥80 | ☀️ 50-79</div>
+                <div class="metric-sub">❄️ Lạnh: &lt;50 điểm</div>
+            </div>
+        </div>
+
+        <div class="crm-card metric-card">
+            <div class="metric-icon-wrap metric-icon-emerald">👥</div>
+            <div class="metric-info">
+                <div class="metric-label">Mô phỏng Lead</div>
+                <div id="metricLeadSimCount" class="metric-val">10 Leads</div>
+                <div id="metricLeadDist" class="metric-sub">4 Nóng • 4 Ấm • 2 Lạnh</div>
+            </div>
+        </div>
+    </section>
+
+    <div class="leadscoring-grid">
+
+        <!-- ================= KHU VỰC 2: CẤU HÌNH NGƯỠNG NHIỆT ĐỘ LEAD ================= -->
+        <article class="crm-card">
+            <header class="section-card-head">
+                <div class="section-card-title">
+                    <span style="font-size:20px;">🌡️</span>
+                    <div>
+                        <h2>Cấu hình Ngưỡng Phân Loại Nhiệt Độ Lead (Temperature Thresholds)</h2>
+                        <p class="section-card-subtitle">
+                            Phân định mức độ ưu tiên Nóng (Hot), Ấm (Warm), Lạnh (Cold) dựa trên tổng điểm để đội ngũ Telesales / Kinh doanh xử lý kịp thời.
+                        </p>
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button id="btnResetThresholds" class="crm-btn crm-btn-secondary" style="font-size:12px; padding:6px 12px;" type="button">
+                        Khôi phục ngưỡng chuẩn (80 / 50)
+                    </button>
+                </div>
+            </header>
+
+            <div class="thresholds-container">
+                <div class="threshold-boxes">
+                    <!-- Box Hot Lead -->
+                    <div class="threshold-card hot">
+                        <div class="threshold-card-top">
+                            <span class="threshold-badge badge-hot">🔥 NÓNG (HOT LEAD)</span>
+                            <span class="threshold-range-desc" id="hotRangeBadge">≥ 80 điểm</span>
+                        </div>
+                        <div class="threshold-input-group">
+                            <label for="inputHotThreshold">Ngưỡng điểm tối thiểu:</label>
+                            <div class="threshold-input-wrap">
+                                <input id="inputHotThreshold" class="threshold-input" type="number" min="1" max="100" value="80">
+                                <span>điểm</span>
+                            </div>
+                        </div>
+                        <p class="threshold-card-desc">
+                            Khả năng chốt giao dịch cao nhất. Phù hợp hoàn hảo về ngành nghề, quy mô và mức độ quan tâm cao.
+                        </p>
+                        <div class="threshold-card-action-hint action-hint-hot">
+                            ⚡ Ưu tiên số 1: Telesale gọi ngay trong vòng 2 giờ
+                        </div>
+                    </div>
+
+                    <!-- Box Warm Lead -->
+                    <div class="threshold-card warm">
+                        <div class="threshold-card-top">
+                            <span class="threshold-badge badge-warm">☀️ ẤM (WARM LEAD)</span>
+                            <span class="threshold-range-desc" id="warmRangeBadge">50 - 79 điểm</span>
+                        </div>
+                        <div class="threshold-input-group">
+                            <label for="inputWarmThreshold">Ngưỡng điểm tối thiểu:</label>
+                            <div class="threshold-input-wrap">
+                                <input id="inputWarmThreshold" class="threshold-input" type="number" min="0" max="99" value="50">
+                                <span>điểm</span>
+                            </div>
+                        </div>
+                        <p class="threshold-card-desc">
+                            Tiềm năng vừa phải. Đang tìm hiểu giải pháp, cần thêm thông tin và tư vấn chuyên sâu.
+                        </p>
+                        <div class="threshold-card-action-hint action-hint-warm">
+                            📞 Ưu tiên số 2: Nuôi dưỡng & liên hệ trong 24 - 48 giờ
+                        </div>
+                    </div>
+
+                    <!-- Box Cold Lead -->
+                    <div class="threshold-card cold">
+                        <div class="threshold-card-top">
+                            <span class="threshold-badge badge-cold">❄️ LẠNH (COLD LEAD)</span>
+                            <span class="threshold-range-desc" id="coldRangeBadge">&lt; 50 điểm</span>
+                        </div>
+                        <div class="threshold-input-group">
+                            <label>Dải điểm tự động:</label>
+                            <div class="threshold-input-wrap">
+                                <span style="font-weight:700; color:var(--crm-text);" id="coldRangeText">0 đến 49 điểm</span>
+                            </div>
+                        </div>
+                        <p class="threshold-card-desc">
+                            Chưa đúng thời điểm hoặc quy mô chưa khớp. Điểm chỉ để sắp xếp ưu tiên sau, không tự động loại bỏ lead (AC 4).
+                        </p>
+                        <div class="threshold-card-action-hint action-hint-cold">
+                            ✉️ Ưu tiên số 3: Đưa vào chuỗi Email Drip tự động
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visual Dynamic Spectrum Gauge -->
+                <div class="visual-spectrum-box">
+                    <div class="spectrum-header">
+                        <span>📊 DẢI ĐIỂM NHIỆT ĐỘ TRỰC QUAN (0 - 100 ĐIỂM)</span>
+                        <span id="spectrumStatusLabel">Phân bổ: Lạnh (&lt;50) • Ấm (50-79) • Nóng (≥80)</span>
+                    </div>
+
+                    <div class="spectrum-track">
+                        <div id="segmentCold" class="spectrum-segment segment-cold" style="width: 50%;">
+                            <span>❄️ Lạnh (&lt;<span id="labelColdMax">50</span>)</span>
+                        </div>
+                        <div id="segmentWarm" class="spectrum-segment segment-warm" style="width: 30%;">
+                            <span>☀️ Ấm (<span id="labelWarmMin">50</span> - <span id="labelWarmMax">79</span>)</span>
+                        </div>
+                        <div id="segmentHot" class="spectrum-segment segment-hot" style="width: 20%;">
+                            <span>🔥 Nóng (≥<span id="labelHotMin">80</span>)</span>
+                        </div>
+                    </div>
+
+                    <div class="spectrum-labels">
+                        <span>0 điểm</span>
+                        <span id="markerWarm">50 điểm (Ngưỡng Ấm)</span>
+                        <span id="markerHot">80 điểm (Ngưỡng Nóng)</span>
+                        <span>100 điểm</span>
+                    </div>
+                </div>
+            </div>
+        </article>
+
+        <!-- ================= KHU VỰC 1: THIẾT LẬP TIÊU CHÍ CHẤM ĐIỂM ================= -->
+        <article class="crm-card">
+            <header class="section-card-head">
+                <div class="section-card-title">
+                    <span style="font-size:20px;">📋</span>
+                    <div>
+                        <h2>Thiết lập Tiêu chí Chấm điểm (Scoring Rules Engine)</h2>
+                        <p class="section-card-subtitle">
+                            Khai báo các quy tắc cộng/trừ điểm theo 4 nhóm: Ngành nghề, Quy mô công ty, Nguồn lead, Mức độ quan tâm.
+                        </p>
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button id="btnQuickAddRule" class="crm-btn crm-btn-primary" type="button" style="font-size:12.5px; padding:7px 14px;">
+                        + Thêm quy tắc mới
+                    </button>
+                </div>
+            </header>
+
+            <div class="rules-container">
+                <!-- Group Tabs -->
+                <nav class="rules-tabs-nav" id="rulesCategoryTabs">
+                    <button class="rule-tab-btn active" data-category="ALL" type="button">
+                        📑 Tất cả nhóm
+                        <span class="tab-badge" id="badgeCountAll">18</span>
+                    </button>
+                    <button class="rule-tab-btn" data-category="INDUSTRY" type="button">
+                        🏢 Ngành nghề phù hợp
+                        <span class="tab-badge" id="badgeCountIndustry">5</span>
+                    </button>
+                    <button class="rule-tab-btn" data-category="COMPANY_SIZE" type="button">
+                        👥 Quy mô doanh nghiệp
+                        <span class="tab-badge" id="badgeCountSize">5</span>
+                    </button>
+                    <button class="rule-tab-btn" data-category="LEAD_SOURCE" type="button">
+                        🌐 Nguồn Lead
+                        <span class="tab-badge" id="badgeCountSource">4</span>
+                    </button>
+                    <button class="rule-tab-btn" data-category="ENGAGEMENT" type="button">
+                        🎯 Mức độ quan tâm / tương tác
+                        <span class="tab-badge" id="badgeCountEngagement">4</span>
+                    </button>
+                </nav>
+
+                <!-- Search & Filters Toolbar -->
+                <div class="rules-toolbar">
+                    <div class="rules-search-wrap">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input id="ruleSearchInput" type="search" placeholder="Tìm kiếm theo tên tiêu chí, giá trị...">
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:12.5px; color:var(--crm-muted);" id="rulesFilterSummary">Hiển thị 18 quy tắc</span>
+                    </div>
+                </div>
+
+                <!-- Dynamic Rules Grid -->
+                <div class="rules-list" id="rulesListContainer">
+                    <!-- Dynamic rule cards rendered via JS -->
+                </div>
+            </div>
+        </article>
+
+        <!-- ================= KHU VỰC 3: BẢNG DANH SÁCH LEAD MÔ PHỎNG ================= -->
+        <article class="crm-card simulation-card">
+            <header class="section-card-head">
+                <div class="section-card-title">
+                    <span style="font-size:20px;">⚡</span>
+                    <div>
+                        <h2>Mô phỏng Xếp hạng & Ưu tiên Lead theo Thời gian thực (Live Preview)</h2>
+                        <p class="section-card-subtitle">
+                            Điểm được tính lại tự động khi thông tin lead thay đổi. Sắp xếp theo điểm số ưu tiên gọi trước, không tự động loại lead (AC 2 & AC 4).
+                        </p>
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button id="btnOpenAddLeadModal" class="crm-btn crm-btn-secondary" style="font-size:12.5px; padding:7px 14px;" type="button">
+                        👤 + Thêm Lead thử nghiệm
+                    </button>
+                    <button id="btnResetSimulationLeads" class="crm-btn crm-btn-secondary" style="font-size:12.5px; padding:7px 12px;" type="button" title="Đặt lại danh sách lead mẫu ban đầu">
+                        🔄 Dữ liệu mẫu
+                    </button>
+                </div>
+            </header>
+
+            <!-- Simulation Banner -->
+            <div class="sim-sort-banner">
+                <div>
+                    <strong>💡 Lưu ý quan trọng (AC 4):</strong> Bảng này sắp xếp các lead theo <em>thứ tự ưu tiên gọi</em> từ điểm cao nhất xuống thấp nhất. Tất cả lead đều được lưu giữ đầy đủ, không lọc bỏ khách hàng nào.
+                </div>
+                <div>
+                    <label style="display:flex; align-items:center; gap:6px; font-size:12px; cursor:pointer;">
+                        <input type="checkbox" id="checkSortByScore" checked>
+                        <span>Tự động sắp xếp theo điểm giảm dần</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Toolbar Filters -->
+            <div class="simulation-toolbar">
+                <div class="sim-filter-group">
+                    <span style="font-size:12px; font-weight:700; color:var(--crm-muted); text-transform:uppercase;">Bộ lọc nhanh:</span>
+                    <button class="sim-filter-btn active" data-filter="ALL" type="button">
+                        Tất cả (<span id="simCountAll">10</span>)
+                    </button>
+                    <button class="sim-filter-btn" data-filter="HOT" type="button">
+                        🔥 Nóng (<span id="simCountHot">4</span>)
+                    </button>
+                    <button class="sim-filter-btn" data-filter="WARM" type="button">
+                        ☀️ Ấm (<span id="simCountWarm">4</span>)
+                    </button>
+                    <button class="sim-filter-btn" data-filter="COLD" type="button">
+                        ❄️ Lạnh (<span id="simCountCold">2</span>)
+                    </button>
+                </div>
+
+                <div style="min-width: 260px;">
+                    <input id="simSearchInput" class="crm-input" type="search" placeholder="🔍 Tìm theo tên công ty, người liên hệ...">
+                </div>
+            </div>
+
+            <!-- Table Container -->
+            <div class="sim-table-wrap">
+                <table class="sim-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 60px; text-align: center;">Ưu tiên</th>
+                            <th>Doanh nghiệp & Người liên hệ</th>
+                            <th style="min-width: 160px;">Ngành nghề</th>
+                            <th style="min-width: 140px;">Quy mô</th>
+                            <th style="min-width: 150px;">Nguồn Lead</th>
+                            <th style="min-width: 170px;">Mức độ quan tâm</th>
+                            <th style="min-width: 110px;">Tổng điểm</th>
+                            <th style="min-width: 110px;">Nhiệt độ</th>
+                            <th style="min-width: 170px;">Hành động gợi ý</th>
+                            <th style="width: 50px; text-align: center;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="simTableBody">
+                        <!-- Dynamic lead rows rendered via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </article>
+
+    </div>
+
+</main>
+
+<header class="crm-mobile-header"></header>
+<div id="drawerOverlay" class="crm-drawer-overlay"></div>
+<aside id="mobileDrawer" class="crm-mobile-drawer"></aside>
+
+<!-- ================= MODAL: THÊM / SỬA QUY TẮC ================= -->
+<div id="ruleModalOverlay" class="scoring-modal-overlay"></div>
+
+<section id="ruleModal" class="scoring-modal crm-card">
+    <header class="modal-header">
+        <h3 class="modal-title" id="ruleModalTitle">Thêm quy tắc chấm điểm mới</h3>
+        <button id="btnCloseRuleModal" class="modal-close-btn" type="button">&times;</button>
+    </header>
+
+    <form id="ruleForm">
+        <input type="hidden" id="editingRuleId">
+
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="ruleCategorySelect">Nhóm tiêu chí <em>*</em></label>
+                <select id="ruleCategorySelect" required>
+                    <option value="INDUSTRY">🏢 Ngành nghề phù hợp (Industry Fit)</option>
+                    <option value="COMPANY_SIZE">👥 Quy mô doanh nghiệp (Company Size)</option>
+                    <option value="LEAD_SOURCE">🌐 Nguồn Lead (Lead Source)</option>
+                    <option value="ENGAGEMENT">🎯 Mức độ quan tâm / tương tác (Engagement Level)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="ruleCriterionInput">Tên tiêu chí / Giá trị điều kiện <em>*</em></label>
+                <input id="ruleCriterionInput" type="text" placeholder="Ví dụ: CNTT & Viễn thông, Enterprise > 500 nhân sự..." required>
+                <span class="form-hint">Tên tiêu chí này sẽ khớp với thuộc tính khai báo của Lead.</span>
+            </div>
+
+            <div class="form-group">
+                <label for="rulePointsInput">Số điểm cộng / trừ (+/-) <em>*</em></label>
+                <input id="rulePointsInput" type="number" min="-50" max="100" value="20" required>
+                <span class="form-hint">Nhập số dương để cộng điểm (ví dụ: 25), hoặc số âm để trừ điểm (ví dụ: -15).</span>
+            </div>
+
+            <div class="form-group">
+                <label for="ruleDescInput">Mô tả / Ghi chú</label>
+                <textarea id="ruleDescInput" rows="2" placeholder="Giải thích căn cứ chấm điểm cho đội ngũ bán hàng..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" id="ruleIsActiveInput" checked>
+                    <span>Kích hoạt quy tắc này ngay lập tức</span>
+                </label>
+            </div>
+        </div>
+
+        <footer class="modal-footer">
+            <button id="btnCancelRuleModal" class="crm-btn crm-btn-secondary" type="button">Hủy</button>
+            <button class="crm-btn crm-btn-primary" type="submit">Lưu quy tắc</button>
+        </footer>
+    </form>
+</section>
+
+<!-- ================= MODAL: THÊM LEAD THỬ NGHIỆM ================= -->
+<div id="leadModalOverlay" class="scoring-modal-overlay"></div>
+
+<section id="leadModal" class="scoring-modal crm-card">
+    <header class="modal-header">
+        <h3 class="modal-title">Thêm Lead Thử Nghiệm Mô Phỏng</h3>
+        <button id="btnCloseLeadModal" class="modal-close-btn" type="button">&times;</button>
+    </header>
+
+    <form id="leadForm">
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="leadCompanyName">Tên công ty / Doanh nghiệp <em>*</em></label>
+                <input id="leadCompanyName" type="text" placeholder="Ví dụ: Công ty Cổ phần Công nghệ Alpha" required>
+            </div>
+
+            <div class="form-group">
+                <label for="leadContactName">Người liên hệ & Chức vụ <em>*</em></label>
+                <input id="leadContactName" type="text" placeholder="Ví dụ: Nguyễn Văn Tuấn - CTO" required>
+            </div>
+
+            <div class="form-group">
+                <label for="leadIndustrySelect">Ngành nghề</label>
+                <select id="leadIndustrySelect"></select>
+            </div>
+
+            <div class="form-group">
+                <label for="leadSizeSelect">Quy mô doanh nghiệp</label>
+                <select id="leadSizeSelect"></select>
+            </div>
+
+            <div class="form-group">
+                <label for="leadSourceSelect">Nguồn Lead</label>
+                <select id="leadSourceSelect"></select>
+            </div>
+
+            <div class="form-group">
+                <label for="leadEngagementSelect">Mức độ quan tâm / tương tác</label>
+                <select id="leadEngagementSelect"></select>
+            </div>
+
+            <!-- Preview Card in modal -->
+            <div style="background:#f8fafc; border:1px solid var(--crm-border); border-radius:var(--crm-radius-sm); padding:12px; display:flex; align-items:center; justify-content:space-between;">
+                <div>
+                    <div style="font-size:12px; color:var(--crm-muted);">Điểm ước tính tạm tính:</div>
+                    <div id="modalLeadScorePreview" style="font-size:20px; font-weight:800; color:var(--crm-text);">0 điểm</div>
+                </div>
+                <div>
+                    <span id="modalLeadTempPreview" class="temp-status-badge cold">❄️ LẠNH</span>
+                </div>
+            </div>
+        </div>
+
+        <footer class="modal-footer">
+            <button id="btnCancelLeadModal" class="crm-btn crm-btn-secondary" type="button">Hủy</button>
+            <button class="crm-btn crm-btn-primary" type="submit">Thêm vào bảng mô phỏng</button>
+        </footer>
+    </form>
+</section>
+
+<!-- TOAST CONTAINER -->
+<div id="toastContainer" class="crm-toast-container"></div>
+
+<!-- JAVASCRIPT LIBRARIES -->
+<script src="js/pages/lead-scoring.js"></script>
+<script src="js/page-transition.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/shared-shell.js"></script>
+<script src="js/ui-core.js"></script>
+<script src="js/ui-effects.js"></script>
+</body>
+</html>

@@ -181,10 +181,11 @@
                 }
 
                 // Không chặn các trang xác thực (login, forgot, reset)
+                const targetPathClean = (url.pathname.split("/").pop() || "").replace(/\.html$/, "");
                 if (
-                    url.pathname.endsWith("login.html")
-                    || url.pathname.endsWith("forgot-password.html")
-                    || url.pathname.endsWith("reset-password.html")
+                    targetPathClean === "login"
+                    || targetPathClean === "forgot-password"
+                    || targetPathClean === "reset-password"
                 ) {
                     return;
                 }
@@ -532,14 +533,14 @@
         }
 
         const url = new URL(targetUrl, window.location.href);
-        const filename = url.pathname.split("/").pop() || "dashboard.html";
+        const filename = (url.pathname.split("/").pop() || "dashboard").replace(/\.html$/, "");
 
         document.querySelectorAll(
             "aside.crm-sidebar nav a, aside.crm-mobile-drawer nav a, nav.crm-bottom-nav a, nav a[href]"
         ).forEach(item => {
             const href = item.getAttribute("href") || "";
             if (!href || href === "#") return;
-            const itemFile = href.split("?")[0].split("/").pop();
+            const itemFile = href.split("?")[0].split("/").pop().replace(/\.html$/, "");
             if (itemFile === filename) {
                 item.classList.add("active");
             } else {

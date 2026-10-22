@@ -3,6 +3,7 @@ package com.crm.controller.pipeline;
 import com.crm.dto.common.ApiResponse;
 import com.crm.dto.pipeline.OpportunityWriteRequest;
 import com.crm.service.pipeline.OpportunityService;
+import com.crm.service.pipeline.StageConditionViolationException;
 import com.crm.util.JsonUtil;
 import com.crm.util.ResponseUtil;
 
@@ -13,6 +14,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
@@ -55,7 +57,7 @@ public class OpportunityServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
-            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ: " + e.getMessage(), null));
+            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));
         }
     }
 
@@ -78,18 +80,19 @@ public class OpportunityServlet extends HttpServlet {
                 String action = segments[1];
 
                 if ("stage".equals(action)) {
-                    Map<String, Object> body = JsonUtil.getGson().fromJson(req.getReader(), Map.class);
+                    Map<String, Object> body = JsonUtil.getGson().fromJson(req.getReader(), com.crm.util.JsonUtil.OBJECT_MAP_TYPE);
                     if (body == null || body.get("stageId") == null) {
                         throw new IllegalArgumentException("Thiếu stageId");
                     }
                     long targetStageId = ((Number) body.get("stageId")).longValue();
-                    var updated = opportunityService.changeStage(currentUserId, targetId, targetStageId);
+                    String overrideReason = body.get("overrideReason") != null ? String.valueOf(body.get("overrideReason")) : null;
+                    var updated = opportunityService.changeStage(currentUserId, targetId, targetStageId, overrideReason);
                     ResponseUtil.json(resp, 200, ApiResponse.success("Chuyển giai đoạn thành công", updated));
                     return;
                 }
 
                 if ("close".equals(action)) {
-                    Map<String, Object> body = JsonUtil.getGson().fromJson(req.getReader(), Map.class);
+                    Map<String, Object> body = JsonUtil.getGson().fromJson(req.getReader(), com.crm.util.JsonUtil.OBJECT_MAP_TYPE);
                     if (body == null || body.get("status") == null) {
                         throw new IllegalArgumentException("Thiếu trạng thái đóng cơ hội (WON/LOST)");
                     }
@@ -106,12 +109,21 @@ public class OpportunityServlet extends HttpServlet {
             }
 
             ResponseUtil.json(resp, 404, ApiResponse.error("Endpoint không tồn tại", null));
+        } catch (StageConditionViolationException e) {
+            Map<String, Object> errData = new LinkedHashMap<>();
+            errData.put("requiresOverride", true);
+            errData.put("canOverride", e.isCanOverride());
+            errData.put("missingConditions", e.getMissingConditions());
+            errData.put("currentStageName", e.getCurrentStageName());
+            errData.put("targetStageName", e.getTargetStageName());
+            errData.put("exitCondition", e.getExitCondition());
+            ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), errData));
         } catch (SecurityException e) {
             ResponseUtil.json(resp, 403, ApiResponse.error(e.getMessage(), null));
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
-            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ: " + e.getMessage(), null));
+            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));
         }
     }
 
@@ -134,7 +146,7 @@ public class OpportunityServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
-            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ: " + e.getMessage(), null));
+            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));
         }
     }
 
@@ -153,7 +165,7 @@ public class OpportunityServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
-            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ: " + e.getMessage(), null));
+            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));
         }
     }
 

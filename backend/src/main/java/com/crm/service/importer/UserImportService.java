@@ -17,7 +17,11 @@ public class UserImportService {
     private static final List<String> COLUMNS = List.of("fullName", "email", "password", "status");
     private static final Duration BATCH_TTL = Duration.ofMinutes(15);
     private static final Map<String, Batch> BATCHES = new ConcurrentHashMap<>();
-    private final UserManagementDAO dao = new UserManagementDAO();
+    private final UserManagementDAO dao;
+
+    public UserImportService() { this(new UserManagementDAO()); }
+
+    UserImportService(UserManagementDAO dao) { this.dao = dao; }
 
     public void writeTemplate(OutputStream output) throws Exception {
         writeTemplate(output, "valid");
@@ -160,13 +164,7 @@ public class UserImportService {
     }
 
     private List<RowData> readRows(InputStream input) throws Exception {
-        XSSFWorkbook workbook;
-        try {
-            workbook = new XSSFWorkbook(input);
-        } catch (Exception e) {
-            throw new InvalidWorkbookException("File .xlsx không hợp lệ hoặc bị hỏng");
-        }
-        try (workbook) {
+        try (XSSFWorkbook workbook = new XSSFWorkbook(input)) {
             if (workbook.getNumberOfSheets() == 0) throw new InvalidWorkbookException("File không có worksheet");
             Sheet sheet = workbook.getSheetAt(0);
             DataFormatter formatter = new DataFormatter(Locale.ROOT);

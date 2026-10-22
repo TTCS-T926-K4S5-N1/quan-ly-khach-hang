@@ -1,13 +1,15 @@
 package com.crm.service.pipeline;
 
 import com.crm.dao.customfields.CustomFieldValueDAO;
+import com.crm.dao.permissions.PermissionDAO;
 import com.crm.dao.pipeline.OpportunityDAO;
 import com.crm.dao.pipeline.PipelineStageDAO;
 import com.crm.dto.pipeline.OpportunityWriteRequest;
+import com.crm.service.audit.AuditLogService;
 import com.crm.service.permissions.DataScopeContext;
 import com.crm.service.permissions.DataScopeService;
+import com.crm.service.permissions.PermissionService;
 
-import java.sql.SQLException;
 import java.util.*;
 
 public class OpportunityService {
@@ -16,6 +18,10 @@ public class OpportunityService {
     private final PipelineStageDAO stageDAO = new PipelineStageDAO();
     private final CustomFieldValueDAO customFieldValueDAO = new CustomFieldValueDAO();
     private final DataScopeService dataScopeService = new DataScopeService();
+    private final PermissionService permissionService = new PermissionService();
+    private final PermissionDAO permissionDAO = new PermissionDAO();
+    private final AuditLogService auditLogService = new AuditLogService();
+    private final StageConditionValidator conditionValidator = new StageConditionValidator();
 
     public List<Map<String, Object>> search(
             long currentUserId,
@@ -95,7 +101,31 @@ public class OpportunityService {
         return getById(currentUserId, id);
     }
 
+    public boolean isTeamLeadOrAbove(long userId) {
+        try {
+            if (permissionService.hasPermission(userId, "opportunity.stage.override")) {
+                return true;
+            }
+            List<Map<String, Object>> roles = permissionDAO.findRolesByUserId(userId);
+            for (Map<String, Object> r : roles) {
+                String code = (String) r.get("code");
+                if (code != null) {
+                    String uc = code.trim().toUpperCase();
+                    if (uc.equals("ADMIN") || uc.equals("DIRECTOR") || uc.equals("TEAM_LEAD") || uc.equals("MANAGER")) {
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return false;
+    }
+
     public Map<String, Object> changeStage(long currentUserId, long id, long targetStageId) throws Exception {
+        return changeStage(currentUserId, id, targetStageId, null);
+    }
+
+    public Map<String, Object> changeStage(long currentUserId, long id, long targetStageId, String overrideReason) throws Exception {
         DataScopeContext scope = dataScopeService.resolve(currentUserId, "opportunity", "update");
         Map<String, Object> opp = opportunityDAO.findById(id);
         if (opp == null) {
@@ -107,30 +137,78 @@ public class OpportunityService {
             throw new SecurityException("Bạn không có quyền truy cập dữ liệu này do giới hạn phạm vi sở hữu.");
         }
 
-        // Validate target stage
+        // Thẩm định giai đoạn đích
         var targetStage = stageDAO.findById(targetStageId);
         if (targetStage == null) {
             throw new IllegalArgumentException("Giai đoạn đích không tồn tại.");
         }
 
-        // CRM-37 Tiêu chí 3: Kiểm tra điều kiện bắt buộc rời giai đoạn hiện tại (nếu có cấu hình)
-        Long currentStageId = (Long) opp.get("stageId");
+        Long currentStageId = opp.get("stageId") != null ? ((Number) opp.get("stageId")).longValue() : null;
+        boolean isOverridden = false;
+        String cleanOverrideReason = overrideReason != null ? overrideReason.trim() : null;
+        boolean isLead = isTeamLeadOrAbove(currentUserId);
+
+        // SCRUM-75: Kiểm tra điều kiện bắt buộc rời giai đoạn hiện tại (nếu có cấu hình)
         if (currentStageId != null && currentStageId != targetStageId) {
             var currentStage = stageDAO.findById(currentStageId);
             if (currentStage != null) {
-                String requirements = (String) currentStage.get("requirements");
-                if (requirements != null && !requirements.isBlank()) {
-                    // Check if requirements are met
-                    boolean isWonOrLost = Boolean.TRUE.equals(targetStage.get("isWon")) || Boolean.TRUE.equals(targetStage.get("isLost"));
-                    if (!isWonOrLost && requirements.toLowerCase().contains("gặp") && opp.get("contactName") == null) {
-                        throw new IllegalArgumentException("Điều kiện rời giai đoạn '" + currentStage.get("name") + "': " + requirements);
+                boolean isWonOrLost = Boolean.TRUE.equals(targetStage.get("isWon")) || Boolean.TRUE.equals(targetStage.get("isLost"));
+                if (!isWonOrLost) {
+                    StageConditionValidator.ValidationResult valResult = conditionValidator.validateExitConditions(currentStage, opp);
+                    if (!valResult.isValid()) {
+                        // Người dùng cố ý gửi overrideReason nhưng không phải Trưởng nhóm
+                        if (cleanOverrideReason != null && !cleanOverrideReason.isBlank() && !isLead) {
+                            throw new SecurityException("Chỉ Trưởng nhóm trở lên mới có quyền ghi đè điều kiện rời giai đoạn.");
+                        }
+
+                        // Nếu không phải là Trưởng nhóm trở lên -> Từ chối chuyển giai đoạn
+                        if (!isLead) {
+                            String missingStr = String.join(", ", valResult.missingConditions());
+                            throw new StageConditionViolationException(
+                                    "Không thể chuyển giai đoạn. Còn thiếu điều kiện bắt buộc: " + missingStr,
+                                    false,
+                                    valResult.missingConditions(),
+                                    valResult.stageName(),
+                                    (String) targetStage.get("name"),
+                                    valResult.exitCondition()
+                            );
+                        }
+
+                        // Là Trưởng nhóm trở lên -> Phải có lý do ghi đè
+                        if (cleanOverrideReason == null || cleanOverrideReason.isBlank()) {
+                            String missingStr = String.join(", ", valResult.missingConditions());
+                            throw new StageConditionViolationException(
+                                    "Chưa thỏa điều kiện rời giai đoạn (" + missingStr + "). Là Trưởng nhóm trở lên, vui lòng nhập lý do ghi đè để chuyển giai đoạn.",
+                                    true,
+                                    valResult.missingConditions(),
+                                    valResult.stageName(),
+                                    (String) targetStage.get("name"),
+                                    valResult.exitCondition()
+                            );
+                        }
+
+                        if (cleanOverrideReason.length() < 5) {
+                            throw new IllegalArgumentException("Lý do ghi đè chuyển giai đoạn phải có ít nhất 5 ký tự.");
+                        }
+
+                        isOverridden = true;
                     }
                 }
             }
         }
 
         int prob = targetStage.get("winProbability") != null ? ((Number) targetStage.get("winProbability")).intValue() : 0;
-        opportunityDAO.updateStage(id, targetStageId, prob);
+        opportunityDAO.updateStage(id, targetStageId, prob, currentStageId, currentUserId, isOverridden, cleanOverrideReason);
+
+        if (isOverridden) {
+            auditLogService.log(
+                    currentUserId,
+                    "OPPORTUNITY",
+                    String.valueOf(id),
+                    "STAGE_OVERRIDE",
+                    "Ghi đè điều kiện rời giai đoạn sang '" + targetStage.get("name") + "'. Lý do: " + cleanOverrideReason
+            );
+        }
 
         return getById(currentUserId, id);
     }

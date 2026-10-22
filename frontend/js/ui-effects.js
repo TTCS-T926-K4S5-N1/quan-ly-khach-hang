@@ -130,6 +130,16 @@
             if (message) window.crmToast(message, "success");
         }).observe(savedMessage, {childList: true, characterData: true, subtree: true});
     }
+
+    try {
+        const welcomeMessage = sessionStorage.getItem("crm_login_welcome");
+        if (welcomeMessage) {
+            sessionStorage.removeItem("crm_login_welcome");
+            setTimeout(() => {
+                window.crmToast?.(welcomeMessage, "success", { duration: 4000 });
+            }, 350);
+        }
+    } catch (_) {}
 })();
 
 // Normalize dynamic icon slots only; never inspect customer/user content.
