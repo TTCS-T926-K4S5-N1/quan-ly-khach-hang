@@ -24,6 +24,7 @@ import java.util.NoSuchElementException;
 public class QuoteServlet extends HttpServlet {
 
     private final QuoteService quoteService = new QuoteService();
+    private final com.crm.service.documents.DocumentExportService exportService = new com.crm.service.documents.DocumentExportService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -40,6 +41,18 @@ public class QuoteServlet extends HttpServlet {
                 return;
             }
 
+            if (path.endsWith("/pdf")) {
+                long id = parseId(path);
+                boolean inline = "1".equals(req.getParameter("inline")) || "true".equalsIgnoreCase(req.getParameter("inline"));
+                var result = exportService.exportQuotePdf(currentUserId, id);
+                resp.setContentType("application/pdf");
+                resp.setHeader("Content-Disposition", (inline ? "inline" : "attachment") + "; filename=\"" + result.fileName() + "\"");
+                resp.setContentLength(result.bytes().length);
+                resp.getOutputStream().write(result.bytes());
+                resp.getOutputStream().flush();
+                return;
+            }
+
             long id = parseId(path);
             var item = quoteService.getById(currentUserId, id);
             if (item == null) {
@@ -50,6 +63,8 @@ public class QuoteServlet extends HttpServlet {
             ResponseUtil.json(resp, 200, ApiResponse.success("Lấy thông tin báo giá thành công", item));
         } catch (SecurityException e) {
             ResponseUtil.json(resp, 403, ApiResponse.error(e.getMessage(), null));
+        } catch (NoSuchElementException e) {
+            ResponseUtil.json(resp, 404, ApiResponse.error(e.getMessage(), null));
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
@@ -66,6 +81,19 @@ public class QuoteServlet extends HttpServlet {
             Map<String, Object> body = JsonUtil.getGson().fromJson(req.getReader(), com.crm.util.JsonUtil.OBJECT_MAP_TYPE);
             if (body == null) {
                 throw new IllegalArgumentException("Thiếu dữ liệu");
+            }
+
+            if (path != null && path.contains("/contract-pdf")) {
+                long quoteId = parseId(path);
+                var contractInfo = com.crm.service.documents.ContractInfo.fromRequest(body);
+                boolean inline = "1".equals(req.getParameter("inline")) || "true".equalsIgnoreCase(req.getParameter("inline"));
+                var result = exportService.exportContractPdf(currentUserId, quoteId, contractInfo);
+                resp.setContentType("application/pdf");
+                resp.setHeader("Content-Disposition", (inline ? "inline" : "attachment") + "; filename=\"" + result.fileName() + "\"");
+                resp.setContentLength(result.bytes().length);
+                resp.getOutputStream().write(result.bytes());
+                resp.getOutputStream().flush();
+                return;
             }
 
             if (path != null && path.contains("/status")) {
@@ -87,6 +115,8 @@ public class QuoteServlet extends HttpServlet {
             ResponseUtil.json(resp, 201, ApiResponse.success("Tạo báo giá thành công", created));
         } catch (SecurityException e) {
             ResponseUtil.json(resp, 403, ApiResponse.error(e.getMessage(), null));
+        } catch (NoSuchElementException e) {
+            ResponseUtil.json(resp, 404, ApiResponse.error(e.getMessage(), null));
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {

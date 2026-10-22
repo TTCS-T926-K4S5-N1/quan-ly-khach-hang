@@ -253,6 +253,9 @@ function render() {
                         <a class="quote-action" href="quote-editor.html?id=${encodeURIComponent(quote.id)}">
                             Xem / Sửa
                         </a>
+                        <button type="button" class="quote-action" style="color:#2563eb;cursor:pointer;" data-export-pdf="${quote.id}" title="Xuất file PDF báo giá">
+                            PDF
+                        </button>
                         ${
                             quote.status === "pending" || (quote.status === "draft" && quote.requiresApproval)
                             ? `<button type="button" class="quote-action" style="color:#10b981;cursor:pointer;" data-approve-quote="${quote.id}">Duyệt</button>`
@@ -299,6 +302,9 @@ function render() {
                     <a class="crm-btn crm-btn-secondary" style="text-decoration:none" href="quote-editor.html?id=${encodeURIComponent(quote.id)}">
                         Xem / Sửa
                     </a>
+                    <button type="button" class="crm-btn crm-btn-secondary" style="color:#2563eb" data-export-pdf="${quote.id}">
+                        Xuất PDF
+                    </button>
                     ${
                         quote.status === "pending" || (quote.status === "draft" && quote.requiresApproval)
                         ? `<button type="button" class="crm-btn crm-btn-secondary" style="color:#10b981" data-approve-quote="${quote.id}">Duyệt</button>`
@@ -366,8 +372,46 @@ document.addEventListener("click", async event => {
                 render();
             }
         }
+        return;
+    }
+
+    const pdfBtn = event.target.closest("[data-export-pdf]");
+    if (pdfBtn) {
+        const id = pdfBtn.getAttribute("data-export-pdf");
+        downloadQuotePdf(id);
+        return;
     }
 });
+
+async function downloadQuotePdf(id) {
+    try {
+        const res = await fetch(`http://localhost:8080/crm/api/quotes/${encodeURIComponent(id)}/pdf`, { credentials: "include" });
+        if (!res.ok) {
+            let errMsg = "Không thể xuất file PDF báo giá.";
+            try {
+                const j = await res.json();
+                if (j?.message) errMsg = j.message;
+            } catch (_) {}
+            throw new Error(errMsg);
+        }
+        const blob = await res.blob();
+        const disposition = res.headers.get("Content-Disposition") || "";
+        let filename = `BaoGia_${id}.pdf`;
+        const match = disposition.match(/filename="?([^";]+)"?/);
+        if (match && match[1]) filename = match[1];
+
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+        alert("Lỗi xuất PDF: " + err.message);
+    }
+}
 
 function statusLabel(status) {
     switch (status) {

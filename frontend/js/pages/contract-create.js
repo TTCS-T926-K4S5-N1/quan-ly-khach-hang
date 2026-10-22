@@ -13,6 +13,7 @@ const blocked = document.getElementById("contractBlocked");
 const blockedReasonTitle = document.getElementById("blockedReasonTitle");
 const blockedReasonDesc = document.getElementById("blockedReasonDesc");
 const createButton = document.getElementById("createContractButton");
+const exportPdfButton = document.getElementById("exportContractPdfBtn");
 
 /* =========================================================
    SEED DATA NẾU CHƯA CÓ TRONG LOCALSTORAGE
@@ -222,6 +223,7 @@ async function initContractPage() {
     // Báo giá hợp lệ -> Cho phép tạo hợp đồng
     if (blocked) blocked.hidden = true;
     if (createButton) createButton.disabled = false;
+    if (exportPdfButton) exportPdfButton.disabled = false;
 
     // Khởi tạo các giá trị form mặc định
     setupDefaultFormValues();
@@ -230,10 +232,15 @@ async function initContractPage() {
 function showBlockedState(title, message) {
     if (blocked) {
         blocked.hidden = false;
-        if (blockedReasonTitle) blockedReasonTitle.textContent = title;
+        if (blockedReasonTitle) {
+            blockedReasonTitle.textContent = title;
+        } else {
+            blocked.innerHTML = `<strong>${title}</strong><br>${message}`;
+        }
         if (blockedReasonDesc) blockedReasonDesc.innerHTML = message;
     }
     if (createButton) createButton.disabled = true;
+    if (exportPdfButton) exportPdfButton.disabled = true;
 }
 
 function setupDefaultFormValues() {
@@ -279,6 +286,11 @@ function renderQuoteData(quote) {
     text("contractOpportunity", quote.opportunity || "Cơ hội kinh doanh");
     text("contractTotal", money(quote.total));
 
+    const ptArea = document.getElementById("contractPaymentTerms");
+    if (ptArea && quote.paymentTerms) {
+        ptArea.value = quote.paymentTerms;
+    }
+
     const body = document.getElementById("contractLines");
     if (!body) return;
     body.innerHTML = "";
@@ -297,7 +309,7 @@ function renderQuoteData(quote) {
         const discount = Number(line.discount || line.discountPercent || 0);
         const vat = Number(line.vat || line.vatPercent || 10);
         
-        let lineTotal = line.total || (qty * price * (1 - discount / 100));
+        let lineTotal = line.total !== undefined ? line.total : (qty * price * (1 - discount / 100));
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
@@ -317,7 +329,7 @@ function renderQuoteData(quote) {
 /* =========================================================
    FORM SUBMISSION & VALIDATION
 ========================================================= */
-document.addEventListener("DOMContentLoaded", () => {
+function bindPageEvents() {
     initContractPage();
 
     // Nút tự sinh số HĐ
@@ -343,6 +355,78 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("contractNumber")?.addEventListener("blur", validateContractNumber);
     document.getElementById("expiryDate")?.addEventListener("change", validateDates);
     document.getElementById("effectiveDate")?.addEventListener("change", validateDates);
+
+    // Xuất PDF Hợp đồng (SCRUM-94)
+    exportPdfButton?.addEventListener("click", async () => {
+        if (!quote || (quote.status !== "approved" && quote.status !== "accepted")) {
+            alert("Báo giá chưa được phê duyệt, không thể xuất PDF hợp đồng!");
+            return;
+        }
+
+        const number = value("contractNumber");
+        const signed = value("signedDate");
+        const effective = value("effectiveDate");
+        const expiry = value("expiryDate");
+        const terms = value("contractPaymentTerms");
+        const validation = document.getElementById("contractValidation");
+
+        if (!number || !signed || !effective) {
+            if (validation) validation.textContent = "Vui lòng nhập số hợp đồng, ngày ký và ngày hiệu lực trước khi xuất PDF.";
+            return;
+        }
+        if (expiry && expiry < effective) {
+            if (validation) validation.textContent = "Ngày hết hạn không được trước ngày hiệu lực.";
+            return;
+        }
+        if (validation) validation.textContent = "";
+
+        exportPdfButton.disabled = true;
+        exportPdfButton.textContent = "Đang tạo PDF...";
+
+        try {
+            const res = await fetch(`http://localhost:8080/crm/api/quotes/${quote.id}/contract-pdf`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contractNumber: number,
+                    signedDate: signed,
+                    effectiveDate: effective,
+                    expiryDate: expiry || null,
+                    paymentTerms: terms || null
+                })
+            });
+
+            if (!res.ok) {
+                let msg = "Lỗi khi xuất PDF hợp đồng";
+                try {
+                    const j = await res.json();
+                    if (j?.message) msg = j.message;
+                } catch (_) {}
+                throw new Error(msg);
+            }
+
+            const blob = await res.blob();
+            const disposition = res.headers.get("Content-Disposition") || "";
+            let filename = `HopDong_${number}.pdf`;
+            const match = disposition.match(/filename="?([^";]+)"?/);
+            if (match && match[1]) filename = match[1];
+
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+        } catch (err) {
+            alert("Lỗi xuất PDF: " + err.message);
+        } finally {
+            exportPdfButton.disabled = false;
+            exportPdfButton.textContent = "Xuất PDF Hợp đồng";
+        }
+    });
 
     // Xử lý Submit Form
     const contractForm = document.getElementById("contractForm");
@@ -384,7 +468,13 @@ document.addEventListener("DOMContentLoaded", () => {
         // Lưu Hợp đồng & Đồng bộ trạng thái
         await processContractCreation();
     });
-});
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bindPageEvents);
+} else {
+    bindPageEvents();
+}
 
 /* =========================================================
    VALIDATION HELPERS
@@ -507,7 +597,7 @@ async function processContractCreation() {
             })
         });
     } catch (_) {
-        // Backend có thể chưa chạy, dữ liệu đã lưu trữ hoàn hảo trên localStorage
+        // Backend có thể chưa chạy, dữ liệu đã lưu trữ trên localStorage
     }
 
     // 6. Hiển thị Modal thông báo thành công

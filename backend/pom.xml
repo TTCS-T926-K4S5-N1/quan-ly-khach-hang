@@ -77,6 +77,19 @@
             <version>2.0.3</version>
         </dependency>
 
+        <!-- SCRUM-94: xuất báo giá / hợp đồng ra PDF theo mẫu công ty -->
+        <dependency>
+            <groupId>com.github.librepdf</groupId>
+            <artifactId>openpdf</artifactId>
+            <version>2.0.3</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.librepdf</groupId>
+            <artifactId>openpdf-fonts-extra</artifactId>
+            <version>2.0.3</version>
+        </dependency>
+
     </dependencies>
 
     <build>
