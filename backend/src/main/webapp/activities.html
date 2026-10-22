@@ -79,7 +79,26 @@
     </div>
 
     <div class="crm-top-actions">
-        <div class="crm-avatar" style="background:#2563eb; color:#fff; font-weight:700;">H</div>
+        <button class="crm-icon-btn" type="button" aria-label="Thông báo">
+            <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
+            <span class="crm-notification-dot"></span>
+        </button>
+
+        <div class="crm-user">
+            <button id="userButton" class="crm-user-button" type="button">
+                <div class="crm-avatar" style="background:#2563eb; color:#fff; font-weight:700;">H</div>
+                <div class="crm-user-copy">
+                    <span class="crm-user-name">Trần Thị Thu Hà</span>
+                    <span class="crm-user-role">Trưởng nhóm Kinh doanh</span>
+                </div>
+                <span><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
+            </button>
+
+            <div id="userDropdown" class="crm-user-dropdown">
+                <a href="profile">Hồ sơ cá nhân</a>
+                <button type="button" id="btnLogout">Đăng xuất</button>
+            </div>
+        </div>
     </div>
 </header>
 
@@ -122,7 +141,7 @@
         </article>
     </section>
 
-    <!-- 1.1 ACTIVITY TYPE BREAKDOWN STATS BAR (SCRUM-109 / SCRUM-228) -->
+    <!-- 1.1 ACTIVITY TYPE BREAKDOWN STATS BAR -->
     <section id="activityTypeBreakdownBar" class="activity-type-breakdown-bar">
         <span class="type-breakdown-title">
             <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
@@ -154,7 +173,7 @@
         </button>
     </section>
 
-    <!-- 2. TEAM MEMBER CUSTOMER CARE STATS (SCRUM-109 / SCRUM-228) -->
+    <!-- 2. TEAM MEMBER CUSTOMER CARE STATS -->
     <section class="team-care-section">
         <div class="team-care-header">
             <div class="team-care-title">
@@ -171,13 +190,13 @@
 
         <!-- Dynamic Member Cards Grid -->
         <div id="teamCareCardsGrid" class="member-care-cards-grid">
-            <!-- Populated dynamically via JS -->
+            <!-- Render động bằng JS -->
         </div>
     </section>
 
-    <!-- 3. ADVANCED ACTIVITY FILTER BAR (SCRUM-109 / SCRUM-228) -->
+    <!-- 3. ADVANCED ACTIVITY FILTER BAR -->
     <section class="activity-filter-box crm-card">
-        <!-- Row 1: Search & Dropdowns -->
+        <!-- Hàng 1: Ô tìm kiếm & Các Dropdown -->
         <div class="filter-row-primary">
             <div class="filter-field-group search-group">
                 <label for="activitySearch">🔍 Tìm kiếm:</label>
@@ -189,7 +208,7 @@
                 >
             </div>
 
-            <!-- Member Filter Dropdown -->
+            <!-- Lọc theo nhân sự -->
             <div class="filter-field-group">
                 <label for="activityMemberFilter">👤 Thành viên thực hiện:</label>
                 <select id="activityMemberFilter" class="crm-input">
@@ -204,7 +223,7 @@
                 </select>
             </div>
 
-            <!-- Activity Type Dropdown -->
+            <!-- Lọc loại hoạt động -->
             <div class="filter-field-group">
                 <label for="activityTypeFilter">🏷️ Loại hoạt động:</label>
                 <select id="activityTypeFilter" class="crm-input">
@@ -217,7 +236,7 @@
                 </select>
             </div>
 
-            <!-- Status Dropdown -->
+            <!-- Lọc trạng thái -->
             <div class="filter-field-group">
                 <label for="activityStatusFilter">⚡ Trạng thái:</label>
                 <select id="activityStatusFilter" class="crm-input">
@@ -228,7 +247,7 @@
                 </select>
             </div>
 
-            <!-- Action Buttons -->
+            <!-- Các nút thao tác -->
             <div class="filter-buttons-group">
                 <button id="btnApplyFilter" type="button" class="btn-apply-filters">
                     <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
@@ -242,7 +261,7 @@
             </div>
         </div>
 
-        <!-- Row 2: Date Range Filter Bar (Từ ngày - Đến ngày + Mốc nhanh) -->
+        <!-- Hàng 2: Bộ chọn mốc thời gian (Từ ngày - Đến ngày + Mốc nhanh) -->
         <div class="filter-row-secondary">
             <div class="date-filter-container">
                 <span class="filter-label">🕒 Khoảng thời gian:</span>
@@ -267,7 +286,7 @@
         </div>
     </section>
 
-    <!-- ERROR BANNER (FOR API CALL FAILURES) -->
+    <!-- ERROR BANNER (KHI LỖI KẾT NỐI API) -->
     <div id="activityErrorBanner" class="activity-error-banner">
         <div style="display:flex; align-items:center; gap:8px;">
             <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -276,7 +295,7 @@
         <button id="btnRetryFetch" type="button" class="crm-btn crm-btn-secondary" style="min-height:28px; padding:2px 10px; font-size:11.5px;">Thử lại</button>
     </div>
 
-    <!-- 4. DETAILED ACTIVITY TABLE (SCRUM-109 / SCRUM-228) -->
+    <!-- 4. DETAILED ACTIVITY TABLE -->
     <section class="crm-card activity-table-card">
         <div class="activity-table-wrapper table-scroll">
             <table class="activity-data-table">
@@ -292,12 +311,12 @@
                     </tr>
                 </thead>
                 <tbody id="activityTableBody">
-                    <!-- Populated dynamically via JS -->
+                    <!-- Render động bằng JS -->
                 </tbody>
             </table>
         </div>
 
-        <!-- 5. PAGINATION BAR -->
+        <!-- 5. PHÂN TRANG -->
         <div id="activityPagination" class="activity-pagination">
             <div class="pagination-info">
                 Hiển thị <strong id="pageStartIdx">1</strong> - <strong id="pageEndIdx">10</strong> trong tổng số <strong id="pageTotalCount">0</strong> hoạt động
@@ -326,7 +345,7 @@
 <div id="drawerOverlay" class="crm-drawer-overlay"></div>
 <aside id="mobileDrawer" class="crm-mobile-drawer"></aside>
 
-<!-- 5. ACTIVITY DRAWER (CREATE / EDIT) -->
+<!-- 6. ACTIVITY DRAWER (TẠO MỚI / CHỈNH SỬA HOẠT ĐỘNG) -->
 <div id="activityOverlay" class="activity-overlay"></div>
 
 <aside id="activityDrawer" class="activity-drawer">

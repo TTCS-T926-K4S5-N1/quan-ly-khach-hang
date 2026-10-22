@@ -35,7 +35,7 @@ public class CorsFilter implements Filter {
 
         if (
                 origin != null &&
-                ALLOWED_ORIGINS.contains(origin)
+                (ALLOWED_ORIGINS.contains(origin) || origin.matches("^https?://(localhost|127\\.0\\.0\\.1)(:\\d+)?$"))
         ) {
 
             httpResponse.setHeader(

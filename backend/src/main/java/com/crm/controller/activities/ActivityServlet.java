@@ -54,7 +54,7 @@ public class ActivityServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
-            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ: " + e.getMessage(), null));
+            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));
         }
     }
 
@@ -62,7 +62,7 @@ public class ActivityServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
             long currentUserId = requireUser(req);
-            Map<String, Object> body = JsonUtil.getGson().fromJson(req.getReader(), Map.class);
+            Map<String, Object> body = JsonUtil.getGson().fromJson(req.getReader(), com.crm.util.JsonUtil.OBJECT_MAP_TYPE);
             if (body == null) {
                 throw new IllegalArgumentException("Thiếu dữ liệu body");
             }
@@ -84,7 +84,7 @@ public class ActivityServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
-            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ: " + e.getMessage(), null));
+            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));
         }
     }
 
@@ -93,7 +93,7 @@ public class ActivityServlet extends HttpServlet {
         try {
             long currentUserId = requireUser(req);
             long id = parseId(req.getPathInfo());
-            Map<String, Object> body = JsonUtil.getGson().fromJson(req.getReader(), Map.class);
+            Map<String, Object> body = JsonUtil.getGson().fromJson(req.getReader(), com.crm.util.JsonUtil.OBJECT_MAP_TYPE);
 
             String subject = (String) body.get("subject");
             String type = (String) body.get("type");
@@ -114,7 +114,7 @@ public class ActivityServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
-            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ: " + e.getMessage(), null));
+            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));
         }
     }
 
@@ -133,7 +133,7 @@ public class ActivityServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             ResponseUtil.json(resp, 400, ApiResponse.error(e.getMessage(), null));
         } catch (Exception e) {
-            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ: " + e.getMessage(), null));
+            ResponseUtil.json(resp, 500, ApiResponse.error("Lỗi máy chủ", null));
         }
     }
 

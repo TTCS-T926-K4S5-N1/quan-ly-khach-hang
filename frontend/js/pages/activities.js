@@ -420,6 +420,14 @@ const ActivityService = {
                 signal: AbortSignal.timeout(2000)
             });
 
+            // Xử lý hết hạn phiên đăng nhập (SCRUM-221)
+            if (response.status === 401) {
+                localStorage.removeItem("crm_ui_session");
+                localStorage.removeItem("crm_token");
+                window.location.href = "login";
+                throw new Error("Phiên đăng nhập đã hết hạn.");
+            }
+
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
@@ -669,7 +677,6 @@ const ActivityStatsComponent = {
                     filterState.member = member.name;
                 }
 
-                // Cập nhật giá trị vào dropdown
                 setValue("activityMemberFilter", filterState.member);
 
                 currentPage = 1;
@@ -778,7 +785,6 @@ const ActivityFilterComponent = {
                 filterState.startDate = value("startDateFilter");
                 filterState.endDate = value("endDateFilter");
 
-                // Bỏ active của các nút mốc nhanh nếu chọn ngày thủ công
                 document.querySelectorAll(".date-pill").forEach(p => p.classList.remove("active"));
                 filterState.dateRange = "CUSTOM";
 

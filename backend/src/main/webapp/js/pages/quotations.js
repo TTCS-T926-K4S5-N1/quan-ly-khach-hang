@@ -394,16 +394,18 @@ function money(value) {
 
 function escapeHtml(value) {
     return String(value ?? "")
-        .replace(/&/g,"&amp;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;")
-        .replace(/"/g,"&quot;")
-        .replace(/'/g,"&#039;");
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
-// Start
+/* =========================================================
+   DOM READY & EVENT BINDINGS
+========================================================= */
 document.addEventListener("DOMContentLoaded", () => {
-    // Check search param from URL (e.g. from contracts.html)
+    // Tự động điền tìm kiếm nếu có query param từ trang contracts
     const urlParams = new URLSearchParams(window.location.search);
     const searchParam = urlParams.get("search");
     if (searchParam && search) {

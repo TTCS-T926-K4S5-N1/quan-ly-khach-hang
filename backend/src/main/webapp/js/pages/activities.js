@@ -162,7 +162,6 @@ function getRichMockActivities() {
             status: "done",
             createdAt: "2026-10-20T14:30:00"
         },
-        // --- HÔM NAY (2026-10-21) ---
         {
             id: "act-105",
             type: "call",
@@ -215,7 +214,6 @@ function getRichMockActivities() {
             status: "open",
             createdAt: "2026-10-21T13:00:00"
         },
-        // --- NGÀY MAI (2026-10-22) ---
         {
             id: "act-109",
             type: "meeting",
@@ -419,6 +417,14 @@ const ActivityService = {
                 headers,
                 signal: AbortSignal.timeout(2000)
             });
+
+            // Xử lý hết hạn phiên đăng nhập (SCRUM-75 / SCRUM-221)
+            if (response.status === 401) {
+                localStorage.removeItem("crm_ui_session");
+                localStorage.removeItem("crm_token");
+                window.location.href = "login";
+                throw new Error("Phiên đăng nhập đã hết hạn.");
+            }
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -661,7 +667,6 @@ const ActivityStatsComponent = {
                 </div>
             `;
 
-            // Click vào thẻ thành viên để lọc drill-down
             card.addEventListener("click", () => {
                 if (filterState.member === member.name) {
                     filterState.member = "ALL";
@@ -669,7 +674,6 @@ const ActivityStatsComponent = {
                     filterState.member = member.name;
                 }
 
-                // Cập nhật giá trị vào dropdown
                 setValue("activityMemberFilter", filterState.member);
 
                 currentPage = 1;
@@ -686,14 +690,12 @@ const ActivityStatsComponent = {
    ========================================================================== */
 const ActivityFilterComponent = {
     init() {
-        // 1. Nút Áp dụng bộ lọc
         document.getElementById("btnApplyFilter")?.addEventListener("click", () => {
             this.readFiltersFromUI();
             currentPage = 1;
             applyFilterAndRender();
         });
 
-        // 2. Search input (Enter để áp dụng)
         document.getElementById("activitySearch")?.addEventListener("keydown", e => {
             if (e.key === "Enter") {
                 this.readFiltersFromUI();
@@ -702,7 +704,6 @@ const ActivityFilterComponent = {
             }
         });
 
-        // 3. Dropdowns lọc (Member, Type, Status)
         document.getElementById("activityMemberFilter")?.addEventListener("change", e => {
             filterState.member = e.target.value;
             currentPage = 1;
@@ -721,7 +722,6 @@ const ActivityFilterComponent = {
             applyFilterAndRender();
         });
 
-        // 4. Mốc thời gian nhanh (Tất cả, Hôm nay, Tuần này, Tháng này)
         document.querySelectorAll(".date-pill").forEach(pill => {
             pill.addEventListener("click", () => {
                 document.querySelectorAll(".date-pill").forEach(p => p.classList.remove("active"));
@@ -772,13 +772,11 @@ const ActivityFilterComponent = {
             });
         });
 
-        // 5. Date Range Picker inputs (Từ ngày - Đến ngày)
         ["startDateFilter", "endDateFilter"].forEach(id => {
             document.getElementById(id)?.addEventListener("change", () => {
                 filterState.startDate = value("startDateFilter");
                 filterState.endDate = value("endDateFilter");
 
-                // Bỏ active của các nút mốc nhanh nếu chọn ngày thủ công
                 document.querySelectorAll(".date-pill").forEach(p => p.classList.remove("active"));
                 filterState.dateRange = "CUSTOM";
 
@@ -787,7 +785,6 @@ const ActivityFilterComponent = {
             });
         });
 
-        // 6. Pills trên Breakdown Bar
         document.querySelectorAll("[data-type-pill]").forEach(pill => {
             pill.addEventListener("click", () => {
                 const selected = pill.getAttribute("data-type-pill") || "";
@@ -799,12 +796,10 @@ const ActivityFilterComponent = {
             });
         });
 
-        // 7. Nút Đặt lại tất cả bộ lọc
         document.getElementById("btnResetAllFilters")?.addEventListener("click", () => {
             this.resetFilters();
         });
 
-        // 8. Nút Tất cả thành viên trên header của card
         document.getElementById("btnResetMemberFilter")?.addEventListener("click", () => {
             filterState.member = "ALL";
             setValue("activityMemberFilter", "ALL");
@@ -860,7 +855,6 @@ const ActivityTableComponent = {
         if (!tableBody) return;
         tableBody.innerHTML = "";
 
-        // Xử lý Empty State
         if (totalFiltered === 0) {
             const tr = document.createElement("tr");
             tr.innerHTML = `
@@ -876,7 +870,6 @@ const ActivityTableComponent = {
             return;
         }
 
-        // Render từng hàng hoạt động
         pagedItems.forEach(item => {
             const tr = document.createElement("tr");
 
@@ -886,7 +879,6 @@ const ActivityTableComponent = {
             const memberRole = memberObj ? memberObj.role : "Nhân viên kinh doanh";
 
             tr.innerHTML = `
-                <!-- 1. Người thực hiện -->
                 <td>
                     <div class="member-badge-cell">
                         <div class="member-avatar-round" style="background:${avatarBg};">${avatarLetter}</div>
@@ -896,46 +888,34 @@ const ActivityTableComponent = {
                         </div>
                     </div>
                 </td>
-
-                <!-- 2. Tên khách hàng -->
                 <td>
                     <div class="customer-cell" title="Khách hàng liên quan">
                         <span class="customer-icon">🏢</span>
                         <span class="customer-name">${escapeHtml(item.relation || "Nội bộ CRM")}</span>
                     </div>
                 </td>
-
-                <!-- 3. Loại hoạt động -->
                 <td>
                     <span class="type-badge ${item.type}">
                         ${typeIcon(item.type)} ${typeLabel(item.type)}
                     </span>
                 </td>
-
-                <!-- 4. Tiêu đề / Nội dung tóm tắt -->
                 <td>
                     <div class="content-cell">
                         <strong class="activity-title-text">${escapeHtml(item.title)}</strong>
                         <p class="activity-desc-text">${escapeHtml(item.description || "Chưa có ghi chú tóm tắt nội dung trao đổi.")}</p>
                     </div>
                 </td>
-
-                <!-- 5. Thời gian -->
                 <td>
                     <div class="time-cell">
                         <span class="time-date">📅 ${item.date || "Chưa đặt lịch"}</span>
                         ${item.time ? `<span class="time-hour">⏰ ${item.time}</span>` : ""}
                     </div>
                 </td>
-
-                <!-- 6. Trạng thái -->
                 <td>
                     <span class="status-badge ${statusClass(item)}">
                         ${statusLabel(item)}
                     </span>
                 </td>
-
-                <!-- 7. Thao tác -->
                 <td>
                     <div class="row-actions">
                         <button type="button" data-edit-activity="${item.id}" title="Chỉnh sửa thông tin">Sửa</button>
@@ -1042,18 +1022,15 @@ function applyFilterAndRender() {
 
     // 2. Lọc danh sách hoạt động
     filteredActivities = allActivities.filter(item => {
-        // Tìm kiếm
         if (query) {
             const text = `${item.title} ${item.relation} ${item.description} ${item.owner}`.toLowerCase();
             if (!text.includes(query)) return false;
         }
 
-        // Loại hoạt động
         if (filterState.type && item.type !== filterState.type) {
             return false;
         }
 
-        // Trạng thái
         if (filterState.status) {
             if (filterState.status === "late") {
                 if (item.status === "done" || !item.date || item.date >= now) return false;
@@ -1062,14 +1039,12 @@ function applyFilterAndRender() {
             }
         }
 
-        // Thành viên thực hiện
         if (filterState.member === "MY") {
             if (item.owner !== "Trần Thị Thu Hà" && item.ownerId !== 1) return false;
         } else if (filterState.member !== "ALL") {
             if (item.owner !== filterState.member) return false;
         }
 
-        // Khoảng thời gian (Date Range: Từ ngày - Đến ngày)
         if (!isDateInRange(item.date)) {
             return false;
         }

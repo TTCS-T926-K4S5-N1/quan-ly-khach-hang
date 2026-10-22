@@ -162,4 +162,26 @@ public class UserDAO {
             }
         }
     }
+
+    public User findById(long id) throws SQLException {
+        String sql = """
+                SELECT id, full_name, email, status, session_version
+                FROM users WHERE id = ?
+                LIMIT 1
+                """;
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) return null;
+                User u = new User();
+                u.setId(rs.getLong("id"));
+                u.setFullName(rs.getString("full_name"));
+                u.setEmail(rs.getString("email"));
+                u.setStatus(rs.getString("status"));
+                u.setSessionVersion(rs.getLong("session_version"));
+                return u;
+            }
+        }
+    }
 }
