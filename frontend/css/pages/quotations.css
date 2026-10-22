@@ -123,6 +123,12 @@
     color: #b91c1c;
 }
 
+.quote-status.converted {
+    background: #f5f3ff;
+    color: #6d28d9;
+    border: 1px solid #ddd6fe;
+}
+
 
 .quote-actions {
     display: flex;
@@ -156,8 +162,27 @@
 
 .quote-action.contract {
     color: #047857;
-
+    background: #ecfdf5;
     border-color: #a7f3d0;
+    font-weight: 700;
+}
+
+.quote-action.contract:hover {
+    background: #10b981;
+    color: #fff;
+    border-color: #10b981;
+}
+
+.quote-action.view-contract {
+    color: #6d28d9;
+    background: #f5f3ff;
+    border-color: #ddd6fe;
+    font-weight: 600;
+}
+
+.quote-action.view-contract:hover {
+    background: #6d28d9;
+    color: #fff;
 }
 
 
