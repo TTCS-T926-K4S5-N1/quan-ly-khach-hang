@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<script>
+(function () {
+    try {
+        var theme = localStorage.getItem("crm_ui_theme");
+        document.documentElement.setAttribute(
+            "data-theme",
+            theme === "dark" ? "dark" : "light"
+        );
+        document.documentElement.removeAttribute("data-crm-theme");
+    } catch (e) {
+        document.documentElement.setAttribute("data-theme", "light");
+    }
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Chi tiết Cơ hội & Sản phẩm | Corporate CRM</title>
+
+<link rel="stylesheet" href="css/design-system.css">
+<link rel="stylesheet" href="css/app-shell.css">
+<link rel="stylesheet" href="css/pages/deals.css">
+<link rel="stylesheet" href="css/animations.css">
+</head>
+
+<body class="crm-private">
+
+<!-- SIDEBAR -->
+<aside class="crm-sidebar">
+    <div class="crm-brand">
+        <div class="crm-brand-mark">C</div>
+        <span class="crm-brand-name">Corporate CRM</span>
+    </div>
+
+    <nav class="crm-nav">
+        <div class="crm-nav-section">Không gian làm việc</div>
+
+        <a href="dashboard" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+            <span class="crm-nav-label">Tổng quan</span>
+        </a>
+
+        <a href="customers" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
+            <span class="crm-nav-label">Khách hàng</span>
+        </a>
+
+        <a href="pipeline" class="crm-nav-item active">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 9-8 9-8-9 8-9Z"/></svg></span>
+            <span class="crm-nav-label">Cơ hội</span>
+        </a>
+
+        <a href="calendar" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span>
+            <span class="crm-nav-label">Lịch</span>
+        </a>
+
+        <a href="tasks" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>
+            <span class="crm-nav-label">Công việc</span>
+        </a>
+
+        <a href="quotations" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span>
+            <span class="crm-nav-label">Báo giá</span>
+        </a>
+
+        <a href="products" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4-8 4-8-4 8-4Z"/><path d="m4 7 8 4 8-4v10l-8 4-8-4V7Z"/></svg></span>
+            <span class="crm-nav-label">Sản phẩm & Bảng giá</span>
+        </a>
+
+        <div class="crm-nav-section">Quản trị</div>
+
+        <a href="lead-scoring" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+            <span class="crm-nav-label">Chấm điểm Lead</span>
+        </a>
+
+        <a href="win-loss-settings" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v5c0 4-3 7-8 7S4 13 4 9V4ZM8 20h8M12 16v4M4 7H2v2c0 2 1 3 3 3m15-5h2v2c0 2-1 3-3 3"/></svg></span>
+            <span class="crm-nav-label">Win / Loss</span>
+        </a>
+
+        <a href="pipeline-settings" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m9 3 6 0 1 4 4 1 1 6-4 2-1 4-6 1-2-4-4-1-1-6 4-2 1-4Z"/></svg></span>
+            <span class="crm-nav-label">Cấu hình Pipeline</span>
+        </a>
+    </nav>
+</aside>
+
+<!-- TOPBAR -->
+<header class="crm-topbar">
+    <div class="crm-search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input id="globalSearch" type="search" placeholder="Tìm kiếm cơ hội, sản phẩm... (Ctrl + K)">
+        <kbd>Ctrl K</kbd>
+    </div>
+
+    <div class="crm-top-actions">
+        <button id="themeToggle" class="crm-shell-icon-button" type="button" title="Đổi giao diện">
+            <svg viewBox="0 0 24 24"><path d="M20 15a8 8 0 1 1-11-11 7 7 0 0 0 11 11Z"/></svg>
+        </button>
+
+        <button id="notificationButton" class="crm-shell-icon-button crm-notification-button" type="button" title="Thông báo">
+            <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+            <span class="crm-notification-dot"></span>
+        </button>
+
+        <div class="crm-user">
+            <button id="userButton" class="crm-user-button" type="button">
+                <div class="crm-avatar">U</div>
+                <div class="crm-user-copy">
+                    <span id="shellUserName" class="crm-user-name">Đang tải...</span>
+                    <span id="shellUserRole" class="crm-user-role">Sales Director</span>
+                </div>
+                <span class="crm-user-arrow">⌄</span>
+            </button>
+
+            <div id="userDropdown" class="crm-user-dropdown">
+                <a href="profile">Hồ sơ cá nhân</a>
+                <a href="change-password">Đổi mật khẩu</a>
+                <button id="logoutButton" type="button">Đăng xuất</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- MAIN CONTENT -->
+<main class="crm-main deal-detail-page">
+
+    <!-- BREADCRUMBS -->
+    <nav class="deal-breadcrumbs">
+        <a href="pipeline">← Cơ hội (Pipeline)</a>
+        <span class="sep">/</span>
+        <span>Chi tiết Cơ hội</span>
+        <span class="sep">/</span>
+        <span id="breadcrumbDealName" class="current">Đang tải...</span>
+    </nav>
+
+    <!-- HEADER SECTION -->
+    <section class="deal-header">
+        <div class="deal-title-wrap">
+            <div class="deal-title-row">
+                <span id="dealCodeBadge" class="badge-deal-code">OPP-2026-001</span>
+                <h1 id="dealTitle">Triển khai CRM Enterprise cho VPBank Thăng Long</h1>
+                <span id="dealStatusBadge" class="badge-status open">Đang mở (Open)</span>
+            </div>
+            <div class="deal-meta-subtitle">
+                <span class="deal-meta-item">
+                    <span>Khách hàng:</span>
+                    <strong id="dealCustomerName">VPBank Thăng Long</strong>
+                </span>
+                <span class="deal-meta-item">
+                    <span>Phụ trách:</span>
+                    <strong id="dealOwnerName">Nguyễn Văn An</strong>
+                </span>
+                <span class="deal-meta-item">
+                    <span>Ngày dự kiến chốt:</span>
+                    <strong id="dealCloseDate">15/11/2026</strong>
+                </span>
+                <span class="deal-meta-item">
+                    <span>Xác suất:</span>
+                    <strong id="dealProbability">80%</strong>
+                </span>
+            </div>
+        </div>
+
+        <div class="deal-header-actions">
+            <a href="pipeline" class="crm-btn crm-btn-secondary" style="text-decoration:none;">
+                ← Bảng Kanban
+            </a>
+            <button id="btnCreateQuoteFromDeal" class="crm-btn crm-btn-secondary" type="button">
+                📑 Tạo Báo giá
+            </button>
+            <button id="btnSaveDealProducts" class="crm-btn crm-btn-primary" type="button">
+                💾 Lưu sản phẩm & Giá trị
+            </button>
+        </div>
+    </section>
+
+    <!-- OPPORTUNITY QUICK SWITCHER -->
+    <section class="deal-switcher-card">
+        <div class="deal-switcher-left">
+            <span class="deal-switcher-label">Chọn cơ hội đang xử lý:</span>
+            <select id="dealSwitcherSelect" class="deal-select" title="Chuyển nhanh giữa các cơ hội bán hàng"></select>
+        </div>
+        <div class="deal-switcher-badges">
+            <span class="badge-pill">
+                <span>💡</span>
+                <span>Giá trị cơ hội là con số có căn cứ từ danh mục sản phẩm (SCRUM-74)</span>
+            </span>
+        </div>
+    </section>
+
+    <!-- PIPELINE STAGES STEPPER -->
+    <section id="pipelineStepper" class="pipeline-stepper"></section>
+
+    <!-- FINANCIAL KPI METRICS RIBBON -->
+    <section class="deal-kpi-grid">
+        <!-- 1. TOTAL CONTRACT VALUE (TCV) -->
+        <article class="deal-kpi-card highlight-tcv">
+            <div class="kpi-head">
+                <span class="kpi-title">Tổng giá trị Cơ hội (TCV)</span>
+                <div class="kpi-icon icon-blue">💰</div>
+            </div>
+            <div id="kpiTotalDealValue" class="kpi-val">0 ₫</div>
+            <div class="kpi-foot">
+                <span class="kpi-badge verified">✓ Tự động tính</span>
+                <span id="kpiItemsCount">0 sản phẩm</span>
+            </div>
+        </article>
+
+        <!-- 2. ANNUAL RECURRING REVENUE (ARR) -->
+        <article class="deal-kpi-card highlight-arr">
+            <div class="kpi-head">
+                <span class="kpi-title">Doanh thu năm (ARR)</span>
+                <div class="kpi-icon icon-purple">🔄</div>
+            </div>
+            <div id="kpiTotalArr" class="kpi-val">0 ₫/năm</div>
+            <div class="kpi-foot">
+                <span class="kpi-badge sub">Thuê bao Subscription</span>
+                <span>Quy đổi chu kỳ 12T</span>
+            </div>
+        </article>
+
+        <!-- 3. MONTHLY RECURRING REVENUE (MRR) -->
+        <article class="deal-kpi-card highlight-mrr">
+            <div class="kpi-head">
+                <span class="kpi-title">Doanh thu tháng (MRR)</span>
+                <div class="kpi-icon icon-emerald">📈</div>
+            </div>
+            <div id="kpiTotalMrr" class="kpi-val">0 ₫/tháng</div>
+            <div class="kpi-foot">
+                <span class="kpi-badge monthly">Định kỳ / tháng</span>
+                <span>= ARR ÷ 12</span>
+            </div>
+        </article>
+
+        <!-- 4. ONE-OFF REVENUE -->
+        <article class="deal-kpi-card highlight-oneoff">
+            <div class="kpi-head">
+                <span class="kpi-title">Doanh thu Một lần</span>
+                <div class="kpi-icon icon-amber">📦</div>
+            </div>
+            <div id="kpiTotalOneOff" class="kpi-val">0 ₫</div>
+            <div class="kpi-foot">
+                <span class="kpi-badge oneoff">Non-recurring</span>
+                <span>Triển khai, Đào tạo, Thiết bị</span>
+            </div>
+        </article>
+    </section>
+
+    <!-- PRICE BOOK SELECTOR BAR -->
+    <section class="price-book-card">
+        <div class="price-book-info">
+            <span class="price-book-icon">🏷️</span>
+            <div class="price-book-text">
+                <strong>Bảng giá niêm yết áp dụng (Price Book)</strong>
+                <span>Khi chọn sản phẩm từ danh mục, đơn giá mặc định sẽ lấy từ bảng giá này theo quy định niêm yết.</span>
+            </div>
+        </div>
+        <div class="price-book-select-wrap">
+            <select id="priceBookSelect" class="price-book-select" title="Chọn bảng giá niêm yết áp dụng"></select>
+        </div>
+    </section>
+
+    <!-- DEAL LINE ITEMS TABLE SECTION -->
+    <section class="line-items-card">
+        <header class="table-toolbar">
+            <div class="table-toolbar-left">
+                <h2 class="table-title">
+                    <span>Danh sách Sản phẩm & Dịch vụ</span>
+                    <span id="lineItemsCountBadge" class="badge-pill">0 dòng sản phẩm</span>
+                </h2>
+                <div class="table-filter-pills">
+                    <button type="button" class="filter-pill active" data-filter="ALL">Tất cả</button>
+                    <button type="button" class="filter-pill" data-filter="RECURRING">🔄 Thuê bao (ARR)</button>
+                    <button type="button" class="filter-pill" data-filter="ONE_TIME">📦 Một lần</button>
+                </div>
+            </div>
+
+            <div class="table-toolbar-right">
+                <input id="dealTableSearch" type="search" class="deal-search-input" placeholder="Lọc theo tên / mã SP...">
+                <button id="btnAddCustomLine" class="crm-btn crm-btn-secondary" type="button">
+                    + Thêm dòng tùy chỉnh
+                </button>
+                <button id="btnOpenCatalogModal" class="crm-btn crm-btn-primary" type="button">
+                    + Thêm từ Bảng giá
+                </button>
+            </div>
+        </header>
+
+        <div class="line-items-table-wrap">
+            <table class="line-table">
+                <thead>
+                    <tr>
+                        <th class="col-num">#</th>
+                        <th class="col-product">Sản phẩm / Dịch vụ</th>
+                        <th class="col-subscription">Kỳ hạn thuê bao (Số kỳ & Chu kỳ)</th>
+                        <th class="col-qty">Số lượng</th>
+                        <th class="col-price">Đơn giá niêm yết</th>
+                        <th class="col-discount">Giảm %</th>
+                        <th class="col-arr">Doanh thu năm (ARR)</th>
+                        <th class="col-total">Thành tiền (TCV)</th>
+                        <th class="col-actions">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="lineItemsTableBody"></tbody>
+            </table>
+
+            <!-- Empty State -->
+            <div id="tableEmptyState" class="table-empty-state" style="display:none;">
+                <div class="icon">📦</div>
+                <h3>Chưa có sản phẩm hoặc dịch vụ nào trong cơ hội này</h3>
+                <p>Hãy thêm các sản phẩm, gói thuê bao SaaS hoặc dịch vụ triển khai từ Bảng giá niêm yết để giá trị cơ hội có căn cứ.</p>
+                <button type="button" class="crm-btn crm-btn-primary" onclick="document.getElementById('btnOpenCatalogModal').click()">
+                    + Chọn sản phẩm từ Bảng giá
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- BOTTOM FINANCIAL SUMMARY & USER STORY RATIONALE -->
+    <section class="deal-bottom-layout">
+        <!-- LEFT: STORY RATIONALE & CONTRACT NOTES -->
+        <div class="deal-rationale-card">
+            <div class="deal-rationale-head">
+                <span style="font-size:20px;">🛡️</span>
+                <h3>Căn cứ xác định Giá trị Cơ hội (SCRUM-74)</h3>
+            </div>
+            <div class="deal-rationale-content">
+                <p>Hệ thống tự động đồng bộ hóa Giá trị Cơ hội (Deal Value) từ danh sách chi tiết các dòng sản phẩm:</p>
+                <blockquote>
+                    "Giá trị hợp đồng được tính toán có căn cứ, minh bạch từng đơn vị giá niêm yết và chu kỳ thuê bao ARR, ngăn chặn việc nhân viên kinh doanh ước lượng cảm tính."
+                </blockquote>
+                <ul style="padding-left:18px; margin:8px 0; color:var(--crm-text-2); font-size:12.5px;">
+                    <li><strong>Dịch vụ Thuê bao:</strong> Doanh thu năm (ARR) được tính chuẩn hóa theo 12 tháng từ số lượng người dùng và chu kỳ thanh toán.</li>
+                    <li><strong>Kiểm soát giá sàn:</strong> Cảnh báo trực tiếp nếu đơn giá đàm phán thấp hơn mức giá sàn niêm yết cho phép.</li>
+                    <li><strong>Tạo Báo giá 1-Click:</strong> Chuyển trực tiếp các dòng sản phẩm này thành Báo giá chính thức để gửi khách hàng.</li>
+                </ul>
+            </div>
+
+            <div class="deal-notes-form">
+                <label for="dealNotesInput">Ghi chú điều khoản thương mại / Triển khai:</label>
+                <textarea id="dealNotesInput" placeholder="Nhập ghi chú yêu cầu kỹ thuật, tiến độ giao hàng, chiết khấu đặc biệt..."></textarea>
+            </div>
+        </div>
+
+        <!-- RIGHT: FINANCIAL GRAND TOTALS CARD -->
+        <div class="deal-summary-card">
+            <h3>Tổng hợp Giá trị Tài chính</h3>
+
+            <div class="summary-line">
+                <span>Tổng giá niêm yết (List Subtotal):</span>
+                <strong id="summaryListSubtotal">0 ₫</strong>
+            </div>
+
+            <div class="summary-line discount">
+                <span>Tổng chiết khấu đàm phán:</span>
+                <strong id="summaryTotalDiscount">-0 ₫</strong>
+            </div>
+
+            <div class="summary-line highlight">
+                <span>Giá trị trước thuế (Net Amount):</span>
+                <strong id="summaryNetAmount">0 ₫</strong>
+            </div>
+
+            <div class="summary-line arr-row">
+                <span>Doanh thu định kỳ năm (ARR):</span>
+                <strong id="summaryArrAmount">0 ₫/năm</strong>
+            </div>
+
+            <div class="summary-line">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span>Thuế GTGT / VAT:</span>
+                    <select id="dealVatSelect" class="summary-vat-select" title="Chọn mức thuế suất VAT">
+                        <option value="10" selected>10% (Chuẩn)</option>
+                        <option value="8">8% (Giảm)</option>
+                        <option value="5">5%</option>
+                        <option value="0">0% (Miễn thuế)</option>
+                    </select>
+                </div>
+                <strong id="summaryVatAmount">0 ₫</strong>
+            </div>
+
+            <div class="summary-divider"></div>
+
+            <div class="grand-total-block">
+                <div class="grand-total-label">TỔNG GIÁ TRỊ HỢP ĐỒNG (TCV)</div>
+                <div id="summaryGrandTotal" class="grand-total-val">0 ₫</div>
+                <div id="summaryAmountInWords" class="grand-total-words">Bằng chữ: Không đồng</div>
+            </div>
+
+            <div class="summary-actions">
+                <button type="button" class="crm-btn crm-btn-secondary" onclick="document.getElementById('btnCreateQuoteFromDeal').click()">
+                    📑 Tạo Báo giá
+                </button>
+                <button type="button" class="crm-btn crm-btn-primary" onclick="document.getElementById('btnSaveDealProducts').click()">
+                    💾 Lưu vào Cơ hội
+                </button>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<!-- =========================================================
+     MODAL: CHỌN SẢN PHẨM TỪ BẢNG GIÁ NIÊM YẾT
+========================================================= -->
+<div id="catalogModalOverlay" class="catalog-modal-overlay">
+    <div class="catalog-modal">
+        <header class="catalog-modal-header">
+            <h2>Chọn Sản phẩm từ Bảng giá niêm yết</h2>
+            <button id="btnCloseCatalogModal" class="modal-close-btn" type="button" aria-label="Đóng modal">✕</button>
+        </header>
+
+        <section class="catalog-modal-search">
+            <div class="catalog-search-row">
+                <input id="catalogSearchInput" type="search" class="catalog-search-input" placeholder="Tìm theo tên sản phẩm, mã SKU, dịch vụ...">
+            </div>
+            <div class="catalog-category-chips">
+                <button type="button" class="cat-chip active" data-cat="all">Tất cả danh mục</button>
+                <button type="button" class="cat-chip" data-cat="saas">🔄 SaaS Cloud (User)</button>
+                <button type="button" class="cat-chip" data-cat="services">🛠 Dịch vụ triển khai</button>
+                <button type="button" class="cat-chip" data-cat="modules">🔌 Module mở rộng</button>
+                <button type="button" class="cat-chip" data-cat="training">🎓 Đào tạo chuyển giao</button>
+                <button type="button" class="cat-chip" data-cat="hardware">📞 Thiết bị phần cứng</button>
+            </div>
+        </section>
+
+        <div class="catalog-modal-body">
+            <div id="catalogGrid" class="catalog-grid"></div>
+        </div>
+
+        <footer class="catalog-modal-footer">
+            <span id="catalogSelectedCount" class="catalog-selected-count">Đã chọn: 0 sản phẩm</span>
+            <div style="display:flex; gap:10px;">
+                <button type="button" class="crm-btn crm-btn-secondary" onclick="document.getElementById('btnCloseCatalogModal').click()">
+                    Hủy
+                </button>
+                <button id="btnAddCatalogSelected" type="button" class="crm-btn crm-btn-primary">
+                    + Thêm vào cơ hội
+                </button>
+            </div>
+        </footer>
+    </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toastContainer" class="crm-toast-container"></div>
+
+<!-- MOBILE DRAWER -->
+<header class="crm-mobile-header">
+    <button id="mobileMenuButton" class="crm-mobile-menu" type="button" aria-label="Mở menu">☰</button>
+    <strong>Corporate CRM</strong>
+    <div class="crm-avatar">U</div>
+</header>
+<div id="drawerOverlay" class="crm-drawer-overlay"></div>
+<aside id="mobileDrawer" class="crm-mobile-drawer"></aside>
+
+<!-- JAVASCRIPT ASSETS -->
+<script src="js/pages/deals.js"></script>
+<script src="js/page-transition.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/shared-shell.js"></script>
+<script src="js/ui-core.js"></script>
+<script src="js/ui-effects.js"></script>
+</body>
+</html>
