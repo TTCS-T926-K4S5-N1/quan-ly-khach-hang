@@ -19,8 +19,47 @@ public class ActivityService {
             String type,
             String status
     ) throws Exception {
+        return search(currentUserId, customerId, opportunityId, type, status, null, null, null, null);
+    }
+
+    public List<Map<String, Object>> search(
+            long currentUserId,
+            Long customerId,
+            Long opportunityId,
+            String type,
+            String status,
+            Long ownerId,
+            Timestamp fromDate,
+            Timestamp toDate,
+            String keyword
+    ) throws Exception {
         DataScopeContext scope = dataScopeService.resolve(currentUserId, "activity", "read");
-        return activityDAO.search(scope, customerId, opportunityId, type, status);
+        if (ownerId != null && !scope.canAccessOwner(ownerId)) {
+            throw new SecurityException("Bạn không có quyền truy cập hoạt động của thành viên này.");
+        }
+        return activityDAO.search(scope, customerId, opportunityId, type, status, ownerId, fromDate, toDate, keyword);
+    }
+
+    public List<Map<String, Object>> getAccessibleMembers(long currentUserId) throws Exception {
+        DataScopeContext scope = dataScopeService.resolve(currentUserId, "activity", "read");
+        return activityDAO.findAccessibleMembers(scope);
+    }
+
+    public List<Map<String, Object>> getMemberSummary(
+            long currentUserId,
+            Long ownerId,
+            String type,
+            String status,
+            Timestamp fromDate,
+            Timestamp toDate,
+            Long customerId,
+            Long opportunityId
+    ) throws Exception {
+        DataScopeContext scope = dataScopeService.resolve(currentUserId, "activity", "read");
+        if (ownerId != null && !scope.canAccessOwner(ownerId)) {
+            throw new SecurityException("Bạn không có quyền truy cập hoạt động của thành viên này.");
+        }
+        return activityDAO.getMemberActivitySummary(scope, ownerId, type, status, fromDate, toDate, customerId, opportunityId);
     }
 
     public Map<String, Object> getById(long currentUserId, long id) throws Exception {
@@ -45,11 +84,32 @@ public class ActivityService {
             Long customerId,
             Long opportunityId
     ) throws Exception {
+        return create(currentUserId, subject, type, description, status, dueDate, customerId, opportunityId, null);
+    }
+
+    public Map<String, Object> create(
+            long currentUserId,
+            String subject,
+            String type,
+            String description,
+            String status,
+            Timestamp dueDate,
+            Long customerId,
+            Long opportunityId,
+            Long assignedOwnerId
+    ) throws Exception {
         if (subject == null || subject.isBlank()) {
             throw new IllegalArgumentException("Tiêu đề hoạt động là bắt buộc.");
         }
-        dataScopeService.resolve(currentUserId, "activity", "create");
-        long id = activityDAO.create(subject, type, description, status, dueDate, customerId, opportunityId, currentUserId);
+        DataScopeContext scope = dataScopeService.resolve(currentUserId, "activity", "create");
+        long ownerId = currentUserId;
+        if (assignedOwnerId != null) {
+            if (!scope.canAccessOwner(assignedOwnerId)) {
+                throw new SecurityException("Bạn không có quyền gán hoạt động cho thành viên này.");
+            }
+            ownerId = assignedOwnerId;
+        }
+        long id = activityDAO.create(subject, type, description, status, dueDate, customerId, opportunityId, ownerId);
         return getById(currentUserId, id);
     }
 
