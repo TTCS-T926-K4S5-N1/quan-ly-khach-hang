@@ -1,0 +1,131 @@
+/* CSS for Document Templates Page (SCRUM-94) */
+.tmpl-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.tmpl-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.tmpl-tabs {
+    display: flex;
+    gap: 8px;
+    border-bottom: 2px solid var(--crm-border, #e5e7eb);
+    margin-bottom: 24px;
+}
+
+.tmpl-tab {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--crm-text-muted, #6b7280);
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tmpl-tab.active {
+    color: var(--crm-primary, #2563eb);
+    border-bottom-color: var(--crm-primary, #2563eb);
+}
+
+.tmpl-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+}
+
+@media (max-width: 900px) {
+    .tmpl-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.tmpl-card {
+    background: var(--crm-card-bg, #ffffff);
+    border: 1px solid var(--crm-border, #e5e7eb);
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.tmpl-section-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: var(--crm-text, #111827);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tmpl-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.tmpl-form-group {
+    margin-bottom: 16px;
+}
+
+.tmpl-form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: var(--crm-text, #374151);
+}
+
+.tmpl-form-group em {
+    color: #ef4444;
+    font-style: normal;
+}
+
+.tmpl-form-group .hint {
+    font-size: 11px;
+    color: var(--crm-text-muted, #6b7280);
+    margin-top: 4px;
+}
+
+.tmpl-color-picker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tmpl-color-picker input[type="color"] {
+    width: 40px;
+    height: 38px;
+    border: 1px solid var(--crm-border, #e5e7eb);
+    border-radius: 6px;
+    cursor: pointer;
+    padding: 2px;
+}
+
+.tmpl-logo-preview {
+    max-width: 100%;
+    max-height: 120px;
+    object-fit: contain;
+    border: 1px dashed var(--crm-border, #d1d5db);
+    border-radius: 6px;
+    padding: 8px;
+    margin-top: 8px;
+    background: #fafafa;
+    display: block;
+}
+
+.tmpl-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    justify-content: flex-end;
+}

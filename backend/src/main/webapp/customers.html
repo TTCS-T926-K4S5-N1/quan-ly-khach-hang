@@ -167,55 +167,75 @@
 
 <main class="crm-main customer-page">
 
-    <section class="customer-page-head">
+    <section class="customer-page-head crm-page-header">
         <div class="customer-head-left">
-            <a
-                href="lead-reports"
-                id="btnGoLeadReports"
-                class="crm-btn crm-btn-secondary"
-                title="Báo cáo hiệu quả từng nguồn lead và chiến dịch Marketing (Doanh thu & ROI)"
-            >
-                📈 Báo cáo Nguồn Lead
-            </a>
-
-            <a
-                href="import-leads"
-                id="btnGoImportLead"
-                class="crm-btn crm-btn-secondary"
-                title="Nhập lead hàng loạt từ tệp Excel thu thập từ sự kiện / hội thảo"
-            >
-                📊 Nhập Lead từ Excel
-            </a>
-
-            <button
-                id="btnExportExcel"
-                class="crm-btn crm-btn-secondary"
-                type="button"
-                title="Xuất danh sách khách hàng ra file Excel bao gồm trường tùy chỉnh"
-            >
-                📥 Xuất Excel
-            </button>
-
-            <button
-                id="btnDuplicateAlerts"
-                class="crm-btn crm-btn-secondary crm-btn-duplicate-alert"
-                type="button"
-                style="display:none;"
-                title="Xem danh sách khách hàng trùng lặp số điện thoại hoặc email"
-            >
-                ⚠️ Khách hàng trùng (<span id="dupCountBadge">0</span>)
-            </button>
+            <div>
+                <p class="page-kicker" style="margin: 0 0 2px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--crm-primary); font-weight: 700;">
+                    CRM / Khách hàng &amp; Lead
+                </p>
+                <h1 style="margin: 0; font-size: 20px; font-weight: 700; color: var(--crm-text);">
+                    Quản lý Khách hàng &amp; Lead
+                </h1>
+            </div>
         </div>
 
-        <div class="customer-head-right">
-            <button
-                id="btnOpenManualLeadModal"
-                class="crm-btn crm-btn-lead-quick"
-                type="button"
-                title="Tạo khách hàng tiềm năng thủ công từ sự kiện hoặc danh thiếp"
-            >
-                📇 + Thêm Lead (Sự kiện / Danh thiếp)
-            </button>
+        <div class="customer-head-right" style="display: flex; gap: 8px; align-items: center;">
+            <!-- Dropdown Thao tác gom các nút phụ -->
+            <div class="crm-dropdown-wrap" style="position: relative;">
+                <button
+                    id="btnCustomerActionsMenu"
+                    class="crm-btn crm-btn-secondary"
+                    type="button"
+                    title="Các thao tác khác"
+                    style="display: inline-flex; align-items: center; gap: 6px;"
+                >
+                    <span>⚡ Thao tác</span>
+                    <span style="font-size: 10px;">▼</span>
+                </button>
+                <div id="customerActionsDropdown" class="crm-dropdown-menu" style="display: none; position: absolute; right: 0; top: calc(100% + 6px); background: var(--crm-surface, #ffffff); border: 1px solid var(--crm-border, #e2e8f0); border-radius: var(--crm-radius-sm, 8px); box-shadow: var(--crm-shadow-md, 0 10px 25px -5px rgba(0,0,0,0.1)); z-index: 100; min-width: 220px; padding: 6px 0;">
+                    <button
+                        id="btnExportExcel"
+                        class="crm-dropdown-item"
+                        type="button"
+                        style="width: 100%; text-align: left; padding: 9px 14px; background: none; border: none; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; color: var(--crm-text);"
+                    >
+                        📥 Xuất Excel danh sách
+                    </button>
+                    <a
+                        href="import-leads"
+                        id="btnGoImportLead"
+                        class="crm-dropdown-item"
+                        style="display: flex; align-items: center; gap: 8px; padding: 9px 14px; text-decoration: none; color: var(--crm-text); font-size: 13px;"
+                    >
+                        📊 Nhập Lead từ Excel
+                    </a>
+                    <a
+                        href="lead-reports"
+                        id="btnGoLeadReports"
+                        class="crm-dropdown-item"
+                        style="display: flex; align-items: center; gap: 8px; padding: 9px 14px; text-decoration: none; color: var(--crm-text); font-size: 13px;"
+                    >
+                        📈 Báo cáo Nguồn Lead (ROI)
+                    </a>
+                    <button
+                        id="btnOpenManualLeadModal"
+                        class="crm-dropdown-item"
+                        type="button"
+                        style="width: 100%; text-align: left; padding: 9px 14px; background: none; border: none; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; color: var(--crm-text);"
+                    >
+                        📇 Thêm nhanh Lead sự kiện
+                    </button>
+                    <div style="height: 1px; background: var(--crm-border, #e2e8f0); margin: 4px 0;"></div>
+                    <button
+                        id="btnDuplicateAlerts"
+                        class="crm-dropdown-item"
+                        type="button"
+                        style="width: 100%; text-align: left; padding: 9px 14px; background: none; border: none; font-size: 13px; cursor: pointer; display: none; align-items: center; gap: 8px; color: #b45309;"
+                    >
+                        ⚠️ Khách hàng trùng (<span id="dupCountBadge">0</span>)
+                    </button>
+                </div>
+            </div>
 
             <button
                 id="openCustomerDrawer"
@@ -489,7 +509,7 @@
                         Người sở hữu
                     </th>
 
-                    <th class="action-col" style="min-width: 285px; text-align: right; padding-right: 18px;">
+                    <th class="action-col" style="min-width: 130px; text-align: center;">
                         Hành động
                     </th>
                 </tr>

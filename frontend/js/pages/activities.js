@@ -30,6 +30,12 @@ const API_BASE = "http://localhost:8080/crm";
 
 let activities = [];
 
+// Pagination State
+let actCurrentPage = 1;
+let actPageSize = 10;
+let actTotalItems = 0;
+let actTotalPages = 1;
+
 const drawer = document.getElementById("activityDrawer");
 const overlay = document.getElementById("activityOverlay");
 const activityForm = document.getElementById("activityForm");
@@ -305,6 +311,11 @@ function render() {
         return searchOk && typeOk && statusOk && memberOk && dateOk;
     });
 
+    actTotalItems = filtered.length;
+    actTotalPages = Math.max(1, Math.ceil(actTotalItems / actPageSize));
+    if (actCurrentPage > actTotalPages) actCurrentPage = actTotalPages;
+    if (actCurrentPage < 1) actCurrentPage = 1;
+
     const list = document.getElementById("activityList");
     if (!list) return;
     list.innerHTML = "";
@@ -312,9 +323,16 @@ function render() {
     const empty = document.getElementById("activityEmpty");
     if (empty) empty.style.display = filtered.length ? "none" : "flex";
 
-    filtered.forEach(item => {
+    const paginationEl = document.getElementById("activityPagination");
+    if (paginationEl) paginationEl.style.display = filtered.length ? "flex" : "none";
+
+    const startIndex = (actCurrentPage - 1) * actPageSize;
+    const paged = filtered.slice(startIndex, startIndex + actPageSize);
+
+    paged.forEach((item, idx) => {
         const article = document.createElement("article");
         article.className = "activity-row";
+        const globalIdx = startIndex + idx;
         article.innerHTML = `
             <div class="activity-icon ${item.type}">
                 ${typeIcon(item.type)}
@@ -339,24 +357,82 @@ function render() {
                 ${formatSchedule(item)}
             </div>
 
-            <div>
+            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
                 <span class="activity-status ${statusClass(item)}">
                     ${statusLabel(item)}
                 </span>
 
-                <div class="activity-actions">
-                    <button type="button" data-edit-activity="${item.id}">Sửa</button>
-                    <button type="button" data-complete-activity="${item.id}">
-                        ${item.status === "done" ? "Mở lại" : "Hoàn thành"}
+                <div class="row-actions-group">
+                    <button type="button" class="crm-btn crm-btn-secondary crm-btn-sm" style="padding: 4px 10px; font-size: 12px;" data-edit-activity="${item.id}">
+                        ✏️ Chi tiết
                     </button>
-                    <button type="button" style="color:#ef4444;" data-delete-activity="${item.id}">Xóa</button>
+                    <div class="row-action-wrap">
+                        <button class="row-action-button" type="button" data-action-menu="${globalIdx}" title="Thao tác khác">
+                            ⋮
+                        </button>
+                        <div class="row-action-menu" data-menu="${globalIdx}">
+                            <button type="button" data-complete-activity="${item.id}">
+                                ${item.status === "done" ? "↺ Mở lại" : "✓ Hoàn thành"}
+                            </button>
+                            <button type="button" class="danger" data-delete-activity="${item.id}">
+                                🗑️ Xóa
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
         list.appendChild(article);
     });
 
+    renderActivityPagination();
     updateSummary();
+}
+
+function renderActivityPagination() {
+    const rangeEl = document.getElementById("activityPaginationRange");
+    const totalEl = document.getElementById("activityPaginationTotal");
+    const controlsEl = document.getElementById("activityPaginationControls");
+
+    if (!rangeEl || !totalEl || !controlsEl) return;
+
+    if (actTotalItems === 0) {
+        rangeEl.textContent = "0-0";
+        totalEl.textContent = "0";
+        controlsEl.innerHTML = "";
+        return;
+    }
+
+    const start = (actCurrentPage - 1) * actPageSize + 1;
+    const end = Math.min(actCurrentPage * actPageSize, actTotalItems);
+    rangeEl.textContent = `${start}-${end}`;
+    totalEl.textContent = String(actTotalItems);
+
+    let html = `
+        <button class="crm-pagination-btn" ${actCurrentPage === 1 ? 'disabled' : ''} data-page="${actCurrentPage - 1}" title="Trang trước">
+            &lsaquo;
+        </button>
+    `;
+
+    for (let p = 1; p <= actTotalPages; p++) {
+        if (p === 1 || p === actTotalPages || (p >= actCurrentPage - 1 && p <= actCurrentPage + 1)) {
+            html += `
+                <button class="crm-pagination-btn ${p === actCurrentPage ? 'active' : ''}" data-page="${p}">
+                    ${p}
+                </button>
+            `;
+        } else if (p === actCurrentPage - 2 || p === actCurrentPage + 2) {
+            html += `<span class="crm-pagination-ellipsis">...</span>`;
+        }
+    }
+
+    html += `
+        <button class="crm-pagination-btn" ${actCurrentPage === actTotalPages ? 'disabled' : ''} data-page="${actCurrentPage + 1}" title="Trang tiếp">
+            &rsaquo;
+        </button>
+    `;
+
+    controlsEl.innerHTML = html;
 }
 
 function updateSummary() {
@@ -884,3 +960,43 @@ initDatePresets();
 initQuickCallFeature();
 loadActivities();
 loadTeamStats();
+
+// Pagination & Dropdown delegation
+document.getElementById("activityPaginationControls")?.addEventListener("click", (e) => {
+    const btn = e.target.closest(".crm-pagination-btn");
+    if (btn && !btn.disabled && btn.dataset.page) {
+        actCurrentPage = parseInt(btn.dataset.page, 10);
+        render();
+        window.scrollTo({ top: 300, behavior: "smooth" });
+    }
+});
+
+document.getElementById("activityPageSizeSelect")?.addEventListener("change", (e) => {
+    actPageSize = parseInt(e.target.value, 10);
+    actCurrentPage = 1;
+    render();
+});
+
+document.addEventListener("click", (e) => {
+    const toggleBtn = e.target.closest("[data-action-menu]");
+    if (toggleBtn) {
+        e.stopPropagation();
+        const idx = toggleBtn.getAttribute("data-action-menu");
+        const targetMenu = document.querySelector(`.row-action-menu[data-menu="${idx}"]`);
+        const allMenus = document.querySelectorAll(".row-action-menu");
+        
+        allMenus.forEach(m => {
+            if (m !== targetMenu) m.classList.remove("open");
+        });
+
+        if (targetMenu) {
+            targetMenu.classList.toggle("open");
+        }
+        return;
+    }
+
+    if (!e.target.closest(".row-action-menu")) {
+        document.querySelectorAll(".row-action-menu").forEach(m => m.classList.remove("open"));
+    }
+});
+

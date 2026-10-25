@@ -65,9 +65,11 @@ public class CustomerDAO {
                     (SELECT ct.phone FROM contacts ct WHERE ct.customer_id = c.id AND ct.is_deleted = 0 ORDER BY ct.is_primary DESC, ct.id ASC LIMIT 1) AS primary_contact_phone,
                     (SELECT ct.title FROM contacts ct WHERE ct.customer_id = c.id AND ct.is_deleted = 0 ORDER BY ct.is_primary DESC, ct.id ASC LIMIT 1) AS primary_contact_role,
                     c.created_at,
-                    u.full_name AS owner_name
+                    u.full_name AS owner_name,
+                    r.open_count, r.urgent_count, r.overdue_count, r.at_risk
                 FROM customers c
                 LEFT JOIN users u ON u.id = c.owner_user_id
+                LEFT JOIN customer_support_risk r ON r.customer_id = c.id
                 LEFT JOIN customers p ON p.id = c.parent_id
                 LEFT JOIN master_data m_ind ON m_ind.id = c.industry_id
                 LEFT JOIN master_data m_size ON m_size.id = c.company_size_id
@@ -339,9 +341,11 @@ public class CustomerDAO {
                     p.name AS parent_name,
                     (SELECT COUNT(*) FROM customers sub WHERE sub.parent_id = c.id AND sub.is_deleted = 0) AS subsidiary_count,
                     c.created_at,
-                    u.full_name AS owner_name
+                    u.full_name AS owner_name,
+                    r.open_count, r.urgent_count, r.overdue_count, r.at_risk
                 FROM customers c
                 LEFT JOIN users u ON u.id = c.owner_user_id
+                LEFT JOIN customer_support_risk r ON r.customer_id = c.id
                 LEFT JOIN customers p ON p.id = c.parent_id
                 WHERE c.id = ? AND c.is_deleted = 0
                 """;
@@ -582,6 +586,11 @@ public class CustomerDAO {
         map.put("parentName", rs.getString("parent_name"));
         map.put("subsidiaryCount", rs.getInt("subsidiary_count"));
         map.put("createdAt", rs.getTimestamp("created_at"));
+        try {
+            map.put("supportRisk", com.crm.service.support.SupportRisk.from(rs));
+        } catch (Exception ignored) {
+            map.put("supportRisk", null);
+        }
 
         try {
             map.put("leadSource", rs.getString("lead_source"));
@@ -614,7 +623,6 @@ public class CustomerDAO {
             map.put("primaryContactPhone", null);
             map.put("primaryContactRole", null);
         }
-
         // Chấm điểm Lead & Phân bổ tự động
         try {
             map.put("leadScore", rs.getInt("lead_score"));

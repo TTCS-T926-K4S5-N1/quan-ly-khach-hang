@@ -13,6 +13,12 @@ let customersList = [];
 let opportunitiesList = [];
 let currentUser = null;
 
+// Pagination State
+let taskCurrentPage = 1;
+let taskPageSize = 10;
+let taskTotalItems = 0;
+let taskTotalPages = 1;
+
 // Modal Elements
 const modal = document.getElementById("taskModal");
 const overlay = document.getElementById("taskOverlay");
@@ -69,7 +75,10 @@ function setupEventListeners() {
     ["taskSearch", "taskState", "taskPriorityFilter", "taskMemberFilter"].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
-            el.addEventListener(id === "taskSearch" ? "input" : "change", render);
+            el.addEventListener(id === "taskSearch" ? "input" : "change", () => {
+                taskCurrentPage = 1;
+                render();
+            });
         }
     });
 
@@ -80,6 +89,46 @@ function setupEventListeners() {
     document.getElementById("taskCustomerSelect")?.addEventListener("change", (e) => {
         const custId = e.target.value;
         populateOpportunitySelect(custId);
+    });
+
+    // Pagination events
+    document.getElementById("taskPaginationControls")?.addEventListener("click", (e) => {
+        const btn = e.target.closest(".crm-pagination-btn");
+        if (btn && !btn.disabled && btn.dataset.page) {
+            taskCurrentPage = parseInt(btn.dataset.page, 10);
+            render();
+            window.scrollTo({ top: 300, behavior: "smooth" });
+        }
+    });
+
+    document.getElementById("taskPageSizeSelect")?.addEventListener("change", (e) => {
+        taskPageSize = parseInt(e.target.value, 10);
+        taskCurrentPage = 1;
+        render();
+    });
+
+    // Dropdown menu toggle
+    document.addEventListener("click", (e) => {
+        const toggleBtn = e.target.closest("[data-action-menu]");
+        if (toggleBtn) {
+            e.stopPropagation();
+            const idx = toggleBtn.getAttribute("data-action-menu");
+            const targetMenu = document.querySelector(`.row-action-menu[data-menu="${idx}"]`);
+            const allMenus = document.querySelectorAll(".row-action-menu");
+            
+            allMenus.forEach(m => {
+                if (m !== targetMenu) m.classList.remove("open");
+            });
+
+            if (targetMenu) {
+                targetMenu.classList.toggle("open");
+            }
+            return;
+        }
+
+        if (!e.target.closest(".row-action-menu")) {
+            document.querySelectorAll(".row-action-menu").forEach(m => m.classList.remove("open"));
+        }
     });
 }
 
@@ -226,6 +275,7 @@ function setQuickFilter(stateValue) {
         stateEl.value = stateValue;
     }
     updateActiveKpiCard(stateValue);
+    taskCurrentPage = 1;
     render();
 }
 
@@ -244,6 +294,7 @@ function updateActiveKpiCard(stateValue) {
 function render() {
     const listEl = document.getElementById("tasksList");
     const emptyEl = document.getElementById("tasksEmpty");
+    const paginationEl = document.getElementById("taskPagination");
     if (!listEl) return;
 
     const searchKeyword = (document.getElementById("taskSearch")?.value || "").trim().toLowerCase();
@@ -290,15 +341,26 @@ function render() {
         return true;
     });
 
+    taskTotalItems = filtered.length;
+    taskTotalPages = Math.max(1, Math.ceil(taskTotalItems / taskPageSize));
+
+    if (taskCurrentPage > taskTotalPages) taskCurrentPage = taskTotalPages;
+    if (taskCurrentPage < 1) taskCurrentPage = 1;
+
     if (filtered.length === 0) {
         listEl.innerHTML = "";
         if (emptyEl) emptyEl.style.display = "block";
+        if (paginationEl) paginationEl.style.display = "none";
         return;
     }
 
     if (emptyEl) emptyEl.style.display = "none";
+    if (paginationEl) paginationEl.style.display = "flex";
 
-    listEl.innerHTML = filtered.map(t => {
+    const startIndex = (taskCurrentPage - 1) * taskPageSize;
+    const paged = filtered.slice(startIndex, startIndex + taskPageSize);
+
+    listEl.innerHTML = paged.map((t, idx) => {
         const isDone = (t.status || "").toUpperCase() === "COMPLETED";
         const isPostponed = (t.status || "").toUpperCase() === "POSTPONED";
         const priority = (t.priority || "MEDIUM").toUpperCase();
@@ -317,6 +379,8 @@ function render() {
         const formattedDate = t.dueDate ? new Date(t.dueDate).toLocaleDateString("vi-VN", {
             weekday: "short", day: "2-digit", month: "2-digit", year: "numeric"
         }) : "Chưa đặt hạn";
+
+        const globalIdx = startIndex + idx;
 
         return `
             <div class="${cardClass}" id="task-card-${t.id}">
@@ -378,71 +442,128 @@ function render() {
                     ` : ''}
                 </div>
 
-                <div class="task-actions-wrap">
-                    ${!isDone ? `
-                        <button type="button" class="task-btn-postpone" title="Gia hạn thời gian hoàn thành" onclick="openPostponeModal(${t.id}, '${escapeHtml(t.subject || '').replace(/'/g, "\\'")}', '${dueDateStr}')">
-                            <span>⏱️</span>
-                            <span>Hoãn lại</span>
+                <div class="row-actions-group" style="align-self: flex-start; margin-left: auto;">
+                    <button type="button" class="crm-btn crm-btn-secondary crm-btn-sm" style="padding: 4px 10px; font-size: 12px;" title="Chỉnh sửa công việc" onclick="openModal(${t.id})">
+                        ✏️ Sửa
+                    </button>
+                    <div class="row-action-wrap">
+                        <button class="row-action-button" type="button" data-action-menu="${globalIdx}" title="Thao tác khác">
+                            ⋮
                         </button>
-                    ` : ''}
-                    <button type="button" class="task-btn-icon" title="Chỉnh sửa công việc" onclick="openModal(${t.id})">
-                        ✏️
-                    </button>
-                    <button type="button" class="task-btn-delete" title="Xóa công việc" onclick="handleDeleteTask(${t.id})">
-                        🗑️
-                    </button>
+                        <div class="row-action-menu" data-menu="${globalIdx}">
+                            ${!isDone ? `
+                                <button type="button" onclick="openPostponeModal(${t.id}, '${escapeHtml(t.subject || '').replace(/'/g, "\\'")}', '${dueDateStr}')">
+                                    ⏱️ Hoãn hạn hoàn thành
+                                </button>
+                            ` : ''}
+                            <button type="button" class="danger" onclick="handleDeleteTask(${t.id})">
+                                🗑️ Xóa công việc
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
     }).join("");
+
+    renderTaskPagination();
 }
 
 /* =========================================================
-   ACTIONS: COMPLETE & POSTPONE
+   TASK PAGINATION
+========================================================= */
+function renderTaskPagination() {
+    const rangeEl = document.getElementById("taskPaginationRange");
+    const totalEl = document.getElementById("taskPaginationTotal");
+    const controlsEl = document.getElementById("taskPaginationControls");
+
+    if (!rangeEl || !totalEl || !controlsEl) return;
+
+    if (taskTotalItems === 0) {
+        rangeEl.textContent = "0-0";
+        totalEl.textContent = "0";
+        controlsEl.innerHTML = "";
+        return;
+    }
+
+    const start = (taskCurrentPage - 1) * taskPageSize + 1;
+    const end = Math.min(taskCurrentPage * taskPageSize, taskTotalItems);
+    rangeEl.textContent = `${start}-${end}`;
+    totalEl.textContent = String(taskTotalItems);
+
+    let html = `
+        <button class="crm-pagination-btn" ${taskCurrentPage === 1 ? 'disabled' : ''} data-page="${taskCurrentPage - 1}" title="Trang trước">
+            &lsaquo;
+        </button>
+    `;
+
+    for (let p = 1; p <= taskTotalPages; p++) {
+        if (p === 1 || p === taskTotalPages || (p >= taskCurrentPage - 1 && p <= taskCurrentPage + 1)) {
+            html += `
+                <button class="crm-pagination-btn ${p === taskCurrentPage ? 'active' : ''}" data-page="${p}">
+                    ${p}
+                </button>
+            `;
+        } else if (p === taskCurrentPage - 2 || p === taskCurrentPage + 2) {
+            html += `<span class="crm-pagination-ellipsis">...</span>`;
+        }
+    }
+
+    html += `
+        <button class="crm-pagination-btn" ${taskCurrentPage === taskTotalPages ? 'disabled' : ''} data-page="${taskCurrentPage + 1}" title="Trang tiếp">
+            &rsaquo;
+        </button>
+    `;
+
+    controlsEl.innerHTML = html;
+}
+
+/* =========================================================
+   TASK ACTIONS: COMPLETE, POSTPONE, DELETE
 ========================================================= */
 async function handleToggleComplete(taskId) {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
 
-    const isCurrentlyDone = (task.status || "").toUpperCase() === "COMPLETED";
+    const isDone = (task.status || "").toUpperCase() === "COMPLETED";
+    const newStatus = isDone ? "OPEN" : "COMPLETED";
+
     try {
-        if (!isCurrentlyDone) {
-            await api(`/api/activities/${taskId}/complete`, { method: "POST" });
-        } else {
-            await api(`/api/activities/${taskId}`, {
-                method: "PUT",
-                body: JSON.stringify({ status: "OPEN" })
-            });
-        }
-        await loadTasks();
+        await api(`/api/activities/${taskId}/status`, {
+            method: "PATCH",
+            body: JSON.stringify({ status: newStatus })
+        });
+        task.status = newStatus;
+        updateKpis();
+        render();
     } catch (err) {
-        alert("Lỗi cập nhật trạng thái: " + err.message);
+        alert("Lỗi khi cập nhật trạng thái: " + err.message);
     }
 }
 
-function openPostponeModal(taskId, title, currentDueDate) {
+function openPostponeModal(taskId, subject, currentDueDate) {
     document.getElementById("postponeTaskId").value = taskId;
-    document.getElementById("postponeTaskSubject").textContent = title || "Công việc #" + taskId;
-
-    // Suggest default new due date (+2 days)
-    const baseDate = currentDueDate ? new Date(currentDueDate) : new Date();
-    baseDate.setDate(baseDate.getDate() + 2);
-    document.getElementById("postponeNewDate").value = baseDate.toISOString().slice(0, 10);
+    document.getElementById("postponeTaskSubject").textContent = subject || "—";
     document.getElementById("postponeReason").value = "";
     document.getElementById("postponeError").textContent = "";
+
+    // Set default new due date: tomorrow or current + 1
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    document.getElementById("postponeNewDate").value = d.toISOString().slice(0, 10);
 
     postponeModal.style.display = "block";
     postponeOverlay.style.display = "block";
 }
 
 function closePostponeModal() {
-    if (postponeModal) postponeModal.style.display = "none";
-    if (postponeOverlay) postponeOverlay.style.display = "none";
+    postponeModal.style.display = "none";
+    postponeOverlay.style.display = "none";
 }
 
 function setPostponeReason(reason) {
-    const input = document.getElementById("postponeReason");
-    if (input) input.value = reason;
+    const el = document.getElementById("postponeReason");
+    if (el) el.value = reason;
 }
 
 async function handlePostponeSubmit(e) {
@@ -531,50 +652,45 @@ function setQuickDueDate(daysFromToday) {
 
 function setQuickDueThisFriday() {
     const d = new Date();
-    const day = d.getDay(); // 0: CN, 1: T2, ..., 5: T6
-    const diff = (5 - day + 7) % 7;
-    d.setDate(d.getDate() + (diff === 0 ? 7 : diff));
+    const day = d.getDay(); // 0 is Sun, 5 is Fri
+    let diff = 5 - day;
+    if (diff <= 0) diff += 7; // Next Friday
+    d.setDate(d.getDate() + diff);
     const dateInput = document.getElementById("taskDate");
     if (dateInput) dateInput.value = d.toISOString().slice(0, 10);
 }
 
 async function handleSaveTask(e) {
     e.preventDefault();
-    const errorEl = document.getElementById("taskError");
-    if (errorEl) errorEl.textContent = "";
-
-    const editingId = document.getElementById("editingTaskId")?.value;
-    const subject = document.getElementById("taskTitle")?.value.trim();
+    const taskId = document.getElementById("editingTaskId")?.value;
+    const title = document.getElementById("taskTitle")?.value.trim();
     const priority = document.getElementById("taskPriority")?.value || "MEDIUM";
-    const dueDateStr = document.getElementById("taskDate")?.value;
+    const assignee = document.getElementById("taskAssignee")?.value || null;
+    const dueDate = document.getElementById("taskDate")?.value;
     const customerId = document.getElementById("taskCustomerSelect")?.value || null;
     const opportunityId = document.getElementById("taskOpportunitySelect")?.value || null;
-    const assigneeUserId = document.getElementById("taskAssignee")?.value || null;
-    const description = document.getElementById("taskDescription")?.value.trim() || null;
+    const description = document.getElementById("taskDescription")?.value.trim();
+    const errorEl = document.getElementById("taskError");
 
-    if (!subject) {
+    if (!title) {
         if (errorEl) errorEl.textContent = "Vui lòng nhập tiêu đề công việc.";
-        return;
-    }
-    if (!dueDateStr) {
-        if (errorEl) errorEl.textContent = "Vui lòng chọn hạn hoàn thành.";
         return;
     }
 
     const payload = {
-        subject,
         type: "TASK",
-        priority,
-        dueDate: dueDateStr + " 17:00:00",
-        customerId: customerId ? Number(customerId) : null,
-        opportunityId: opportunityId ? Number(opportunityId) : null,
-        assigneeUserId: assigneeUserId ? Number(assigneeUserId) : null,
-        description
+        subject: title,
+        priority: priority,
+        ownerUserId: assignee ? parseInt(assignee, 10) : null,
+        dueDate: dueDate ? dueDate + " 18:00:00" : null,
+        customerId: customerId ? parseInt(customerId, 10) : null,
+        opportunityId: opportunityId ? parseInt(opportunityId, 10) : null,
+        description: description || null
     };
 
     try {
-        if (editingId) {
-            await api(`/api/activities/${editingId}`, {
+        if (taskId) {
+            await api(`/api/activities/${taskId}`, {
                 method: "PUT",
                 body: JSON.stringify(payload)
             });

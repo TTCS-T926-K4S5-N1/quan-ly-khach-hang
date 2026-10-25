@@ -343,6 +343,28 @@ public class MenuService {
             );
         }
 
+        menu.add(
+                item(
+                        "LEAD_SCORING",
+                        "Chấm điểm Lead",
+                        "lead-scoring",
+                        "admin",
+                        "leadScoring"
+                )
+        );
+
+        if (permissions.contains("document_template.manage") || permissions.contains("pipeline.read")) {
+            menu.add(
+                    item(
+                            "DOCUMENT_TEMPLATES",
+                            "Mẫu tài liệu PDF",
+                            "document-templates",
+                            "admin",
+                            "settings"
+                    )
+            );
+        }
+
         return menu;
     }
 

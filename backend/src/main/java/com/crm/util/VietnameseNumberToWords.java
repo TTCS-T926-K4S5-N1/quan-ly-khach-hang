@@ -2,100 +2,144 @@ package com.crm.util;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.List;
 
-public class VietnameseNumberToWords {
+/**
+ * SCRUM-94: đọc số tiền thành chữ tiếng Việt cho báo giá / hợp đồng.
+ *
+ * <p>Quy tắc: "linh" cho hàng chục bằng 0, "mười" cho hàng chục bằng 1, "mốt" / "tư" / "lăm"
+ * cho hàng đơn vị sau "mươi", nhóm 0 bị bỏ qua, nhóm không phải nhóm đầu luôn đọc đủ
+ * "không trăm". Thang đơn vị: nghìn, triệu, tỷ, nghìn tỷ, triệu tỷ, tỷ tỷ…</p>
+ */
+public final class VietnameseNumberToWords {
 
     private static final String[] DIGITS = {
             "không", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"
     };
+    private static final String[] SCALES = {"", "nghìn", "triệu"};
+    private static final BigInteger THOUSAND = BigInteger.valueOf(1000);
+    /** Giới hạn an toàn: dưới 10^21 (một nghìn tỷ tỷ). */
+    private static final BigInteger MAX_EXCLUSIVE = BigInteger.TEN.pow(21);
 
-    private static final String[] UNITS = {
-            "", "nghìn", "triệu", "tỷ", "nghìn tỷ", "triệu tỷ"
-    };
-
-    public static String convert(BigDecimal amount) {
-        if (amount == null) return "Không đồng";
-        return convert(amount.toBigInteger());
+    private VietnameseNumberToWords() {
     }
 
-    public static String convert(BigInteger amount) {
-        if (amount == null || amount.equals(BigInteger.ZERO)) {
-            return "Không đồng";
+    /** Đọc số nguyên không âm thành chữ thường, ví dụ 1005 → "một nghìn không trăm linh năm". */
+    public static String toWords(BigInteger number) {
+        if (number == null) {
+            throw new IllegalArgumentException("Số tiền không được để trống");
+        }
+        if (number.signum() < 0) {
+            throw new IllegalArgumentException("Số tiền không được âm");
+        }
+        if (number.compareTo(MAX_EXCLUSIVE) >= 0) {
+            throw new IllegalArgumentException("Số tiền quá lớn để đọc thành chữ");
+        }
+        if (number.signum() == 0) {
+            return DIGITS[0];
         }
 
-        boolean negative = amount.compareTo(BigInteger.ZERO) < 0;
-        if (negative) {
-            amount = amount.abs();
+        List<Integer> groups = new ArrayList<>();
+        BigInteger rest = number;
+        while (rest.signum() > 0) {
+            BigInteger[] qr = rest.divideAndRemainder(THOUSAND);
+            groups.add(qr[1].intValue());
+            rest = qr[0];
         }
 
-        String str = amount.toString();
-        // Pad with leading zeros to make length divisible by 3
-        int rem = str.length() % 3;
-        if (rem > 0) {
-            str = "0".repeat(3 - rem) + str;
-        }
-
-        int groupCount = str.length() / 3;
-        StringBuilder result = new StringBuilder();
-
-        for (int i = 0; i < groupCount; i++) {
-            int gIdx = groupCount - 1 - i;
-            String group = str.substring(i * 3, i * 3 + 3);
-            int a = group.charAt(0) - '0';
-            int b = group.charAt(1) - '0';
-            int c = group.charAt(2) - '0';
-
-            if (a == 0 && b == 0 && c == 0) {
+        List<String> parts = new ArrayList<>();
+        for (int i = groups.size() - 1; i >= 0; i--) {
+            int group = groups.get(i);
+            if (group == 0) {
                 continue;
             }
-
-            StringBuilder groupStr = new StringBuilder();
-
-            // Hundreds
-            if (i > 0 || a > 0) {
-                groupStr.append(DIGITS[a]).append(" trăm ");
+            boolean leading = i == groups.size() - 1;
+            parts.add(readGroup(group, !leading));
+            String scale = scaleName(i);
+            if (!scale.isEmpty()) {
+                parts.add(scale);
             }
+        }
+        return String.join(" ", parts).replaceAll("\\s+", " ").trim();
+    }
 
-            // Tens & Units
-            if (b == 0 && c == 0) {
-                // Exact hundreds, no suffix needed
-            } else if (b == 0) {
-                if (i > 0 || a > 0) {
-                    groupStr.append("lẻ ");
-                }
-                groupStr.append(DIGITS[c]).append(" ");
-            } else if (b == 1) {
-                groupStr.append("mười ");
-                if (c == 5) {
-                    groupStr.append("lăm ");
-                } else if (c > 0) {
-                    groupStr.append(DIGITS[c]).append(" ");
-                }
-            } else {
-                groupStr.append(DIGITS[b]).append(" mươi ");
-                if (c == 1) {
-                    groupStr.append("mốt ");
-                } else if (c == 4) {
-                    groupStr.append("tư ");
-                } else if (c == 5) {
-                    groupStr.append("lăm ");
-                } else if (c > 0) {
-                    groupStr.append(DIGITS[c]).append(" ");
-                }
-            }
+    public static String toWords(long number) {
+        return toWords(BigInteger.valueOf(number));
+    }
 
-            if (gIdx < UNITS.length && !UNITS[gIdx].isEmpty()) {
-                groupStr.append(UNITS[gIdx]).append(" ");
-            }
+    /**
+     * Đọc số tiền kèm đơn vị tiền tệ, viết hoa chữ cái đầu, có dấu chấm cuối câu.
+     * Ví dụ 175750000, "đồng" → "Một trăm bảy mươi lăm triệu bảy trăm năm mươi nghìn đồng chẵn."
+     */
+    public static String toCurrencyWords(BigDecimal amount, String currencyUnit) {
+        if (amount == null) {
+            amount = BigDecimal.ZERO;
+        }
+        if (amount.signum() < 0) {
+            throw new IllegalArgumentException("Số tiền không được âm");
+        }
+        BigDecimal rounded = amount.setScale(0, RoundingMode.HALF_UP);
+        boolean even = amount.compareTo(rounded) == 0;
+        String unit = currencyUnit == null || currencyUnit.isBlank() ? "đồng" : currencyUnit.trim();
 
-            result.append(groupStr);
+        String words = toWords(rounded.toBigIntegerExact()) + " " + unit + (even ? " chẵn" : "");
+        return capitalize(words) + ".";
+    }
+
+    public static String convert(BigDecimal amount) {
+        return toCurrencyWords(amount, "đồng");
+    }
+
+    private static String readGroup(int group, boolean full) {
+        int hundreds = group / 100;
+        int tens = (group / 10) % 10;
+        int units = group % 10;
+        List<String> words = new ArrayList<>();
+
+        if (hundreds > 0 || full) {
+            words.add(DIGITS[hundreds]);
+            words.add("trăm");
         }
 
-        String raw = result.toString().trim().replaceAll("\\s+", " ");
-        if (raw.isEmpty()) return "Không đồng";
+        if (tens == 0) {
+            if (units > 0 && (hundreds > 0 || full)) {
+                words.add("linh");
+            }
+        } else if (tens == 1) {
+            words.add("mười");
+        } else {
+            words.add(DIGITS[tens]);
+            words.add("mươi");
+        }
 
-        // Capitalize first letter
-        String capitalized = Character.toUpperCase(raw.charAt(0)) + raw.substring(1) + " đồng chẵn.";
-        return negative ? "Âm " + capitalized.toLowerCase() : capitalized;
+        if (units > 0) {
+            if (units == 1 && tens > 1) {
+                words.add("mốt");
+            } else if (units == 4 && tens > 1) {
+                words.add("tư");
+            } else if (units == 5 && tens > 0) {
+                words.add("lăm");
+            } else {
+                words.add(DIGITS[units]);
+            }
+        }
+        return String.join(" ", words);
+    }
+
+    private static String scaleName(int index) {
+        StringBuilder name = new StringBuilder(SCALES[index % 3]);
+        for (int i = 0; i < index / 3; i++) {
+            name.append(" tỷ");
+        }
+        return name.toString().trim();
+    }
+
+    private static String capitalize(String value) {
+        if (value.isEmpty()) {
+            return value;
+        }
+        return value.substring(0, 1).toUpperCase(java.util.Locale.forLanguageTag("vi")) + value.substring(1);
     }
 }

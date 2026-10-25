@@ -58,6 +58,23 @@ const savedFilterChips = document.getElementById("savedFilterChips");
 const filterResultCount = document.getElementById("filterResultCount");
 const activeFilterTags = document.getElementById("activeFilterTags");
 
+// Header actions dropdown
+const btnCustomerActionsMenu = document.getElementById("btnCustomerActionsMenu");
+const customerActionsDropdown = document.getElementById("customerActionsDropdown");
+
+btnCustomerActionsMenu?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (!customerActionsDropdown) return;
+    const isHidden = customerActionsDropdown.style.display === "none";
+    customerActionsDropdown.style.display = isHidden ? "block" : "none";
+});
+
+document.addEventListener("click", (e) => {
+    if (customerActionsDropdown && !e.target.closest(".crm-dropdown-wrap")) {
+        customerActionsDropdown.style.display = "none";
+    }
+});
+
 // Custom Fields state & elements
 let customerCustomFields = [];
 const btnExportExcel = document.getElementById("btnExportExcel");
@@ -1599,64 +1616,23 @@ function renderDesktopRow(record, index) {
                 ${record.assignmentStatus === "UNASSIGNED" ? `<span style="font-size:10.5px; color:#d97706; font-weight:600;">(Chờ phân bổ)</span>` : ""}
             </div>
         </td>
-        <td class="action-col">
-            <div class="row-actions-group">
+        <td class="action-col" style="text-align: center;">
+            <div class="row-actions-group" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
                 ${(function() {
-                    // 1. Nếu đã chuyển đổi thành công
-                    if (record.status === "CONVERTED") {
+                    // 1. Nếu chưa nhận lead: Nút Nhận nổi bật
+                    if (record.assignmentStatus !== "ACCEPTED" && record.status !== "DANG_CHAM_SOC" && record.status !== "KHACH_HANG" && record.status !== "CONVERTED") {
                         return `
-                            <a href="customer-360?id=${record.id}" class="action-btn action-btn-360" title="Xem hồ sơ 360 độ của khách hàng">
-                                <span class="btn-icon">🔍</span> Hồ sơ 360
-                            </a>
-                            <span class="action-status-badge converted" title="Lead đã chuyển đổi thành Khách hàng & Cơ hội">🔒 Đã chuyển đổi</span>
-                        `;
-                    }
-                    // 2. Nếu đã là Khách hàng chính thức
-                    if (record.status === "KHACH_HANG" || record.status === "CHINH_THUC") {
-                        return `
-                            <a href="customer-360?id=${record.id}" class="action-btn action-btn-360" title="Xem hồ sơ 360 toàn diện: Lịch sử, cơ hội, đơn hàng">
-                                <span class="btn-icon">🔍</span> Hồ sơ 360
-                            </a>
-                            <button type="button" class="action-btn action-btn-edit" data-edit="${index}" title="Sửa thông tin khách hàng">
-                                <span class="btn-icon">✏️</span> Sửa
-                            </button>
-                        `;
-                    }
-
-                    // 3. Nếu là Lead (Mới, Tiềm năng, Đang chăm sóc)
-                    let btns = "";
-
-                    // Nếu lead chưa được nhận: Nút Nhận
-                    if (record.assignmentStatus !== "ACCEPTED" && record.status !== "DANG_CHAM_SOC") {
-                        btns += `
                             <button type="button" class="action-btn action-btn-accept" data-accept-id="${record.id}" title="Tiếp nhận Lead này vào danh sách chăm sóc của bạn">
                                 <span class="btn-icon">✓</span> Nhận
                             </button>
                         `;
-                    } else {
-                        // Đã nhận chăm sóc: Nút Xem 360 trực tiếp
-                        btns += `
-                            <a href="customer-360?id=${record.id}" class="action-btn action-btn-360" title="Xem chi tiết hồ sơ chăm sóc lead">
-                                <span class="btn-icon">🔍</span> Xem 360
-                            </a>
-                        `;
                     }
-
-                    // Nút Chuyển đổi: Cho phép chuyển đổi lead thành Khách hàng & Cơ hội bán hàng
-                    btns += `
-                        <button type="button" class="action-btn action-btn-convert" data-convert-id="${record.id}" title="Chuyển đổi Lead thành Khách hàng doanh nghiệp, Người liên hệ và Cơ hội bán hàng">
-                            <span class="btn-icon">⚡</span> Chuyển đổi
-                        </button>
+                    // 2. Mặc định: Nút Xem Hồ sơ 360 gọn gàng
+                    return `
+                        <a href="customer-360?id=${record.id}" class="action-btn action-btn-360" title="Xem hồ sơ 360 độ của khách hàng">
+                            <span class="btn-icon">🔍</span> 360°
+                        </a>
                     `;
-
-                    // Nút Từ chối: Cho phép từ chối với lý do ghi vào nhật ký SLA
-                    btns += `
-                        <button type="button" class="action-btn action-btn-reject" data-reject-id="${record.id}" data-reject-name="${escapeHtml(record.companyName || record.name)}" title="Từ chối tiếp nhận Lead (yêu cầu chọn/nhập lý do)">
-                            <span class="btn-icon">✕</span> Từ chối
-                        </button>
-                    `;
-
-                    return btns;
                 })()}
 
                 <div class="row-action-wrap">
@@ -1667,6 +1643,20 @@ function renderDesktopRow(record, index) {
                         <a href="customer-360?id=${record.id}">
                             🔍 Xem hồ sơ 360
                         </a>
+                        ${(function() {
+                            let extra = "";
+                            if (record.status !== "CONVERTED" && record.status !== "KHACH_HANG" && record.status !== "CHINH_THUC") {
+                                extra += `
+                                    <button type="button" data-convert-id="${record.id}">
+                                        ⚡ Chuyển đổi Lead
+                                    </button>
+                                    <button type="button" data-reject-id="${record.id}" data-reject-name="${escapeHtml(record.companyName || record.name)}">
+                                        ✕ Từ chối Lead
+                                    </button>
+                                `;
+                            }
+                            return extra;
+                        })()}
                         ${record.status === "CONVERTED" ? `
                             <button type="button" style="color:#94a3b8; cursor:not-allowed;" title="Lead đã chuyển đổi, không thể chỉnh sửa" onclick="alert('Lead này đã chuyển đổi thành khách hàng chính thức và đã bị khóa bảo vệ. Không thể chỉnh sửa trực tiếp thông tin lead gốc!')">
                                 🔒 Sửa (Đã khóa)

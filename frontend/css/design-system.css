@@ -589,3 +589,108 @@ input[type="checkbox"], input[type="radio"], input[type="range"] {
     font-weight: 650;
     box-shadow: 0 1px 4px rgba(37, 99, 235, 0.12);
 }
+
+/* =========================================================
+   STANDARDIZED ACTION MENU (1 Primary + Overflow Dropdown)
+========================================================= */
+.row-actions-group {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    position: relative;
+}
+
+.row-action-wrap {
+    position: relative;
+    display: inline-flex;
+}
+
+.row-action-button {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--crm-border, #e2e8f0);
+    border-radius: 8px;
+    background: var(--crm-surface, #ffffff);
+    color: var(--crm-text-2, #475569);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.row-action-button:hover {
+    background: var(--crm-surface-muted, #f1f5f9);
+    color: var(--crm-primary, #2563eb);
+    border-color: var(--crm-primary, #2563eb);
+}
+
+.row-action-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    z-index: 1050;
+    min-width: 175px;
+    display: none;
+    padding: 6px;
+    border: 1px solid var(--crm-border, #e2e8f0);
+    border-radius: 10px;
+    background: var(--crm-surface, #ffffff);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.row-action-menu.open {
+    display: block;
+    animation: crmFadeSlideIn 0.15s ease-out;
+}
+
+.row-action-menu button,
+.row-action-menu a {
+    width: 100%;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 0;
+    border-radius: 6px;
+    padding: 0 10px;
+    background: transparent;
+    color: var(--crm-text-2, #334155);
+    text-decoration: none;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    box-sizing: border-box;
+    transition: background 0.12s ease;
+}
+
+.row-action-menu button:hover,
+.row-action-menu a:hover {
+    background: var(--crm-surface-muted, #f1f5f9);
+    color: var(--crm-text, #0f172a);
+}
+
+.row-action-menu .danger {
+    color: var(--crm-danger, #ef4444);
+}
+
+.row-action-menu .danger:hover {
+    background: var(--crm-danger-soft, #fef2f2);
+    color: var(--crm-danger-dark, #dc2626);
+}
+
+@keyframes crmFadeSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+

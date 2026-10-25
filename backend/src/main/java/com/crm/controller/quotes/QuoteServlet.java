@@ -25,6 +25,7 @@ import java.util.NoSuchElementException;
 public class QuoteServlet extends HttpServlet {
 
     private final QuoteService quoteService = new QuoteService();
+    private final com.crm.service.documents.DocumentExportService exportService = new com.crm.service.documents.DocumentExportService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -38,6 +39,18 @@ public class QuoteServlet extends HttpServlet {
 
                 var items = quoteService.search(currentUserId, keyword, status);
                 ResponseUtil.json(resp, 200, ApiResponse.success("Lấy danh sách báo giá thành công", items));
+                return;
+            }
+
+            if (path.endsWith("/pdf")) {
+                long id = parseId(path);
+                boolean inline = "1".equals(req.getParameter("inline")) || "true".equalsIgnoreCase(req.getParameter("inline"));
+                var result = exportService.exportQuotePdf(currentUserId, id);
+                resp.setContentType("application/pdf");
+                resp.setHeader("Content-Disposition", (inline ? "inline" : "attachment") + "; filename=\"" + result.fileName() + "\"");
+                resp.setContentLength(result.bytes().length);
+                resp.getOutputStream().write(result.bytes());
+                resp.getOutputStream().flush();
                 return;
             }
 
@@ -118,6 +131,19 @@ public class QuoteServlet extends HttpServlet {
             Map<String, Object> body = JsonUtil.getGson().fromJson(req.getReader(), com.crm.util.JsonUtil.OBJECT_MAP_TYPE);
             if (body == null) {
                 body = Map.of();
+            }
+
+            if (path != null && path.contains("/contract-pdf")) {
+                long quoteId = parseId(path);
+                var contractInfo = com.crm.service.documents.ContractInfo.fromRequest(body);
+                boolean inline = "1".equals(req.getParameter("inline")) || "true".equalsIgnoreCase(req.getParameter("inline"));
+                var result = exportService.exportContractPdf(currentUserId, quoteId, contractInfo);
+                resp.setContentType("application/pdf");
+                resp.setHeader("Content-Disposition", (inline ? "inline" : "attachment") + "; filename=\"" + result.fileName() + "\"");
+                resp.setContentLength(result.bytes().length);
+                resp.getOutputStream().write(result.bytes());
+                resp.getOutputStream().flush();
+                return;
             }
 
             // Check actions on specific quote: /api/quotes/{id}/{action}

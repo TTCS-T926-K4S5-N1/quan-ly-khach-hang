@@ -1,0 +1,39 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: crm-mysql
+    restart: unless-stopped
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+      MYSQL_DATABASE: "crm_db"
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./backend/database/init_crm_db.sql:/docker-entrypoint-initdb.d/init_crm_db.sql:ro
+      - crm_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  crm-web:
+    image: tomcat:10.1-jdk21-temurin-jammy
+    container_name: crm-tomcat
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      CRM_DB_URL: "jdbc:mysql://crm-mysql:3306/crm_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh&useUnicode=true&characterEncoding=UTF-8"
+      CRM_DB_USERNAME: "root"
+      CRM_DB_PASSWORD: "123456"
+      CATALINA_OPTS: "-Dfile.encoding=UTF-8"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend/src/main/webapp:/usr/local/tomcat/webapps/crm
+
+volumes:
+  crm_mysql_data:

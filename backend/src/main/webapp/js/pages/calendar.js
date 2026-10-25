@@ -1,4 +1,4 @@
-"use strict";
+﻿"use strict";
 
 const API_BASE = (function () {
     if (window.location.port === "8080" || window.location.pathname.startsWith("/crm")) {

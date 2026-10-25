@@ -7,6 +7,12 @@ let activeFilter = "ALL";
 let currentThreshold = 30;
 let searchKeyword = "";
 
+// Pagination State
+let currentPage = 1;
+let pageSize = 10;
+let totalItems = 0;
+let totalPages = 1;
+
 /* =========================================================
    API CLIENT
 ========================================================= */
@@ -63,9 +69,8 @@ function formatDate(dateStr) {
     }
 }
 
-function escapeHtml(str) {
-    if (str == null) return "";
-    return String(str)
+function escapeHtml(val) {
+    return String(val ?? "")
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
@@ -101,19 +106,24 @@ async function loadContractSummary() {
         const summary = await api(`/api/contracts/summary?threshold=${currentThreshold}`);
         if (!summary) return;
 
-        document.getElementById("kpiTotalCount").textContent = summary.totalCount || 0;
-        document.getElementById("kpiTotalValue").textContent = formatMoney(summary.totalContractValue);
-        document.getElementById("kpiActiveCount").textContent = summary.activeCount || 0;
-        document.getElementById("kpiExpiringCount").textContent = summary.expiringSoonCount || 0;
-        document.getElementById("kpiExpiringAmount").textContent = formatMoney(summary.expiringSoonAmount);
-        document.getElementById("kpiExpiredCount").textContent = summary.expiredCount || 0;
-        document.getElementById("kpiRenewedCount").textContent = summary.renewedCount || 0;
+        const setT = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val;
+        };
 
-        document.getElementById("badgeAll").textContent = summary.totalCount || 0;
-        document.getElementById("badgeExpiringSoon").textContent = summary.expiringSoonCount || 0;
-        document.getElementById("badgeExpired").textContent = summary.expiredCount || 0;
-        document.getElementById("badgeActive").textContent = summary.activeCount || 0;
-        document.getElementById("badgeRenewed").textContent = summary.renewedCount || 0;
+        setT("kpiTotalCount", summary.totalCount || 0);
+        setT("kpiTotalValue", formatMoney(summary.totalContractValue));
+        setT("kpiActiveCount", summary.activeCount || 0);
+        setT("kpiExpiringCount", summary.expiringSoonCount || 0);
+        setT("kpiExpiringAmount", formatMoney(summary.expiringSoonAmount));
+        setT("kpiExpiredCount", summary.expiredCount || 0);
+        setT("kpiRenewedCount", summary.renewedCount || 0);
+
+        setT("badgeAll", summary.totalCount || 0);
+        setT("badgeExpiringSoon", summary.expiringSoonCount || 0);
+        setT("badgeExpired", summary.expiredCount || 0);
+        setT("badgeActive", summary.activeCount || 0);
+        setT("badgeRenewed", summary.renewedCount || 0);
     } catch (err) {
         console.error("Failed to load contract summary:", err);
     }
@@ -131,6 +141,7 @@ async function loadContracts() {
 
         const data = await api(url);
         contractsList = Array.isArray(data) ? data : [];
+        currentPage = 1;
         renderContractsTable();
     } catch (err) {
         tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 40px; color: #ef4444;">❌ Lỗi tải hợp đồng: ${escapeHtml(err.message)}</td></tr>`;
@@ -139,6 +150,15 @@ async function loadContracts() {
 
 function renderContractsTable() {
     const tbody = document.getElementById("contractsTableBody");
+    const emptyState = document.getElementById("contractsEmpty");
+    const paginationEl = document.getElementById("contractPagination");
+
+    totalItems = contractsList.length;
+    totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+
     if (!contractsList || contractsList.length === 0) {
         tbody.innerHTML = `
             <tr>
@@ -149,10 +169,18 @@ function renderContractsTable() {
                 </td>
             </tr>
         `;
+        if (emptyState) emptyState.style.display = "none";
+        if (paginationEl) paginationEl.style.display = "none";
         return;
     }
 
-    tbody.innerHTML = contractsList.map(c => {
+    if (emptyState) emptyState.style.display = "none";
+    if (paginationEl) paginationEl.style.display = "flex";
+
+    const startIndex = (currentPage - 1) * pageSize;
+    const pageItems = contractsList.slice(startIndex, startIndex + pageSize);
+
+    tbody.innerHTML = pageItems.map((c, idx) => {
         // Expiry & Days remaining badge
         let daysBadge = "";
         const days = c.daysRemaining;
@@ -181,26 +209,28 @@ function renderContractsTable() {
             statusBadge = `<span class="contract-status-tag status-active">✅ Đang hiệu lực</span>`;
         }
 
-        // Renewal Action
-        let renewAction = "";
+        // Renewal menu item
+        let renewMenuItem = "";
         if (c.renewalOpportunityId) {
-            renewAction = `
-                <a href="pipeline" class="contract-action-btn btn-renewed" title="Xem cơ hội gia hạn trên Pipeline: ${escapeHtml(c.renewalOpportunityName || '')}">
+            renewMenuItem = `
+                <a href="pipeline" class="crm-action-menu-item" title="Xem cơ hội gia hạn trên Pipeline: ${escapeHtml(c.renewalOpportunityName || '')}">
                     🔗 Cơ hội #${c.renewalOpportunityId}
                 </a>
             `;
         } else {
-            renewAction = `
-                <button type="button" class="contract-action-btn btn-renew" onclick="openRenewModal(${c.id})" title="Tạo cơ hội gia hạn từ hợp đồng này">
-                    🔄 Gia hạn
+            renewMenuItem = `
+                <button type="button" onclick="openRenewModal(${c.id})">
+                    🔄 Tạo cơ hội gia hạn
                 </button>
             `;
         }
 
+        const globalIdx = startIndex + idx;
+
         return `
             <tr data-id="${c.id}">
                 <td>
-                    <a href="javascript:void(0)" onclick="openDetailModal(${c.id})" style="font-weight: 700; color: var(--primary, #2563eb); text-decoration: none;">
+                    <a href="javascript:void(0)" onclick="openDetailModal(${c.id})" style="font-weight: 700; color: var(--crm-primary, #2563eb); text-decoration: none;">
                         ${escapeHtml(c.contractNumber)}
                     </a>
                 </td>
@@ -223,24 +253,82 @@ function renderContractsTable() {
                 <td style="font-size: 12.5px; color: #475569; white-space: nowrap;">
                     ${escapeHtml(c.ownerName || "Hệ thống")}
                 </td>
-                <td style="text-align: right; white-space: nowrap;">
-                    <div class="contract-actions" style="justify-content: flex-end;">
-                        ${renewAction}
-                        <a href="contract-print.html?id=${c.id}" target="_blank" class="contract-action-btn" title="In / Xuất PDF Hợp đồng">
-                            🖨️ In
-                        </a>
-                        <button type="button" class="contract-action-btn" onclick="openDetailModal(${c.id})" title="Xem chi tiết">
-                            👁️
+                <td style="text-align: center; white-space: nowrap;">
+                    <div class="row-actions-group">
+                        <button type="button" class="crm-btn crm-btn-secondary crm-btn-sm" style="padding: 4px 10px; font-size: 12px;" onclick="openDetailModal(${c.id})" title="Xem chi tiết hợp đồng">
+                            👁️ Chi tiết
                         </button>
+                        <div class="row-action-wrap">
+                            <button class="row-action-button" type="button" data-action-menu="${globalIdx}" title="Thao tác khác">
+                                ⋮
+                            </button>
+                            <div class="row-action-menu" data-menu="${globalIdx}">
+                                ${renewMenuItem}
+                                <a href="contract-print.html?id=${c.id}" target="_blank">
+                                    🖨️ Bản in / PDF
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </td>
             </tr>
         `;
     }).join("");
+
+    renderPagination();
 }
 
 /* =========================================================
-   MODAL: TẠO CƠ HỘI GIA HẠN (Story 1 AC)
+   PAGINATION CONTROLS
+========================================================= */
+function renderPagination() {
+    const rangeEl = document.getElementById("contractPaginationRange");
+    const totalEl = document.getElementById("contractPaginationTotal");
+    const controlsEl = document.getElementById("contractPaginationControls");
+
+    if (!rangeEl || !totalEl || !controlsEl) return;
+
+    if (totalItems === 0) {
+        rangeEl.textContent = "0-0";
+        totalEl.textContent = "0";
+        controlsEl.innerHTML = "";
+        return;
+    }
+
+    const start = (currentPage - 1) * pageSize + 1;
+    const end = Math.min(currentPage * pageSize, totalItems);
+    rangeEl.textContent = `${start}-${end}`;
+    totalEl.textContent = String(totalItems);
+
+    let html = `
+        <button class="crm-pagination-btn" ${currentPage === 1 ? 'disabled' : ''} data-page="${currentPage - 1}" title="Trang trước">
+            &lsaquo;
+        </button>
+    `;
+
+    for (let p = 1; p <= totalPages; p++) {
+        if (p === 1 || p === totalPages || (p >= currentPage - 1 && p <= currentPage + 1)) {
+            html += `
+                <button class="crm-pagination-btn ${p === currentPage ? 'active' : ''}" data-page="${p}">
+                    ${p}
+                </button>
+            `;
+        } else if (p === currentPage - 2 || p === currentPage + 2) {
+            html += `<span class="crm-pagination-ellipsis">...</span>`;
+        }
+    }
+
+    html += `
+        <button class="crm-pagination-btn" ${currentPage === totalPages ? 'disabled' : ''} data-page="${currentPage + 1}" title="Trang tiếp">
+            &rsaquo;
+        </button>
+    `;
+
+    controlsEl.innerHTML = html;
+}
+
+/* =========================================================
+   MODAL: TẠO CƠ HỘI GIA HẠN
 ========================================================= */
 function openRenewModal(contractId) {
     const contract = contractsList.find(c => c.id === contractId);
@@ -304,7 +392,7 @@ async function submitRenewForm() {
 }
 
 /* =========================================================
-   MODAL: CẤU HÌNH NGƯỠNG CẢNH BÁO (Story 1 AC)
+   MODAL: CẤU HÌNH NGƯỠNG CẢNH BÁO
 ========================================================= */
 function openThresholdModal() {
     document.getElementById("inputThresholdDays").value = currentThreshold;
@@ -366,7 +454,7 @@ async function openDetailModal(contractId) {
     const modal = document.getElementById("modalContractDetail");
     const body = document.getElementById("detailModalBody");
     const printBtn = document.getElementById("btnDetailPrint");
-    printBtn.href = `contract-print.html?id=${contractId}`;
+    if (printBtn) printBtn.href = `contract-print.html?id=${contractId}`;
 
     modal.classList.add("active");
     body.innerHTML = `⏳ Đang tải thông tin chi tiết hợp đồng...`;
@@ -462,6 +550,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.querySelectorAll(".contract-tab-btn").forEach(b => b.classList.remove("active"));
             btn.classList.add("active");
             activeFilter = btn.dataset.filter || "ALL";
+            currentPage = 1;
             loadContracts();
         });
     });
@@ -474,6 +563,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             clearTimeout(searchTimer);
             searchTimer = setTimeout(() => {
                 searchKeyword = e.target.value;
+                currentPage = 1;
                 loadContracts();
             }, 300);
         });
@@ -488,4 +578,44 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("btnConfigureThreshold")?.addEventListener("click", openThresholdModal);
     document.getElementById("btnSaveThreshold")?.addEventListener("click", saveThresholdSettings);
     document.getElementById("btnSubmitRenew")?.addEventListener("click", submitRenewForm);
+
+    // 6. Pagination event delegation
+    document.getElementById("contractPaginationControls")?.addEventListener("click", (e) => {
+        const btn = e.target.closest(".crm-pagination-btn");
+        if (btn && !btn.disabled && btn.dataset.page) {
+            currentPage = parseInt(btn.dataset.page, 10);
+            renderContractsTable();
+            window.scrollTo({ top: 300, behavior: "smooth" });
+        }
+    });
+
+    document.getElementById("contractPageSizeSelect")?.addEventListener("change", (e) => {
+        pageSize = parseInt(e.target.value, 10);
+        currentPage = 1;
+        renderContractsTable();
+    });
+
+    // 7. Action menu dropdown toggle
+    document.addEventListener("click", (e) => {
+        const toggleBtn = e.target.closest("[data-action-menu]");
+        if (toggleBtn) {
+            e.stopPropagation();
+            const idx = toggleBtn.getAttribute("data-action-menu");
+            const targetMenu = document.querySelector(`.row-action-menu[data-menu="${idx}"]`);
+            const allMenus = document.querySelectorAll(".row-action-menu");
+            
+            allMenus.forEach(m => {
+                if (m !== targetMenu) m.classList.remove("open");
+            });
+
+            if (targetMenu) {
+                targetMenu.classList.toggle("open");
+            }
+            return;
+        }
+
+        if (!e.target.closest(".row-action-menu")) {
+            document.querySelectorAll(".row-action-menu").forEach(m => m.classList.remove("open"));
+        }
+    });
 });

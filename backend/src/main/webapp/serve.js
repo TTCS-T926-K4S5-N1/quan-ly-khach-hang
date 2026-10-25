@@ -30,6 +30,11 @@ const server = http.createServer((req, res) => {
 
     let filePath = path.join(PUBLIC_DIR, reqUrl);
 
+    // Support clean URLs without .html extension
+    if (!path.extname(filePath) && fs.existsSync(filePath + '.html')) {
+        filePath += '.html';
+    }
+
     // Prevent directory traversal
     if (!filePath.startsWith(PUBLIC_DIR)) {
         res.statusCode = 403;
