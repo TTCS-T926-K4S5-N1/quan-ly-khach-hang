@@ -13,7 +13,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 @WebServlet({
         "/api/customers",
@@ -46,6 +46,19 @@ public class CustomerServlet extends HttpServlet {
                 criteria.setRegion(req.getParameter("region"));
                 criteria.setOwnerUserId(longParam(req, "ownerUserId"));
                 criteria.setOwnerFilter(req.getParameter("ownerFilter"));
+                criteria.setCustomFieldKey(req.getParameter("customFieldKey"));
+                criteria.setCustomFieldValue(req.getParameter("customFieldValue"));
+                criteria.setScoreGrade(req.getParameter("scoreGrade"));
+                criteria.setAssignmentStatus(req.getParameter("assignmentStatus"));
+                criteria.setSortBy(req.getParameter("sortBy"));
+                criteria.setLeadSource(req.getParameter("leadSource"));
+                criteria.setCreatedFrom(req.getParameter("createdFrom"));
+                criteria.setCreatedTo(req.getParameter("createdTo"));
+                criteria.setDatePreset(req.getParameter("datePreset"));
+                String slaBreachedStr = req.getParameter("slaBreached");
+                if (slaBreachedStr != null && !slaBreachedStr.isBlank()) {
+                    criteria.setSlaBreached(Boolean.parseBoolean(slaBreachedStr.trim()));
+                }
                 criteria.setPage(intParam(req, "page", 1));
                 criteria.setSize(intParam(req, "size", 20));
 
@@ -54,16 +67,71 @@ public class CustomerServlet extends HttpServlet {
                 return;
             }
 
+            // Xuất Excel danh sách khách hàng (bao gồm các trường tùy chỉnh)
+            if (path.equals("/export")) {
+                com.crm.dto.customers.CustomerFilterCriteria criteria = new com.crm.dto.customers.CustomerFilterCriteria();
+                criteria.setKeyword(req.getParameter("keyword"));
+                criteria.setName(req.getParameter("name"));
+                criteria.setTaxCode(req.getParameter("taxCode"));
+                criteria.setContactPhone(req.getParameter("contactPhone"));
+                criteria.setStatus(req.getParameter("status"));
+                criteria.setIndustryId(longParam(req, "industryId"));
+                criteria.setCompanySizeId(longParam(req, "companySizeId"));
+                criteria.setRegionId(longParam(req, "regionId"));
+                criteria.setRegion(req.getParameter("region"));
+                criteria.setOwnerUserId(longParam(req, "ownerUserId"));
+                criteria.setOwnerFilter(req.getParameter("ownerFilter"));
+                criteria.setCustomFieldKey(req.getParameter("customFieldKey"));
+                criteria.setCustomFieldValue(req.getParameter("customFieldValue"));
+                criteria.setLeadSource(req.getParameter("leadSource"));
+                criteria.setCreatedFrom(req.getParameter("createdFrom"));
+                criteria.setCreatedTo(req.getParameter("createdTo"));
+                criteria.setDatePreset(req.getParameter("datePreset"));
+                criteria.setPage(1);
+                criteria.setSize(10000);
+
+                var searchResult = customerService.search(currentUserId, criteria);
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> customers = (List<Map<String, Object>>) searchResult.get("items");
+                if (customers == null) customers = Collections.emptyList();
+
+                com.crm.dao.customfields.CustomFieldValueDAO cfDao = new com.crm.dao.customfields.CustomFieldValueDAO();
+                List<Map<String, Object>> activeFields = cfDao.getActiveFields("CUSTOMER");
+
+                List<Long> customerIds = customers.stream()
+                        .map(c -> ((Number) c.get("id")).longValue())
+                        .toList();
+                Map<Long, Map<String, Object>> customValues = cfDao.getValuesForRecords("CUSTOMER", customerIds);
+
+                com.crm.service.export.ExcelExportService exportService = new com.crm.service.export.ExcelExportService();
+                exportService.exportCustomers(resp, customers, activeFields, customValues);
+                return;
+            }
+
             // 1. Kiểm tra trùng lặp thời gian thực
             if (path.equals("/check-duplicate")) {
                 String name = req.getParameter("name");
                 String taxCode = req.getParameter("taxCode");
                 String website = req.getParameter("website");
+                String email = req.getParameter("email");
+                String phone = req.getParameter("phone");
                 String exclStr = req.getParameter("excludeId");
                 Long excludeId = (exclStr != null && !exclStr.isBlank()) ? Long.parseLong(exclStr.trim()) : null;
 
-                var dupes = customerService.checkDuplicates(currentUserId, name, taxCode, website, excludeId);
+                var dupes = customerService.checkDuplicates(currentUserId, name, taxCode, website, email, phone, excludeId);
                 ResponseUtil.json(resp, 200, ApiResponse.success("Kiểm tra trùng lặp thành công", dupes));
+                return;
+            }
+
+            // Gợi ý khách hàng trùng lặp để gắn lead thẳng vào khách hàng đó
+            if (path.equals("/suggest-existing")) {
+                String email = req.getParameter("email");
+                String phone = req.getParameter("phone");
+                String companyName = req.getParameter("companyName");
+                if (companyName == null) companyName = req.getParameter("name");
+
+                var suggestion = customerService.suggestExistingCustomer(currentUserId, email, phone, companyName);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Gợi ý khách hàng thành công", suggestion));
                 return;
             }
 
@@ -103,6 +171,20 @@ public class CustomerServlet extends HttpServlet {
                     return;
                 }
                 ResponseUtil.json(resp, 200, ApiResponse.success("Lấy thông tin khách hàng 360 thành công", data));
+                return;
+            }
+
+            // 4b. Dòng thời gian tương tác hợp nhất Khách hàng (Unified Timeline)
+            if (path.endsWith("/timeline")) {
+                if (!path.matches("/[1-9][0-9]*/timeline")) throw new IllegalArgumentException("ID không hợp lệ");
+                long id = parseId(path);
+                String typeFilter = req.getParameter("type");
+                String actorIdStr = req.getParameter("actorId");
+                Long actorId = (actorIdStr != null && !actorIdStr.isBlank()) ? Long.parseLong(actorIdStr.trim()) : null;
+
+                com.crm.dao.customers.Customer360DAO dao = new com.crm.dao.customers.Customer360DAO();
+                var data = dao.getUnifiedTimeline(id, typeFilter, actorId, 500);
+                ResponseUtil.json(resp, 200, ApiResponse.success("Lấy dòng thời gian tương tác thành công", data));
                 return;
             }
 

@@ -37,7 +37,7 @@
 
 <link rel="stylesheet" href="css/design-system.css">
 <link rel="stylesheet" href="css/app-shell.css">
-<link rel="stylesheet" href="css/pages/pipeline.css">
+<link rel="stylesheet" href="css/pages/pipeline.css?v=20261019_col_page">
 
 
 
@@ -94,14 +94,14 @@
             Quản lý
         </div>
 
-        <a href="#" class="crm-nav-item">
+        <a href="products" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4-8 4-8-4 8-4ZM4 7v10l8 4 8-4V7M12 11v10"/></svg></span>
             <span class="crm-nav-label">Sản phẩm</span>
         </a>
 
-        <a href="#" class="crm-nav-item">
-            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m9 3 6 0 1 4 4 1 1 6-4 2-1 4-6 1-2-4-4-1-1-6 4-2 1-4Z"/></svg></span>
-            <span class="crm-nav-label">Cấu hình</span>
+        <a href="custom-fields" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18M3 12h18"/></svg></span>
+            <span class="crm-nav-label">Trường tùy chỉnh</span>
         </a>
 
     </nav>
@@ -177,70 +177,226 @@
 
 <main class="crm-main pipeline-page">
 
-    <section class="pipeline-head">
-
-        <div>
-
-            <p class="pipeline-kicker">
-                CRM / Cơ hội
-            </p>
-
-            <h1>
-                Bảng Kanban Pipeline
-            </h1>
-
-            <p>
-                Kéo thả cơ hội giữa các giai đoạn hoặc dùng nút chuyển giai đoạn.
-            </p>
-
+    <section class="pipeline-page-head">
+        <div class="pipeline-head-left">
+            <p class="pipeline-kicker">CRM / QUẢN LÝ CƠ HỘI</p>
+            <h1>Quy trình Cơ hội Bán hàng (Sales Pipeline)</h1>
+            <p>Kéo thả cơ hội giữa các giai đoạn hoặc chuyển đổi nhanh theo quy trình bán hàng chuẩn.</p>
         </div>
 
+        <div class="pipeline-head-right">
+            <button
+                id="btnQuickLogActivityGlobal"
+                class="crm-btn crm-btn-secondary"
+                type="button"
+                style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600; border-color: #3b82f6; color: #1d4ed8; background: #eff6ff;"
+                title="Ghi nhận hoạt động nhanh (cuộc gọi, cuộc gặp, email, ghi chú) ngay trên điện thoại/máy tính sau khi gặp khách"
+            >
+                ⚡ Ghi nhanh hoạt động
+            </button>
 
-        <button
-            id="addOpportunityButton"
-            class="crm-btn crm-btn-primary"
-            type="button"
-        >
-            + Thêm cơ hội
-        </button>
+            <button
+                id="btnExportOppExcel"
+                class="crm-btn crm-btn-secondary"
+                type="button"
+                title="Xuất danh sách cơ hội ra file Excel theo bộ lọc hiện tại (Tự động kiểm soát hiển thị Giá vốn & Biên lợi nhuận theo phân quyền vai trò)"
+            >
+                📥 Xuất Excel
+            </button>
 
+            <a
+                href="pipeline-settings"
+                class="crm-btn crm-btn-secondary"
+                title="Cấu hình số ngày N tối đa và quy trình từng giai đoạn"
+            >
+                ⚙️ Cấu hình quy trình
+            </a>
+
+            <button
+                id="addOpportunityButton"
+                class="crm-btn crm-btn-primary"
+                type="button"
+            >
+                + Thêm cơ hội mới
+            </button>
+        </div>
     </section>
 
-
-    <section class="pipeline-filter crm-card">
-
-        <input
-            id="pipelineSearch"
-            class="crm-input"
-            type="search"
-            placeholder="Tìm tên cơ hội / khách hàng..."
-        >
-
-        <select
-            id="ownerFilter"
-            class="crm-input"
-        >
-            <option value="">
-                Tất cả người sở hữu
-            </option>
-
-            <option value="Tôi">
-                Tôi
-            </option>
-
-            <option value="Nhóm">
-                Nhóm
-            </option>
-        </select>
-
-        <button
-            id="resetPipelineFilter"
-            class="crm-btn crm-btn-secondary"
-            type="button"
-        >
-            Đặt lại
+    <!-- TAB SWITCHER: KANBAN vs FORECAST vs STAGNANT -->
+    <div class="pipeline-view-tabs">
+        <button id="tabKanbanView" type="button" class="pipeline-view-tab active">
+            📋 Bảng Kanban Pipeline
         </button>
+        <button id="tabForecastView" type="button" class="pipeline-view-tab">
+            📊 Dự báo Doanh số (Forecast)
+            <span class="tab-badge-pro">PRO</span>
+        </button>
+        <button id="tabStagnantView" type="button" class="pipeline-view-tab" style="display: none;" title="Danh sách cơ hội bị gắn cờ đình trệ dành riêng cho Trưởng nhóm kinh doanh">
+            🚨 Cơ hội đình trệ (Trưởng nhóm)
+            <span id="tabStagnantBadge" class="tab-badge-counter">0</span>
+        </button>
+    </div>
 
+    <!-- ================= KHU VỰC TÌM KIẾM & BỘ LỌC TẬP TRUNG (UNIFIED COMPACT FILTER PANEL) ================= -->
+    <section id="pipelineFilterSection" class="pipeline-filter-panel crm-card">
+        <!-- Hàng 1: Thanh tìm kiếm & Bộ lọc chính -->
+        <div class="filter-primary-row">
+            <div class="search-input-wrap">
+                <input
+                    id="pipelineSearch"
+                    class="crm-input"
+                    type="search"
+                    placeholder="🔍 Tìm tên cơ hội / khách hàng..."
+                >
+            </div>
+
+            <div class="filter-select-wrap">
+                <select id="stageFilter" class="crm-input" title="Lọc theo giai đoạn bán hàng">
+                    <option value="">🎯 Tất cả giai đoạn</option>
+                </select>
+            </div>
+
+            <div class="filter-select-wrap">
+                <select id="ownerFilter" class="crm-input" title="Lọc theo nhân viên phụ trách">
+                    <option value="">👤 Tất cả người sở hữu</option>
+                    <option value="MINE" selected>⭐ Cơ hội của tôi</option>
+                </select>
+            </div>
+
+            <div class="filter-select-wrap">
+                <select id="productFilter" class="crm-input" title="Lọc theo sản phẩm quan tâm">
+                    <option value="">📦 Tất cả sản phẩm</option>
+                </select>
+            </div>
+
+            <!-- Saved Filters Dropdown + Save / Delete Buttons (User Story 2) -->
+            <div class="saved-filters-wrap">
+                <select id="savedFiltersSelect" class="crm-input" style="min-width: 175px; font-weight: 500;" title="Danh sách bộ lọc đã lưu">
+                    <option value="">⭐ Bộ lọc đã lưu...</option>
+                </select>
+                <button id="btnSaveFilterModal" type="button" class="btn-save-filter-pill" title="Lưu tiêu chí lọc hiện tại">💾 Lưu</button>
+                <button id="btnDeleteSavedFilter" type="button" class="btn-delete-filter-pill" title="Xóa bộ lọc đã chọn" disabled>🗑️</button>
+            </div>
+
+            <div class="filter-quick-actions">
+                <button
+                    id="btnStagnantFilter"
+                    type="button"
+                    class="quick-pill-btn btn-pill-danger"
+                    title="Lọc các cơ hội bị cảnh báo đình trệ hoặc quá hạn chốt"
+                >
+                    🚨 Cơ hội có cờ <span id="stagnantBadgeCount" class="tab-badge-counter" style="display: none; padding: 1px 6px; font-size: 10px;">0</span>
+                </button>
+
+                <button
+                    id="btnScanStagnant"
+                    type="button"
+                    class="quick-pill-btn btn-pill-scan"
+                    title="Kích hoạt tác vụ quét và đánh giá cơ hội đình trệ ngay lập tức"
+                >
+                    ⚡ Quét đình trệ
+                </button>
+
+                <button
+                    id="btnTogglePipelineAdvanced"
+                    type="button"
+                    class="quick-pill-btn btn-pill-advanced"
+                    title="Mở thêm các bộ lọc chuyên sâu (Khoảng giá trị, Khoảng ngày, Nguồn lead, Trường tùy chỉnh)"
+                >
+                    <span id="pipelineAdvancedIcon">⚡</span>
+                    <span>Bộ lọc khác</span>
+                    <span id="pipelineAdvancedBadge" class="filter-count-badge" style="display:none;">0</span>
+                </button>
+
+                <div class="col-page-size-wrap" title="Số lượng thẻ cơ hội hiển thị trên mỗi cột Kanban">
+                    <select id="colPageSizeSelect" class="crm-input col-page-size-select" title="Số cơ hội hiển thị mỗi cột">
+                        <option value="3">📄 3 thẻ / trang</option>
+                        <option value="4" selected>📄 4 thẻ / trang</option>
+                        <option value="6">📄 6 thẻ / trang</option>
+                        <option value="8">📄 8 thẻ / trang</option>
+                        <option value="all">📄 Tất cả</option>
+                    </select>
+                </div>
+
+                <button
+                    id="resetPipelineFilter"
+                    type="button"
+                    class="quick-pill-btn btn-pill-reset"
+                    title="Đặt lại toàn bộ tiêu chí lọc về mặc định"
+                >
+                    🔄 Đặt lại
+                </button>
+            </div>
+        </div>
+
+        <!-- Hàng 2: Bộ lọc nâng cao (Collapsible Advanced Panel) -->
+        <div id="pipelineAdvancedPanel" class="filter-advanced-panel" style="display: none;">
+            <div class="advanced-filters-grid">
+                <!-- User Story 2: Lọc khoảng giá trị -->
+                <div class="filter-group">
+                    <label class="filter-label">Khoảng giá trị cơ hội (VNĐ)</label>
+                    <div class="amount-range-wrap">
+                        <input id="amountMin" class="crm-input amount-range-input" type="number" placeholder="Từ (₫)..." min="0" step="1000000">
+                        <span style="color: var(--crm-muted); font-size: 12px; font-weight: 600;">đến</span>
+                        <input id="amountMax" class="crm-input amount-range-input" type="number" placeholder="Đến (₫)..." min="0" step="1000000">
+                    </div>
+                </div>
+
+                <!-- User Story 2: Lọc khoảng ngày chốt -->
+                <div class="filter-group filter-group-date">
+                    <label class="filter-label">Khoảng ngày dự kiến chốt</label>
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <select id="closeDatePreset" class="crm-input" style="max-width: 135px;" title="Lọc theo thời gian dự kiến chốt">
+                            <option value="">📅 Tất cả</option>
+                            <option value="OVERDUE">⚠️ Quá hạn</option>
+                            <option value="THIS_MONTH">Tháng này</option>
+                            <option value="NEXT_MONTH">Tháng tới</option>
+                            <option value="THIS_QUARTER">Quý này</option>
+                            <option value="CUSTOM">Tùy chọn...</option>
+                        </select>
+                        <div id="customDateRangeWrap" style="display: none; align-items: center; gap: 6px;">
+                            <input id="closeDateFrom" class="crm-input" type="date" title="Từ ngày">
+                            <span style="color: var(--crm-muted); font-size: 12px; font-weight: 600;">-</span>
+                            <input id="closeDateTo" class="crm-input" type="date" title="Đến ngày">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">Nhóm / Phòng ban</label>
+                    <select id="teamFilter" class="crm-input" title="Lọc theo nhóm / phòng ban">
+                        <option value="">👥 Tất cả nhóm kinh doanh</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">Nguồn cơ hội (Lead Source)</label>
+                    <select id="leadSourceFilter" class="crm-input">
+                        <option value="">🌐 Tất cả nguồn cơ hội</option>
+                        <option value="Website / Tìm kiếm">🌐 Website / Tìm kiếm</option>
+                        <option value="Mạng xã hội / Facebook">📱 Mạng xã hội / Facebook</option>
+                        <option value="Hội thảo / Sự kiện">🎪 Hội thảo / Sự kiện</option>
+                        <option value="Người quen giới thiệu">🤝 Người quen giới thiệu</option>
+                        <option value="Email marketing / Chiến dịch">📧 Email marketing / Chiến dịch</option>
+                        <option value="Cold Call / Trực tiếp">📞 Cold Call / Trực tiếp</option>
+                        <option value="Khác">✨ Nguồn khác</option>
+                    </select>
+                </div>
+
+                <div class="filter-group filter-group-custom">
+                    <label class="filter-label">Trường dữ liệu tùy chỉnh</label>
+                    <div id="oppCustomFieldFilterWrap" style="display: flex; gap: 6px; align-items: center;">
+                        <select id="oppCustomFieldSelect" class="crm-input" style="flex: 1;">
+                            <option value="">✨ Chọn trường tùy chỉnh cần lọc...</option>
+                        </select>
+                        <input id="oppCustomFieldValue" class="crm-input" type="text" placeholder="Nhập giá trị lọc..." style="flex: 1; display: none;">
+                        <select id="oppCustomFieldSelectValue" class="crm-input" style="flex: 1; display: none;">
+                            <option value="">-- Chọn giá trị --</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
     </section>
 
 
@@ -346,6 +502,208 @@
 
     </section>
 
+    <!-- =========================================================
+         FORECAST SECTION (USER STORY 3)
+    ========================================================= -->
+    <section id="forecastSection" class="forecast-section" style="display: none; margin-top: 10px;">
+        <!-- Forecast Toolbar -->
+        <div class="crm-card" style="margin-bottom: 20px; padding: 16px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; border-radius: 12px;">
+            <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+                <span style="font-weight: 700; color: #1e293b; font-size: 14px;">Kỳ dự kiến chốt:</span>
+                <div class="forecast-period-pills" style="display: inline-flex; background: #f1f5f9; padding: 4px; border-radius: 8px; gap: 4px;">
+                    <button type="button" class="period-pill active" data-period="THIS_MONTH" style="border: none; background: #fff; padding: 6px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">📅 Tháng này</button>
+                    <button type="button" class="period-pill" data-period="NEXT_MONTH" style="border: none; background: transparent; padding: 6px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; color: #64748b;">📅 Tháng sau</button>
+                    <button type="button" class="period-pill" data-period="THIS_QUARTER" style="border: none; background: transparent; padding: 6px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; color: #64748b;">📅 Quý này</button>
+                </div>
+                <span id="forecastPeriodLabel" style="font-size: 13px; color: #64748b; font-weight: 500;"></span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <span style="font-weight: 700; color: #1e293b; font-size: 14px;">Xem theo:</span>
+                <div style="display: inline-flex; background: #f1f5f9; padding: 4px; border-radius: 8px; gap: 4px;">
+                    <button type="button" id="btnGroupUser" class="group-pill active" style="border: none; background: #fff; padding: 6px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">👤 Nhân viên</button>
+                    <button type="button" id="btnGroupTeam" class="group-pill" style="border: none; background: transparent; padding: 6px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; color: #64748b;">👥 Nhóm KD</button>
+                </div>
+                <button id="btnRefreshForecast" type="button" class="crm-btn crm-btn-secondary" style="padding: 6px 12px; font-size: 13px;" title="Tải lại số liệu">🔄 Tải lại</button>
+            </div>
+        </div>
+
+        <!-- Forecast KPI Cards -->
+        <div class="forecast-kpi-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <!-- KPI 1: Target -->
+            <div class="crm-card" style="padding: 18px; border-top: 4px solid #6366f1; border-radius: 12px;">
+                <div style="font-size: 12px; font-weight: 700; color: #6366f1; text-transform: uppercase; margin-bottom: 6px;">🎯 CHỈ TIÊU KỲ NÀY</div>
+                <div id="kpiTargetAmount" style="font-size: 24px; font-weight: 800; color: #0f172a;">0 ₫</div>
+                <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Chỉ tiêu doanh số kỳ được giao</div>
+            </div>
+
+            <!-- KPI 2: Actual Won -->
+            <div class="crm-card" style="padding: 18px; border-top: 4px solid #10b981; border-radius: 12px;">
+                <div style="font-size: 12px; font-weight: 700; color: #10b981; text-transform: uppercase; margin-bottom: 6px;">🏆 ĐÃ CHỐT THỰC TẾ (WON)</div>
+                <div id="kpiWonAmount" style="font-size: 24px; font-weight: 800; color: #10b981;">0 ₫</div>
+                <div style="font-size: 12px; color: #64748b; margin-top: 4px;"><span id="kpiWonDealsCount" style="font-weight: 700;">0</span> hợp đồng chốt thành công</div>
+            </div>
+
+            <!-- KPI 3: Weighted Forecast -->
+            <div class="crm-card" style="padding: 18px; border-top: 4px solid #3b82f6; border-radius: 12px;">
+                <div style="font-size: 12px; font-weight: 700; color: #3b82f6; text-transform: uppercase; margin-bottom: 6px;">📈 DỰ BÁO TRỌNG SỐ XÁC SUẤT</div>
+                <div id="kpiWeightedAmount" style="font-size: 24px; font-weight: 800; color: #2563eb;">0 ₫</div>
+                <div style="font-size: 12px; color: #64748b; margin-top: 4px;"><span id="kpiOpenDealsCount" style="font-weight: 700;">0</span> cơ hội mở • Pipeline: <b id="kpiPipelineAmount">0 ₫</b></div>
+            </div>
+
+            <!-- KPI 4: Total Projected & Achievement % -->
+            <div class="crm-card" style="padding: 18px; border-top: 4px solid #8b5cf6; border-radius: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <div style="font-size: 12px; font-weight: 700; color: #8b5cf6; text-transform: uppercase;">🚀 TỔNG KỲ VỌNG VỀ</div>
+                    <span id="kpiOverallStatus" style="background: #ede9fe; color: #6d28d9; font-weight: 700; font-size: 11px; padding: 2px 7px; border-radius: 6px;">—</span>
+                </div>
+                <div id="kpiProjectedAmount" style="font-size: 24px; font-weight: 800; color: #6d28d9;">0 ₫</div>
+                <div style="margin-top: 6px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+                        <span style="color: #64748b;">Dự báo đạt chỉ tiêu:</span>
+                        <b id="kpiAchievementPct" style="color: #6d28d9;">0.0%</b>
+                    </div>
+                    <div style="height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
+                        <div id="kpiProgressBar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #3b82f6, #10b981); transition: width 0.4s ease;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Breakdown Table -->
+        <div class="crm-card" style="padding: 20px; border-radius: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+                <h3 id="forecastTableTitle" style="margin: 0; font-size: 16px; font-weight: 700; color: #0f172a;">Chi tiết Dự báo theo Nhân viên kinh doanh</h3>
+                <small style="color: #64748b;">Công thức: Dự báo = ∑(Giá trị cơ hội × Xác suất %) + Đã chốt thực tế</small>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table id="forecastTable" style="width: 100%; border-collapse: collapse; font-size: 13.5px;">
+                    <thead>
+                        <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; text-align: left; font-size: 12px; color: #475569; text-transform: uppercase;">
+                            <th style="padding: 12px 14px;">Đối tượng</th>
+                            <th style="padding: 12px 14px;">Chỉ tiêu</th>
+                            <th style="padding: 12px 14px;">Đã chốt (Won)</th>
+                            <th style="padding: 12px 14px;">Dự báo mở (Weighted)</th>
+                            <th style="padding: 12px 14px;">Tổng kỳ vọng</th>
+                            <th style="padding: 12px 14px; min-width: 150px;">% Đạt chỉ tiêu</th>
+                            <th style="padding: 12px 14px; text-align: center;">Đánh giá</th>
+                        </tr>
+                    </thead>
+                    <tbody id="forecastTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- =========================================================
+         USER STORY 2: DANH SÁCH CƠ HỘI ĐÌNH TRỆ RIÊNG CHO TRƯỞNG NHÓM
+    ========================================================= -->
+    <section id="stagnantSection" class="stagnant-section" style="display: none; margin-top: 10px;">
+        <!-- Header Banner & Action Bar -->
+        <div class="crm-card" style="margin-bottom: 20px; padding: 18px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; border-radius: 12px; border-left: 5px solid #ef4444; background: linear-gradient(135deg, #fff, #fef2f2);">
+            <div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 22px;">🚨</span>
+                    <h2 style="margin: 0; font-size: 18px; font-weight: 800; color: #991b1b;">
+                        Theo dõi & Can thiệp Cơ hội đình trệ (Dành cho Trưởng nhóm)
+                    </h2>
+                    <span style="background: #fee2e2; color: #991b1b; font-size: 11px; padding: 3px 8px; border-radius: 12px; font-weight: 700;">TEAM LEAD</span>
+                </div>
+                <p style="margin: 6px 0 0 0; font-size: 13px; color: #7f1d1d; line-height: 1.5;">
+                    Tác vụ nền chạy tự động <strong>mỗi ngày 1 lần</strong> để rà soát: gắn cờ khi thương vụ không có hoạt động trong <strong>N ngày</strong> (theo cấu hình từng giai đoạn) hoặc <strong>quá ngày dự kiến chốt</strong>.
+                </p>
+            </div>
+
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button id="btnScanStagnantView" type="button" class="crm-btn crm-btn-primary" style="background: #ef4444; border-color: #ef4444; color: #fff; font-weight: 700; padding: 9px 16px; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(239,68,68,0.25);" title="Thực hiện đánh giá toàn bộ cơ hội ngay lập tức">
+                    ⚡ Quét & cập nhật cờ ngay
+                </button>
+                <a href="pipeline-settings" class="crm-btn crm-btn-secondary" style="padding: 9px 16px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;" title="Cấu hình số ngày N tối đa cho từng giai đoạn">
+                    ⚙️ Cấu hình N ngày theo giai đoạn
+                </a>
+            </div>
+        </div>
+
+        <!-- 4 KPI Summary Cards -->
+        <div class="stagnant-kpi-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px;">
+            <div class="crm-card" style="padding: 16px 20px; border-top: 4px solid #ef4444; border-radius: 12px;">
+                <div style="font-size: 11.5px; font-weight: 700; color: #b91c1c; text-transform: uppercase; margin-bottom: 4px;">🚨 TỔNG CƠ HỘI CÓ CỜ</div>
+                <div id="stagKpiTotal" style="font-size: 24px; font-weight: 800; color: #b91c1c;">0</div>
+                <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Cần trưởng nhóm can thiệp sớm</div>
+            </div>
+
+            <div class="crm-card" style="padding: 16px 20px; border-top: 4px solid #f59e0b; border-radius: 12px;">
+                <div style="font-size: 11.5px; font-weight: 700; color: #b45309; text-transform: uppercase; margin-bottom: 4px;">⏳ KHÔNG TƯƠNG TÁC (&gt; N NGÀY)</div>
+                <div id="stagKpiInactive" style="font-size: 24px; font-weight: 800; color: #d97706;">0</div>
+                <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Vượt ngưỡng ngày không hoạt động</div>
+            </div>
+
+            <div class="crm-card" style="padding: 16px 20px; border-top: 4px solid #dc2626; border-radius: 12px;">
+                <div style="font-size: 11.5px; font-weight: 700; color: #991b1b; text-transform: uppercase; margin-bottom: 4px;">⚠️ QUÁ HẠN CHỐT CHƯA ĐÓNG</div>
+                <div id="stagKpiOverdue" style="font-size: 24px; font-weight: 800; color: #dc2626;">0</div>
+                <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Quá ngày dự kiến chốt hợp đồng</div>
+            </div>
+
+            <div class="crm-card" style="padding: 16px 20px; border-top: 4px solid #7c3aed; border-radius: 12px;">
+                <div style="font-size: 11.5px; font-weight: 700; color: #6d28d9; text-transform: uppercase; margin-bottom: 4px;">💰 GIÁ TRỊ THƯƠNG VỤ RỦI RO</div>
+                <div id="stagKpiAmount" style="font-size: 24px; font-weight: 800; color: #7c3aed;">0 ₫</div>
+                <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Tổng giá trị cơ hội đang bị gắn cờ</div>
+            </div>
+        </div>
+
+        <!-- Filter bar for Stagnant View -->
+        <div class="crm-card" style="padding: 12px 18px; margin-bottom: 16px; border-radius: 10px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+            <input id="stagSearch" class="crm-input" type="search" placeholder="Tìm theo tên cơ hội / khách hàng..." style="min-width: 220px; flex: 1;">
+            
+            <select id="stagFlagTypeFilter" class="crm-input" style="min-width: 170px;">
+                <option value="">Tất cả loại cờ cảnh báo</option>
+                <option value="OVERDUE">⚠️ Quá hạn chốt</option>
+                <option value="INACTIVE">⏳ Không tương tác (&gt; N ngày)</option>
+                <option value="BOTH">🚨 Cả hai (Quá hạn + Không tương tác)</option>
+            </select>
+
+            <select id="stagStageFilter" class="crm-input" style="min-width: 160px;">
+                <option value="">Tất cả giai đoạn</option>
+            </select>
+
+            <select id="stagOwnerFilter" class="crm-input" style="min-width: 170px;">
+                <option value="">Tất cả nhân viên</option>
+            </select>
+        </div>
+
+        <!-- Stagnant Table -->
+        <div class="crm-card" style="border-radius: 12px; overflow: hidden; box-shadow: var(--crm-shadow-sm);">
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13.5px;">
+                    <thead>
+                        <tr style="background: #f8fafc; border-bottom: 2px solid var(--crm-border); color: #475569; font-weight: 700;">
+                            <th style="padding: 12px 10px; width: 36px; text-align: center;">
+                                <input type="checkbox" id="selectAllStagnantOpps" class="opp-checkbox" title="Chọn tất cả cơ hội trong bảng">
+                            </th>
+                            <th style="padding: 12px 16px;">Cơ hội & Doanh nghiệp</th>
+                            <th style="padding: 12px 14px;">Nhân viên phụ trách</th>
+                            <th style="padding: 12px 14px;">Giai đoạn & Cấu hình N ngày</th>
+                            <th style="padding: 12px 14px;">Cờ & Lý do cảnh báo</th>
+                            <th style="padding: 12px 14px; text-align: right;">Giá trị (VND)</th>
+                            <th style="padding: 12px 14px;">Ngày dự kiến chốt</th>
+                            <th style="padding: 12px 16px; text-align: center;">Thao tác can thiệp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stagnantTableBody">
+                        <!-- Rendered by JS -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="stagnantEmptyState" style="display: none; padding: 48px 24px; text-align: center; color: #64748b;">
+                <div style="font-size: 40px; margin-bottom: 12px;">🎉</div>
+                <div style="font-size: 16px; font-weight: 700; color: #0f172a;">Tuyệt vời! Không có cơ hội nào bị đình trệ</div>
+                <div style="font-size: 13px; margin-top: 4px;">Toàn bộ các thương vụ đều đang được nhân viên chăm sóc đúng tiến độ hoặc chưa quá hạn chốt.</div>
+            </div>
+        </div>
+    </section>
+
 </main>
 
 
@@ -397,6 +755,18 @@
             type="hidden"
         >
 
+        <!-- BANNER KHÓA CHỈNH SỬA KHI CƠ HỘI ĐÃ ĐÓNG (USER STORY 1) -->
+        <div id="oppClosedAlertBanner" style="display: none; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; padding: 12px 14px; margin-bottom: 14px;">
+            <div style="font-size: 13px; font-weight: 700; color: #9f1239; display: flex; align-items: center; justify-content: space-between;">
+                <span>🔒 CƠ HỘI ĐÃ ĐÓNG</span>
+                <span id="oppClosedStatusBadge" style="background: #e11d48; color: #fff; font-size: 11px; padding: 2px 7px; border-radius: 4px; font-weight: 700;">WON</span>
+            </div>
+            <div style="font-size: 12.5px; color: #be123c; margin-top: 4px; line-height: 1.4;">
+                Cơ hội ở trạng thái đã đóng (Thắng/Thua) nên bị khóa chỉnh sửa. Chỉ Trưởng nhóm trở lên mới có quyền Mở lại cơ hội.
+            </div>
+            <div id="oppClosedDetails" style="font-size: 12px; color: #475569; margin-top: 6px; border-top: 1px dashed #fecdd3; padding-top: 6px;"></div>
+        </div>
+
 
         <label>
             Tên cơ hội
@@ -424,11 +794,96 @@
             <small id="opportunityCustomerError"></small>
         </label>
 
+        <div class="form-grid">
+            <label>
+                Người liên hệ chính
+
+                <select
+                    id="opportunityContact"
+                    class="crm-input"
+                >
+                    <option value="">-- Chọn người liên hệ --</option>
+                </select>
+                <input
+                    id="opportunityContactManual"
+                    class="crm-input"
+                    type="text"
+                    placeholder="Hoặc nhập tên người liên hệ..."
+                    style="margin-top: 6px; display: none;"
+                >
+            </label>
+
+            <label>
+                Nguồn cơ hội
+
+                <select
+                    id="opportunityLeadSource"
+                    class="crm-input"
+                >
+                    <option value="">-- Chọn nguồn cơ hội --</option>
+                    <option value="Website / Tìm kiếm">Website / Tìm kiếm</option>
+                    <option value="Mạng xã hội / Facebook">Mạng xã hội / Facebook</option>
+                    <option value="Hội thảo / Sự kiện">Hội thảo / Sự kiện</option>
+                    <option value="Người quen giới thiệu">Người quen giới thiệu</option>
+                    <option value="Email marketing / Chiến dịch">Email marketing / Chiến dịch</option>
+                    <option value="Cold Call / Trực tiếp">Cold Call / Trực tiếp</option>
+                    <option value="Khác">Khác</option>
+                </select>
+            </label>
+        </div>
+
+
+        <!-- Opportunity Products / Services Section (User Story 1) -->
+        <div class="opp-products-card" style="margin: 14px 0; border: 1px solid var(--crm-border, #cbd5e1); border-radius: 8px; padding: 14px; background: var(--crm-bg-subtle, #f8fafc);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 16px;">📦</span>
+                    <strong style="font-size: 13.5px; color: var(--crm-text, #0f172a);">Sản phẩm & Dịch vụ cơ hội</strong>
+                    <span id="oppProductBadgeCount" style="background: #e2e8f0; color: #475569; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 10px;">0 dòng</span>
+                </div>
+                <button id="btnAddOppProductLine" type="button" class="crm-btn crm-btn-secondary" style="padding: 4px 10px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                    + Thêm sản phẩm
+                </button>
+            </div>
+
+            <div style="overflow-x: auto; max-height: 240px; border-radius: 6px; border: 1px solid var(--crm-border, #e2e8f0); background: #ffffff;">
+                <table id="oppProductsTable" style="width: 100%; min-width: 600px; border-collapse: collapse; font-size: 12px;">
+                    <thead>
+                        <tr style="background: var(--crm-bg-subtle, #f1f5f9); color: #475569; border-bottom: 1px solid var(--crm-border, #e2e8f0); text-align: left;">
+                            <th style="padding: 8px 10px;">Sản phẩm / Dịch vụ</th>
+                            <th style="padding: 8px 6px; width: 60px;">SL</th>
+                            <th style="padding: 8px 8px; width: 100px;">Đơn giá niêm yết</th>
+                            <th style="padding: 8px 6px; width: 55px;">CK %</th>
+                            <th style="padding: 8px 6px; width: 120px;">Kỳ / Số kỳ thuê bao</th>
+                            <th style="padding: 8px 8px; width: 95px; text-align: right;">Thành tiền</th>
+                            <th style="padding: 8px 8px; width: 95px; text-align: right;">ACV (Năm)</th>
+                            <th style="padding: 8px 6px; width: 34px; text-align: center;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="oppProductsTableBody">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Summary Bar -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 8px 12px; background: #f0fdf4; border-radius: 6px; border: 1px solid #bbf7d0; font-size: 12.5px;">
+                <span style="color: #166534;">
+                    Giá trị hợp đồng theo năm (ACV): <b id="oppTotalAcvDisplay" style="color: #15803d; font-size: 13px;">0 ₫</b>
+                </span>
+                <span style="color: #166534;">
+                    Tổng tiền cơ hội: <b id="oppTotalAmountDisplay" style="color: #15803d; font-size: 13.5px;">0 ₫</b>
+                </span>
+            </div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">
+                💡 Đơn giá mặc định lấy từ bảng giá niêm yết. Giá trị cơ hội được tự động tính từ các dòng sản phẩm có căn cứ.
+            </div>
+        </div>
 
         <div class="form-grid">
 
             <label>
-                Giá trị dự kiến
+                Giá trị cơ hội (VNĐ)
 
                 <input
                     id="opportunityValue"
@@ -436,18 +891,20 @@
                     type="number"
                     min="0"
                     step="1000"
+                    placeholder="0"
                 >
             </label>
 
 
             <label>
-                Ngày dự kiến chốt
+                Ngày dự kiến chốt <em>*</em>
 
                 <input
                     id="opportunityCloseDate"
                     class="crm-input"
                     type="date"
                 >
+                <small id="opportunityCloseDateError"></small>
             </label>
 
         </div>
@@ -456,7 +913,7 @@
         <div class="form-grid">
 
             <label>
-                Giai đoạn
+                Giai đoạn <em>*</em>
 
                 <select
                     id="opportunityStage"
@@ -496,17 +953,243 @@
 
         </div>
 
+        <div id="opportunityProbabilityNoteWrap" style="margin-top: 6px;">
+            <label>
+                Ghi chú điều chỉnh xác suất
+                <input
+                    id="opportunityProbabilityNote"
+                    class="crm-input"
+                    type="text"
+                    placeholder="Ghi chú lý do khi sửa xác suất thắng so với mặc định..."
+                >
+            </label>
+        </div>
+
 
         <label>
             Người sở hữu
 
-            <input
-                id="opportunityOwner"
-                class="crm-input"
-                type="text"
-            >
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <input
+                    id="opportunityOwner"
+                    class="crm-input"
+                    type="text"
+                    readonly
+                    style="background: var(--crm-bg-subtle, #f8fafc); flex: 1;"
+                >
+                <button
+                    id="btnQuickReassignInDrawer"
+                    type="button"
+                    class="crm-btn crm-btn-secondary"
+                    style="display: none; white-space: nowrap; font-size: 12px; padding: 7px 12px; color: #0284c7; border-color: #bae6fd; background: #f0f9ff;"
+                    title="Chuyển giao quyền sở hữu cơ hội này cho nhân sự khác"
+                >
+                    🔄 Chuyển giao
+                </button>
+            </div>
         </label>
 
+        <!-- Dynamic Custom Fields Section -->
+        <div id="opportunityCustomFieldsSection" style="margin-top: 16px; border-top: 1px dashed var(--crm-border); padding-top: 16px;">
+            <div style="font-weight: 600; font-size: 13px; color: var(--crm-muted); text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                <span>✨ Trường tuỳ chỉnh</span>
+            </div>
+            <div id="opportunityCustomFieldsContainer" style="display: flex; flex-direction: column; gap: 12px;">
+                <!-- Dynamically loaded fields will be rendered here -->
+            </div>
+        </div>
+
+        <!-- Assignment History Section (User Story Reassignment) -->
+        <div id="opportunityAssignmentHistorySection" class="assignment-history-card" style="display: none;">
+            <div class="assignment-history-title">
+                <span>📜 Lịch sử phân bổ & chuyển giao</span>
+                <span id="assignmentHistoryCountBadge" style="background:#e0f2fe; color:#0369a1; font-size:11px; padding:2px 7px; border-radius:10px; font-weight:700;">0 lần</span>
+            </div>
+            <div id="assignmentTimelineList" class="assignment-timeline">
+                <!-- Rendered dynamically -->
+            </div>
+            <div id="assignmentHistoryEmpty" style="font-size: 12px; color: #94a3b8; font-style: italic; display: none;">
+                Cơ hội chưa từng được chuyển giao lại.
+            </div>
+        </div>
+
+        <!-- COLLABORATION & TEAM MEMBERS SECTION (USER STORY 3) -->
+        <div id="opportunityTeamSection" class="opp-team-section">
+            <div class="opp-team-header">
+                <div class="opp-history-title">
+                    <span>👥 Đội ngũ cùng tham gia thương vụ</span>
+                    <span id="oppMemberCountBadge" class="opp-history-badge">1 thành viên</span>
+                </div>
+            </div>
+
+            <!-- Banner cảnh báo quyền khi là Collaborator -->
+            <div id="collaboratorRoleNotice" class="opp-collaborator-banner" style="display: none;">
+                <strong>ℹ️ Quyền hạn phối hợp:</strong> Bạn đang tham gia cơ hội với vai trò <em>Thành viên cùng theo</em>. Bạn có quyền ghi nhận các hoạt động tương tác, nhưng <strong>không thể chuyển quyền sở hữu chính</strong> của thương vụ này.
+            </div>
+
+            <!-- Danh sách thành viên tham gia -->
+            <div id="opportunityMembersList" class="opp-members-list">
+                <!-- Rendered dynamically -->
+            </div>
+
+            <!-- Form thêm thành viên (Dành cho Chủ sở hữu hoặc Trưởng nhóm) -->
+            <div id="oppAddMemberFormWrap" class="opp-add-member-form">
+                <span style="font-size: 12px; font-weight: 700; color: #475569; width: 100%;">+ Thêm cộng tác viên cùng tham gia cơ hội:</span>
+                <select id="newMemberUserSelect" class="crm-input" style="flex: 1; min-width: 140px; font-size: 12.5px;">
+                    <option value="">-- Chọn nhân sự --</option>
+                </select>
+                <select id="newMemberRoleSelect" class="crm-input" style="flex: 1; min-width: 140px; font-size: 12.5px;">
+                    <option value="Thành viên phối hợp">Thành viên phối hợp</option>
+                    <option value="Hỗ trợ kỹ thuật / Pre-sales">Hỗ trợ kỹ thuật / Pre-sales</option>
+                    <option value="Hỗ trợ đàm phán & thương lượng giá">Hỗ trợ đàm phán & thương lượng giá</option>
+                    <option value="Chăm sóc & Vận hành giải pháp">Chăm sóc & Vận hành giải pháp</option>
+                    <option value="Tư vấn giải pháp chuyên sâu">Tư vấn giải pháp chuyên sâu</option>
+                </select>
+                <button id="btnAddMemberBtn" type="button" class="crm-btn crm-btn-primary" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;">
+                    + Thêm vào cơ hội
+                </button>
+            </div>
+
+            <!-- Box Ghi nhận hoạt động (Dành cho cả Chủ sở hữu & Thành viên tham gia) (Story 3) -->
+            <div id="opportunityQuickActivitySection" class="opp-quick-activity-box" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-top: 12px;">
+                <div style="font-weight: 700; font-size: 12.5px; color: #1e293b; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+                    <span>⚡ Ghi nhận hoạt động trao đổi (Story 3)</span>
+                    <small style="color: #64748b; font-weight: normal;">Hỗ trợ quá khứ & thời lượng trao đổi</small>
+                </div>
+
+                <!-- Hàng 1: Loại hoạt động & Tiêu đề -->
+                <div style="display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
+                    <select id="quickActivityType" class="crm-input" style="flex: 1; min-width: 120px; font-size: 12px;">
+                        <option value="CALL">📞 Cuộc gọi</option>
+                        <option value="MEETING">🤝 Cuộc gặp trực tiếp</option>
+                        <option value="EMAIL">✉️ Email</option>
+                        <option value="NOTE">📝 Ghi chú trao đổi</option>
+                    </select>
+                    <input id="quickActivitySubject" class="crm-input" type="text" placeholder="Tiêu đề (VD: Trao đổi nhu cầu qua điện thoại, Gặp trao đổi báo giá)..." style="flex: 2; min-width: 190px; font-size: 12px;">
+                </div>
+
+                <!-- Hàng 2: Người liên hệ, Thời điểm, Thời lượng -->
+                <div style="display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; align-items: center;">
+                    <select id="quickActivityContact" class="crm-input" style="flex: 1; min-width: 130px; font-size: 12px;" title="Người liên hệ đại diện khách hàng">
+                        <option value="">-- Người liên hệ --</option>
+                    </select>
+                    <input id="quickActivityTime" class="crm-input" type="datetime-local" style="flex: 1; min-width: 160px; font-size: 12px;" title="Thời điểm diễn ra (hỗ trợ ghi nhận hoạt động trong quá khứ)">
+                    <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+                        <input id="quickActivityDuration" class="crm-input" type="number" min="0" placeholder="Thời lượng (phút)..." style="width: 110px; font-size: 12px;" value="30">
+                        <span style="font-size: 11px; color: #64748b;">phút</span>
+                    </div>
+                </div>
+
+                <!-- Chips chọn nhanh thời lượng -->
+                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 11px; flex-wrap: wrap;">
+                    <span style="color: #64748b; font-weight: 600;">Chọn nhanh:</span>
+                    <button type="button" class="crm-chip-duration" onclick="setQuickActivityDuration(15)" style="background: #e2e8f0; border: none; padding: 2px 7px; border-radius: 4px; cursor: pointer; font-size: 11px;">15 phút</button>
+                    <button type="button" class="crm-chip-duration" onclick="setQuickActivityDuration(30)" style="background: #e2e8f0; border: none; padding: 2px 7px; border-radius: 4px; cursor: pointer; font-size: 11px;">30 phút</button>
+                    <button type="button" class="crm-chip-duration" onclick="setQuickActivityDuration(45)" style="background: #e2e8f0; border: none; padding: 2px 7px; border-radius: 4px; cursor: pointer; font-size: 11px;">45 phút</button>
+                    <button type="button" class="crm-chip-duration" onclick="setQuickActivityDuration(60)" style="background: #e2e8f0; border: none; padding: 2px 7px; border-radius: 4px; cursor: pointer; font-size: 11px;">60 phút</button>
+                </div>
+
+                <!-- Hàng 3: Nội dung trao đổi -->
+                <div style="margin-bottom: 8px;">
+                    <textarea id="quickActivityDescription" class="crm-input" rows="2" placeholder="Nội dung tóm tắt kết quả trao đổi, thắc mắc từ khách hàng..." style="font-size: 12px; resize: vertical;"></textarea>
+                </div>
+
+                <!-- Hàng 4: Kết quả trao đổi (Outcome) -->
+                <div style="margin-bottom: 8px;">
+                    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 11px; flex-wrap: wrap;">
+                        <span style="color: #64748b; font-weight: 600;">Kết quả nhanh:</span>
+                        <button type="button" onclick="setQuickActivityOutcome('Khách hàng rất quan tâm, hẹn demo chi tiết')" style="background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; padding: 2px 7px; border-radius: 4px; cursor: pointer; font-size: 11px;">🎯 Khách quan tâm</button>
+                        <button type="button" onclick="setQuickActivityOutcome('Cần chuẩn bị báo giá chính thức & hợp đồng mẫu')" style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a; padding: 2px 7px; border-radius: 4px; cursor: pointer; font-size: 11px;">📑 Cần gửi báo giá</button>
+                        <button type="button" onclick="setQuickActivityOutcome('Khách đã đồng ý ký hợp đồng triển khai')" style="background: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; padding: 2px 7px; border-radius: 4px; cursor: pointer; font-size: 11px;">✅ Đã chốt thương vụ</button>
+                        <button type="button" onclick="setQuickActivityOutcome('Khách bận, hẹn gọi lại tuần tới')" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; padding: 2px 7px; border-radius: 4px; cursor: pointer; font-size: 11px;">⏳ Hẹn liên hệ lại</button>
+                    </div>
+                    <input id="quickActivityOutcome" class="crm-input" type="text" placeholder="Kết quả / Thống nhất tiếp theo..." style="font-size: 12px;">
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 8px; align-items: center;">
+                    <span id="quickActivityMsg" style="font-size: 11.5px; color: #16a34a; font-weight: 600; display: none;">Đã lưu hoạt động!</span>
+                    <button id="btnLogOpportunityActivity" type="button" class="crm-btn crm-btn-primary" style="padding: 5px 14px; font-size: 12px;">
+                        💾 Lưu hoạt động
+                    </button>
+                </div>
+
+                <!-- Danh sách hoạt động gần đây -->
+                <div style="margin-top: 10px; border-top: 1px dashed #e2e8f0; padding-top: 8px;">
+                    <div style="font-size: 11.5px; font-weight: 700; color: #64748b; margin-bottom: 6px;">Hoạt động đã ghi nhận:</div>
+                    <div id="opportunityActivitiesList" class="opp-activities-list">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- USER STORY 1: TÀI LIỆU ĐÍNH KÈM THƯƠNG VỤ (HỒ SƠ THẦU, BIÊN BẢN HỌP) -->
+            <div id="opportunityAttachmentsSection" class="opp-attachments-box" style="margin-top: 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                <div style="font-weight: 700; font-size: 13px; color: #1e293b; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span>📎 Tài liệu đính kèm thương vụ (Story 1)</span>
+                        <span id="oppAttachmentsCountBadge" class="opp-history-badge" style="background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">0 tệp</span>
+                    </div>
+                    <small style="color: #64748b; font-size: 11px;">Hồ sơ thầu, biên bản họp, tài liệu kỹ thuật</small>
+                </div>
+
+                <!-- Phân quyền bảo mật thông báo -->
+                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 7px 10px; margin-bottom: 10px; font-size: 11.5px; color: #1e40af; display: flex; align-items: flex-start; gap: 6px;">
+                    <span style="font-size: 14px;">🔒</span>
+                    <div>
+                        <strong>Phân quyền bảo mật tải xuống:</strong> Chỉ người sở hữu cơ hội và các cộng tác viên được chia sẻ trong đội ngũ mới được tải xuống tài liệu.
+                    </div>
+                </div>
+
+                <!-- Vùng tải lên nhiều tệp (Dropzone) -->
+                <div id="oppAttachmentDropzone" style="border: 2px dashed #94a3b8; border-radius: 8px; padding: 14px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s;" onclick="document.getElementById('oppAttachmentFileInput').click()">
+                    <input type="file" id="oppAttachmentFileInput" multiple style="display: none;" />
+                    <div style="font-size: 24px; margin-bottom: 4px;">📂</div>
+                    <div style="font-weight: 600; font-size: 12.5px; color: #1e293b;">Bấm để chọn tệp hoặc kéo thả tệp vào đây</div>
+                    <div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">
+                        Tải lên nhiều tệp cùng lúc (PDF, DOCX, XLSX, Ảnh...). Tối đa <strong>20MB</strong> mỗi tệp.
+                    </div>
+                </div>
+
+                <div id="oppAttachmentUploadMsg" style="display: none; margin-top: 8px; font-size: 12px; text-align: center; font-weight: 600;"></div>
+
+                <!-- Danh sách tài liệu đính kèm -->
+                <div style="margin-top: 12px;">
+                    <div style="font-size: 11.5px; font-weight: 700; color: #475569; margin-bottom: 6px;">Danh sách tài liệu đã đính kèm:</div>
+                    <div id="oppAttachmentsList" style="display: flex; flex-direction: column; gap: 6px;">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AUDIT & FIELD CHANGE HISTORY SECTION (USER STORY 1) -->
+        <div id="opportunityFieldHistorySection" class="opp-history-section">
+            <div class="opp-history-header">
+                <div class="opp-history-title">
+                    <span>📜 Lịch sử thay đổi cơ hội</span>
+                    <span id="oppFieldHistoryCountBadge" class="opp-history-badge">0 thay đổi</span>
+                </div>
+            </div>
+            <p style="margin: 0 0 10px 0; font-size: 11.5px; color: #64748b;">
+                Tự động ghi nhận mọi thay đổi về <strong>giai đoạn, giá trị, ngày chốt</strong> và <strong>người sở hữu</strong> kèm người thực hiện và lý do.
+            </p>
+            <div class="opp-history-table-wrap">
+                <table class="opp-history-table">
+                    <thead>
+                        <tr>
+                            <th style="min-width: 105px;">Thời điểm</th>
+                            <th style="min-width: 95px;">Người đổi</th>
+                            <th style="min-width: 105px;">Trường đổi</th>
+                            <th style="min-width: 180px;">Giá trị trước ➔ sau</th>
+                            <th>Lý do</th>
+                        </tr>
+                    </thead>
+                    <tbody id="oppFieldHistoryTableBody">
+                        <!-- Rendered dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
         <footer class="drawer-footer">
 
@@ -519,6 +1202,36 @@
             </button>
 
             <button
+                id="btnDrawerReopenDeal"
+                class="crm-btn crm-btn-primary"
+                type="button"
+                style="display: none; background: #2563eb; border-color: #2563eb;"
+            >
+                🔓 Mở lại cơ hội
+            </button>
+
+            <button
+                id="btnDrawerReassignOpp"
+                class="crm-btn"
+                type="button"
+                style="display: none; background: #0284c7; color: #fff; border-color: #0284c7;"
+                title="Phân bổ lại cơ hội cho người khác trong nhóm"
+            >
+                🔄 Chuyển giao
+            </button>
+
+            <button
+                id="btnDrawerCreateQuote"
+                class="crm-btn"
+                type="button"
+                style="display: none; background: #059669; color: #fff; border-color: #059669;"
+                title="Soạn báo giá kế thừa các dòng sản phẩm từ cơ hội này"
+            >
+                📄 Soạn báo giá
+            </button>
+
+            <button
+                id="saveOpportunityBtn"
                 class="crm-btn crm-btn-primary"
                 type="submit"
             >
@@ -970,7 +1683,356 @@
 
 
 
-<script src="js/pages/pipeline.js"></script>
+<!-- =========================================================
+     STAGE CONDITION & OVERRIDE MODAL (USER STORY 2)
+========================================================= -->
+<div id="stageConditionOverlay" class="pipeline-overlay" style="display: none; z-index: 9998;"></div>
+
+<section id="stageConditionModal" class="crm-card" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; width: 92%; max-width: 520px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1); border-radius: 12px; padding: 22px; background: var(--crm-bg-surface, #ffffff); border: 1px solid var(--crm-border, #e2e8f0);">
+    <header style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 38px; height: 38px; border-radius: 8px; background: #fff1f2; color: #e11d48; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                ⚠️
+            </div>
+            <div>
+                <strong style="font-size: 16px; color: #0f172a; display: block;">Chưa đủ điều kiện rời giai đoạn</strong>
+                <span id="scModalStageName" style="font-size: 12.5px; color: #64748b;">Giai đoạn: <strong>Tiếp cận</strong></span>
+            </div>
+        </div>
+        <button id="closeStageConditionModal" type="button" style="background: none; border: none; font-size: 16px; cursor: pointer; color: #94a3b8;">✕</button>
+    </header>
+
+    <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; padding: 12px 14px; margin-bottom: 14px;">
+        <div style="font-size: 12.5px; font-weight: 700; color: #9f1239; margin-bottom: 4px;">Thông báo điều kiện còn thiếu:</div>
+        <div id="scModalMissingDetail" style="font-size: 13px; color: #be123c; line-height: 1.45;">Chưa có cuộc gặp (Meeting) nào được ghi nhận cho cơ hội này.</div>
+    </div>
+
+    <!-- Section for Team Lead / Director / Admin override -->
+    <div id="scOverrideSection" style="margin-top: 14px; border-top: 1px dashed #cbd5e1; padding-top: 14px;">
+        <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+            <span>🛡️ Quyền Trưởng nhóm: Ghi đè điều kiện</span>
+        </div>
+        <p style="font-size: 12px; color: #64748b; margin: 0 0 8px;">Bạn có quyền Trưởng nhóm / Giám đốc để đặc cách bỏ qua điều kiện. Bắt buộc nhập lý do ghi đè để lưu lịch sử kiểm toán:</p>
+        <textarea id="scOverrideReason" class="crm-input" rows="3" placeholder="Nhập lý do ghi đè điều kiện rời giai đoạn..." style="width: 100%; box-sizing: border-box;"></textarea>
+    </div>
+
+    <!-- Alert for regular Sales Rep without override permission -->
+    <div id="scNoOverrideNotice" style="display: none; font-size: 12.5px; color: #475569; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; margin-top: 12px;">
+        ℹ️ Nhân viên kinh doanh không thể tự ý bỏ qua điều kiện rời giai đoạn. Vui lòng hoàn thành yêu cầu trên hoặc báo Trưởng nhóm xem xét ghi đè kèm lý do.
+    </div>
+
+    <footer style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px;">
+        <button id="cancelStageConditionModal" type="button" class="crm-btn crm-btn-secondary">Đóng</button>
+        <button id="btnConfirmStageOverride" type="button" class="crm-btn crm-btn-primary" style="background: #e11d48; border-color: #e11d48;">Xác nhận ghi đè & Chuyển</button>
+    </footer>
+</section>
+
+<!-- =========================================================
+     REOPEN DEAL MODAL (USER STORY 1)
+========================================================= -->
+<div id="reopenDealOverlay" class="pipeline-overlay" style="display: none; z-index: 9998; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px);"></div>
+
+<section id="reopenDealModal" class="crm-card" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; width: 92%; max-width: 520px; box-shadow: 0 25px 35px -5px rgba(0, 0, 0, 0.25); border-radius: 12px; padding: 22px; background: #ffffff; border: 1px solid #e2e8f0;">
+    <header style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 38px; height: 38px; border-radius: 8px; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                🔓
+            </div>
+            <div>
+                <strong style="font-size: 16px; color: #0f172a; display: block;">Mở lại cơ hội bán hàng (Re-open)</strong>
+                <span id="reopenModalOppTitle" style="font-size: 12.5px; color: #64748b;">Cơ hội: —</span>
+            </div>
+        </div>
+        <button id="closeReopenDealModalX" type="button" style="background: none; border: none; font-size: 18px; cursor: pointer; color: #94a3b8;">✕</button>
+    </header>
+
+    <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 12px 14px; margin-bottom: 14px;">
+        <div style="font-size: 12.5px; font-weight: 700; color: #92400e; margin-bottom: 3px;">Quy tắc quản lý:</div>
+        <div style="font-size: 12.5px; color: #b45309; line-height: 1.45;">
+            Chỉ Trưởng nhóm trở lên mới có quyền mở lại cơ hội đã đóng (Thắng/Thua). Lý do mở lại bắt buộc phải nhập và được ghi lại trong nhật ký kiểm toán.
+        </div>
+    </div>
+
+    <form id="reopenDealForm">
+        <label style="font-size: 13px; font-weight: 600; color: #334155; display: block; margin-bottom: 6px;">
+            Lý do mở lại cơ hội bán hàng <em style="color: #ef4444;">*</em>
+        </label>
+        <textarea
+            id="reopenDealReason"
+            class="crm-input"
+            rows="3"
+            placeholder="Nhập lý do chi tiết (ví dụ: Khách hàng yêu cầu bổ sung dịch vụ, đàm phán lại hợp đồng...)"
+            style="width: 100%; box-sizing: border-box; margin-bottom: 6px;"
+            required
+        ></textarea>
+        <div id="reopenDealError" style="color: #ef4444; font-size: 12.5px; font-weight: 600; min-height: 18px; margin-bottom: 12px;"></div>
+
+        <footer style="display: flex; justify-content: flex-end; gap: 10px;">
+            <button id="cancelReopenDealBtn" type="button" class="crm-btn crm-btn-secondary">Hủy</button>
+            <button type="submit" class="crm-btn crm-btn-primary" style="background: #2563eb; border-color: #2563eb;">Xác nhận Mở lại</button>
+        </footer>
+    </form>
+</section>
+
+<!-- =========================================================
+     FLOATING BULK ACTION BAR
+========================================================= -->
+<div id="pipelineBulkActionBar" class="pipeline-bulk-bar">
+    <div class="bulk-bar-info">
+        <span>Đã chọn</span>
+        <span id="bulkSelectedCount" class="bulk-bar-count">0</span>
+        <span>cơ hội</span>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+        <button id="btnBulkReassign" type="button" class="bulk-bar-btn bulk-bar-btn-primary" title="Phân bổ lại các cơ hội đã chọn cho nhân sự khác">
+            🔄 Phân bổ lại cơ hội
+        </button>
+        <button id="btnBulkDeselect" type="button" class="bulk-bar-btn bulk-bar-btn-secondary" title="Bỏ chọn tất cả">
+            ✕ Bỏ chọn
+        </button>
+    </div>
+</div>
+
+<!-- =========================================================
+     REASSIGN OPPORTUNITY MODAL (SINGLE & BULK)
+========================================================= -->
+<div id="reassignOpportunityOverlay" class="pipeline-overlay" style="display: none; z-index: 9998; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px);"></div>
+
+<section id="reassignOpportunityModal" class="crm-card reassign-modal" style="display: none;">
+    <header style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                🔄
+            </div>
+            <div>
+                <strong style="font-size: 16.5px; color: #0f172a; display: block;">Phân bổ lại cơ hội bán hàng</strong>
+                <span id="reassignModalSubtitle" style="font-size: 12.5px; color: #64748b;">Chuyển giao quyền sở hữu cơ hội cho nhân viên kinh doanh khác</span>
+            </div>
+        </div>
+        <button id="closeReassignModalX" type="button" style="background: none; border: none; font-size: 18px; cursor: pointer; color: #94a3b8;">✕</button>
+    </header>
+
+    <!-- Context Banner: Single vs Bulk -->
+    <div id="reassignContextBanner" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px;">
+        <div style="font-size: 12.5px; font-weight: 700; color: #166534; display: flex; align-items: center; justify-content: space-between;">
+            <span id="reassignTargetCountTitle">Đang chuyển giao 1 cơ hội</span>
+            <span id="reassignTargetCountBadge" style="background: #15803d; color: #fff; font-size: 11px; padding: 2px 7px; border-radius: 4px; font-weight: 700;">1 DEAL</span>
+        </div>
+        <div id="reassignContextDetails" style="font-size: 12px; color: #15803d; margin-top: 4px; line-height: 1.4;">
+            Người nhận sẽ ngay lập tức nhìn thấy cơ hội trong danh sách của mình cùng toàn bộ lịch sử hoạt động và ghi chú.
+        </div>
+    </div>
+
+    <form id="reassignOpportunityForm">
+        <!-- Target Assignee -->
+        <label style="font-size: 13px; font-weight: 600; color: #334155; display: block; margin-bottom: 6px;">
+            Nhân viên tiếp nhận mới <em style="color: #ef4444;">*</em>
+            <select id="reassignToUser" class="crm-input" style="width: 100%; margin-top: 4px;" required>
+                <option value="">-- Đang tải danh sách nhân sự... --</option>
+            </select>
+        </label>
+
+        <!-- Reason Preset -->
+        <label style="font-size: 13px; font-weight: 600; color: #334155; display: block; margin-top: 12px; margin-bottom: 6px;">
+            Lý do chuyển giao (Gợi ý nhanh)
+            <select id="reassignReasonPreset" class="crm-input" style="width: 100%; margin-top: 4px;">
+                <option value="">-- Chọn lý do bàn giao / phân bổ --</option>
+                <option value="Nhân viên phụ trách nghỉ phép / nghỉ ốm dài ngày">Nhân viên phụ trách nghỉ phép / nghỉ ốm dài ngày</option>
+                <option value="Nhân viên quá tải số lượng cơ hội (Cân bằng khối lượng công việc)">Nhân viên quá tải số lượng cơ hội (Cân bằng khối lượng công việc)</option>
+                <option value="Nhân viên chuyển nhóm hoặc đã nghỉ việc">Nhân viên chuyển nhóm hoặc đã nghỉ việc</option>
+                <option value="Cần nhân sự chuyên môn cao / giàu kinh nghiệm can thiệp xử lý">Cần nhân sự chuyên môn cao / giàu kinh nghiệm can thiệp xử lý</option>
+                <option value="Điều phối lại địa bàn / phân khúc khách hàng">Điều phối lại địa bàn / phân khúc khách hàng</option>
+                <option value="Cơ hội bị gắn cờ đình trệ cần đổi người phụ trách thúc đẩy">Cơ hội bị gắn cờ đình trệ cần đổi người phụ trách thúc đẩy</option>
+                <option value="Khác">Khác (Tự nhập lý do)</option>
+            </select>
+        </label>
+
+        <!-- Reason Detailed Textarea -->
+        <label style="font-size: 13px; font-weight: 600; color: #334155; display: block; margin-top: 12px; margin-bottom: 6px;">
+            Lý do phân bổ chi tiết <em style="color: #ef4444;">*</em>
+            <textarea
+                id="reassignReason"
+                class="crm-input"
+                rows="2"
+                placeholder="Nhập lý do cụ thể chuyển giao quyền sở hữu cơ hội (bắt buộc)..."
+                style="width: 100%; box-sizing: border-box; margin-top: 4px;"
+                required
+            ></textarea>
+        </label>
+
+        <!-- Handover Notes -->
+        <label style="font-size: 13px; font-weight: 600; color: #334155; display: block; margin-top: 12px; margin-bottom: 6px;">
+            Ghi chú bàn giao công việc & dặn dò (Tùy chọn)
+            <textarea
+                id="reassignNotes"
+                class="crm-input"
+                rows="2"
+                placeholder="Ghi chú bàn giao công việc cho nhân sự nhận: tiến độ hiện tại, lưu ý tính cách khách hàng, lịch hẹn tiếp theo..."
+                style="width: 100%; box-sizing: border-box; margin-top: 4px;"
+            ></textarea>
+        </label>
+
+        <div id="reassignError" style="color: #ef4444; font-size: 12.5px; font-weight: 600; min-height: 18px; margin-top: 10px;"></div>
+
+        <footer style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px;">
+            <button id="cancelReassignModalBtn" type="button" class="crm-btn crm-btn-secondary">Hủy</button>
+            <button id="submitReassignBtn" type="submit" class="crm-btn crm-btn-primary" style="background: #0284c7; border-color: #0284c7;">
+                🔄 Xác nhận chuyển giao
+            </button>
+        </footer>
+    </form>
+</section>
+
+<!-- MODAL LƯU BỘ LỌC (USER STORY 2) -->
+<div id="saveFilterOverlay" class="pipeline-overlay" style="display: none;"></div>
+<section id="saveFilterModal" class="crm-card" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10001; width: 92%; max-width: 440px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2); border-radius: 12px; padding: 22px; background: #ffffff; border: 1px solid #e2e8f0;">
+    <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #0f172a;">💾 Lưu bộ lọc tìm kiếm</h3>
+        <button id="closeSaveFilterModalX" type="button" style="background: none; border: none; font-size: 18px; cursor: pointer; color: #94a3b8;">✕</button>
+    </header>
+    <div style="font-size: 12.5px; color: #64748b; margin-bottom: 14px; line-height: 1.45;">
+        Lưu lại các tiêu chí lọc đang chọn (giai đoạn, sản phẩm, người sở hữu, khoảng giá trị, khoảng ngày chốt...) để tái sử dụng nhanh chóng.
+    </div>
+    <form id="saveFilterForm">
+        <label style="display: block; margin-bottom: 14px;">
+            <span style="font-weight: 600; font-size: 13px; color: #334155;">Tên bộ lọc <em style="color: #ef4444;">*</em></span>
+            <input id="savedFilterNameInput" class="crm-input" type="text" placeholder="VD: Cơ hội > 100M cần chốt tuần này..." required style="margin-top: 6px; width: 100%;">
+            <small id="saveFilterError" style="color: #ef4444; font-size: 12px;"></small>
+        </label>
+        <footer style="display: flex; justify-content: flex-end; gap: 8px;">
+            <button id="cancelSaveFilterModalBtn" type="button" class="crm-btn crm-btn-secondary">Hủy</button>
+            <button id="confirmSaveFilterBtn" type="submit" class="crm-btn crm-btn-primary">Lưu bộ lọc</button>
+        </footer>
+    </form>
+</section>
+
+<!-- =========================================================
+     GLOBAL QUICK ACTIVITY MODAL (USER STORY 3 - MOBILE FRIENDLY)
+========================================================= -->
+<div id="globalQuickActivityOverlay" class="pipeline-overlay" style="display: none; z-index: 10005; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(3px);"></div>
+
+<section id="globalQuickActivityModal" class="crm-card" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10006; width: 94%; max-width: 540px; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 30px -5px rgba(0, 0, 0, 0.25); border-radius: 14px; padding: 20px; background: #ffffff; border: 1px solid #e2e8f0;">
+    <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 22px;">⚡</span>
+            <div>
+                <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #0f172a;">Ghi nhanh hoạt động khách hàng</h3>
+                <span style="font-size: 11.5px; color: #64748b;">Ghi nhận ngay sau khi rời văn phòng khách (hỗ trợ điện thoại)</span>
+            </div>
+        </div>
+        <button id="closeGlobalQuickActivityModalX" type="button" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #94a3b8; padding: 4px;">✕</button>
+    </header>
+
+    <form id="globalQuickActivityForm">
+        <!-- 1. Loại hoạt động (Pills) -->
+        <label style="display: block; margin-bottom: 12px;">
+            <span style="font-weight: 600; font-size: 12.5px; color: #334155; margin-bottom: 6px; display: block;">1. Loại hoạt động <em style="color: #ef4444;">*</em></span>
+            <div id="modalActivityTypePills" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+                <button type="button" class="act-type-btn active" data-type="CALL" style="padding: 8px 4px; border-radius: 8px; border: 1.5px solid #2563eb; background: #eff6ff; color: #1d4ed8; font-weight: 700; font-size: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                    <span style="font-size: 16px;">📞</span>
+                    <span>Cuộc gọi</span>
+                </button>
+                <button type="button" class="act-type-btn" data-type="MEETING" style="padding: 8px 4px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; color: #475569; font-weight: 600; font-size: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                    <span style="font-size: 16px;">🤝</span>
+                    <span>Cuộc gặp</span>
+                </button>
+                <button type="button" class="act-type-btn" data-type="EMAIL" style="padding: 8px 4px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; color: #475569; font-weight: 600; font-size: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                    <span style="font-size: 16px;">✉️</span>
+                    <span>Email</span>
+                </button>
+                <button type="button" class="act-type-btn" data-type="NOTE" style="padding: 8px 4px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; color: #475569; font-weight: 600; font-size: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                    <span style="font-size: 16px;">📝</span>
+                    <span>Ghi chú</span>
+                </button>
+            </div>
+            <input type="hidden" id="modalActivityTypeVal" value="CALL">
+        </label>
+
+        <!-- 2. Gắn với Khách hàng & Người liên hệ & Cơ hội liên quan -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-bottom: 12px;">
+            <div style="font-weight: 600; font-size: 12px; color: #475569; margin-bottom: 6px;">2. Đối tượng liên quan:</div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div>
+                    <label style="font-size: 11.5px; color: #64748b; display: block; margin-bottom: 2px;">Khách hàng <em style="color: #ef4444;">*</em></label>
+                    <select id="modalActivityCustomerSelect" class="crm-input" style="width: 100%; font-size: 12.5px;" required>
+                        <option value="">-- Đang tải khách hàng... --</option>
+                    </select>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div>
+                        <label style="font-size: 11.5px; color: #64748b; display: block; margin-bottom: 2px;">Người liên hệ</label>
+                        <select id="modalActivityContactSelect" class="crm-input" style="width: 100%; font-size: 12.5px;">
+                            <option value="">-- Chọn khách trước --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 11.5px; color: #64748b; display: block; margin-bottom: 2px;">Cơ hội liên quan</label>
+                        <select id="modalActivityOppSelect" class="crm-input" style="width: 100%; font-size: 12.5px;">
+                            <option value="">-- Không gắn cơ hội --</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Tiêu đề hoạt động -->
+        <label style="display: block; margin-bottom: 12px;">
+            <span style="font-weight: 600; font-size: 12.5px; color: #334155; margin-bottom: 4px; display: block;">3. Tiêu đề hoạt động <em style="color: #ef4444;">*</em></span>
+            <input id="modalActivitySubjectInput" class="crm-input" type="text" placeholder="VD: Gặp trao đổi báo giá tại văn phòng khách hàng..." required style="width: 100%; font-size: 12.5px;">
+        </label>
+
+        <!-- 4. Thời điểm & Thời lượng (Hỗ trợ cả quá khứ) -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px;">
+            <label>
+                <span style="font-weight: 600; font-size: 12px; color: #334155; display: block; margin-bottom: 4px;">Thời điểm diễn ra</span>
+                <input id="modalActivityTimeInput" class="crm-input" type="datetime-local" style="width: 100%; font-size: 12px;" title="Ghi nhận hoạt động đã diễn ra trong quá khứ hoặc sắp tới">
+            </label>
+            <label>
+                <span style="font-weight: 600; font-size: 12px; color: #334155; display: block; margin-bottom: 4px;">Thời lượng (phút)</span>
+                <input id="modalActivityDurationInput" class="crm-input" type="number" min="0" value="30" style="width: 100%; font-size: 12px;">
+            </label>
+        </div>
+
+        <!-- Chips thời lượng nhanh -->
+        <div style="display: flex; gap: 6px; margin-bottom: 12px; align-items: center; flex-wrap: wrap;">
+            <span style="font-size: 11px; color: #64748b; font-weight: 600;">Chọn nhanh:</span>
+            <button type="button" class="modal-duration-chip" onclick="setModalDuration(15)" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer;">15p</button>
+            <button type="button" class="modal-duration-chip" onclick="setModalDuration(30)" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer;">30p</button>
+            <button type="button" class="modal-duration-chip" onclick="setModalDuration(45)" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer;">45p</button>
+            <button type="button" class="modal-duration-chip" onclick="setModalDuration(60)" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer;">60p (1h)</button>
+            <button type="button" class="modal-duration-chip" onclick="setModalDuration(90)" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer;">90p (1.5h)</button>
+        </div>
+
+        <!-- 5. Nội dung trao đổi -->
+        <label style="display: block; margin-bottom: 10px;">
+            <span style="font-weight: 600; font-size: 12.5px; color: #334155; margin-bottom: 4px; display: block;">5. Nội dung trao đổi & thảo luận</span>
+            <textarea id="modalActivityDescriptionInput" class="crm-input" rows="3" placeholder="Ghi nhanh các ý chính khách hàng chia sẻ, nhu cầu, ngân sách..." style="width: 100%; font-size: 12.5px; resize: vertical;"></textarea>
+        </label>
+
+        <!-- 6. Kết quả trao đổi (Outcome) -->
+        <label style="display: block; margin-bottom: 14px;">
+            <span style="font-weight: 600; font-size: 12.5px; color: #334155; margin-bottom: 4px; display: block;">6. Kết quả / Thống nhất hành động tiếp theo</span>
+            <div style="display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 6px;">
+                <button type="button" onclick="setModalOutcome('Khách rất quan tâm, hẹn demo trực tiếp tuần tới')" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer;">🎯 Khách quan tâm</button>
+                <button type="button" onclick="setModalOutcome('Cần lập báo giá chi tiết và gửi trước ngày mai')" style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a; border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer;">📑 Cần gửi báo giá</button>
+                <button type="button" onclick="setModalOutcome('Đã thống nhất điều khoản hợp đồng và chuẩn bị ký kết')" style="background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer;">✅ Chốt hợp đồng</button>
+                <button type="button" onclick="setModalOutcome('Khách đang bận họp, hẹn liên hệ lại vào tuần sau')" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px 7px; font-size: 11px; cursor: pointer;">⏳ Hẹn liên hệ lại</button>
+            </div>
+            <input id="modalActivityOutcomeInput" class="crm-input" type="text" placeholder="Kết quả cuộc họp/gọi..." style="width: 100%; font-size: 12.5px;">
+        </label>
+
+        <div id="modalActivityErrorMsg" style="color: #ef4444; font-size: 12px; margin-bottom: 10px; display: none;"></div>
+
+        <footer style="display: flex; justify-content: flex-end; gap: 10px; padding-top: 10px; border-top: 1px solid #f1f5f9;">
+            <button id="cancelGlobalQuickActivityBtn" type="button" class="crm-btn crm-btn-secondary">Hủy</button>
+            <button id="btnSubmitGlobalQuickActivity" type="submit" class="crm-btn crm-btn-primary" style="padding: 7px 18px; font-weight: 700;">
+                💾 Lưu hoạt động ngay
+            </button>
+        </footer>
+    </form>
+</section>
+
+<script src="js/pages/pipeline.js?v=20261019_col_page"></script>
 
 <script src="js/page-transition.js"></script>
 

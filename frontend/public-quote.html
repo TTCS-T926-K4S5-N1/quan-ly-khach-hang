@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cổng Xem & Phản Hồi Báo Giá Trực Tuyến</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --text-heading: #0f172a;
+            --text-body: #334155;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --surface-bg: #f8fafc;
+            --card-bg: #ffffff;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--text-body);
+            background: #f1f5f9;
+            padding: 2.5rem 1rem;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 860px;
+            margin: 0 auto;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.06), 0 8px 10px -6px rgba(0,0,0,0.02);
+            padding: 2.5rem 3rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .company-info { max-width: 65%; }
+        .company-logo {
+            max-height: 52px;
+            max-width: 170px;
+            object-fit: contain;
+            margin-bottom: 0.5rem;
+        }
+        .company-name {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+        .company-meta {
+            font-size: 0.825rem;
+            color: var(--text-muted);
+            line-height: 1.45;
+        }
+        .quote-badge-box {
+            text-align: right;
+        }
+        .quote-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-heading);
+            text-transform: uppercase;
+        }
+        .quote-meta-row {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.35rem;
+            line-height: 1.5;
+        }
+        .quote-meta-row strong {
+            color: var(--text-heading);
+        }
+
+        /* Banner Status */
+        .status-banner {
+            border-radius: 10px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            font-size: 0.925rem;
+            line-height: 1.5;
+        }
+        .status-banner.accepted {
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            color: #065f46;
+        }
+        .status-banner.rejected {
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            color: #991b1b;
+        }
+        .status-banner.expired {
+            background: rgba(245, 158, 11, 0.12);
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            color: #92400e;
+        }
+        .status-banner.active {
+            background: rgba(37, 99, 235, 0.08);
+            border: 1px solid rgba(37, 99, 235, 0.25);
+            color: #1e40af;
+        }
+
+        /* Parties */
+        .parties-box {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            background: var(--surface-bg);
+            border-radius: 10px;
+            padding: 1.25rem 1.5rem;
+            border: 1px solid var(--border);
+        }
+        .party-col h4 {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+        .party-line {
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+            line-height: 1.45;
+        }
+        .party-line span {
+            color: var(--text-muted);
+            min-width: 85px;
+            display: inline-block;
+        }
+
+        /* Items Table */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.75rem;
+        }
+        .items-table th {
+            background: var(--surface-bg);
+            color: var(--text-heading);
+            font-weight: 700;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            padding: 0.75rem 0.85rem;
+            border: 1px solid var(--border);
+            text-align: left;
+        }
+        .items-table td {
+            font-size: 0.85rem;
+            padding: 0.75rem 0.85rem;
+            border: 1px solid var(--border);
+        }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+
+        /* Totals */
+        .totals-box {
+            width: 360px;
+            margin-left: auto;
+            background: var(--surface-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.25rem;
+            margin-bottom: 1.75rem;
+        }
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            margin-bottom: 0.4rem;
+        }
+        .total-row.final {
+            border-top: 2px solid var(--primary);
+            padding-top: 0.6rem;
+            margin-top: 0.6rem;
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+        .words-box {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 0.85rem 1.25rem;
+            font-size: 0.875rem;
+            color: #1e40af;
+            margin-bottom: 2rem;
+        }
+
+        /* Action Feedback Form */
+        .feedback-card {
+            background: #ffffff;
+            border: 2px solid var(--primary);
+            border-radius: 14px;
+            padding: 1.75rem 2rem;
+            margin-top: 2rem;
+            box-shadow: 0 4px 12px rgba(37,99,235,0.08);
+        }
+        .feedback-card h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-heading);
+            margin-bottom: 0.5rem;
+        }
+        .decision-buttons {
+            display: flex;
+            gap: 1rem;
+            margin: 1.25rem 0;
+        }
+        .decision-btn {
+            flex: 1;
+            padding: 0.9rem 1.25rem;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: 2px solid transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+        }
+        .decision-btn.accept {
+            background: rgba(16, 185, 129, 0.12);
+            border-color: #10b981;
+            color: #047857;
+        }
+        .decision-btn.accept.selected, .decision-btn.accept:hover {
+            background: #10b981;
+            color: #ffffff;
+        }
+        .decision-btn.reject {
+            background: rgba(239, 68, 68, 0.12);
+            border-color: #ef4444;
+            color: #b91c1c;
+        }
+        .decision-btn.reject.selected, .decision-btn.reject:hover {
+            background: #ef4444;
+            color: #ffffff;
+        }
+        .comment-area {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            resize: vertical;
+            margin-bottom: 1.25rem;
+            line-height: 1.5;
+        }
+        .submit-btn {
+            background: var(--primary);
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 0.95rem;
+            padding: 0.85rem 2rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .submit-btn:hover {
+            background: var(--primary-dark);
+        }
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .terms-note {
+            font-size: 0.825rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            background: var(--surface-bg);
+            padding: 1rem 1.25rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="loadingBox" class="card" style="text-align: center; padding: 4rem; color: var(--text-muted);">
+            Đang tải thông tin báo giá bảo mật...
+        </div>
+
+        <div id="quoteContent" class="card" style="display: none;">
+            <!-- Header -->
+            <div class="header">
+                <div class="company-info">
+                    <img id="tplLogo" class="company-logo" src="" alt="Company Logo" style="display:none;">
+                    <div id="tplCompanyName" class="company-name">TẬP ĐOÀN CÔNG NGHỆ CRM ENTERPRISE</div>
+                    <div class="company-meta">MST: <span id="tplTaxCode">0108996688</span></div>
+                    <div class="company-meta">Địa chỉ: <span id="tplAddress">Tầng 18, Keangnam Landmark 72, Hà Nội</span></div>
+                    <div class="company-meta">Hotline: <span id="tplPhone">1900 8866</span> | Email: <span id="tplEmail">sales@crmenterprise.vn</span></div>
+                    <div class="company-meta">Tài khoản: <span id="tplBank">MBBank - STK: 888899996666</span></div>
+                </div>
+
+                <div class="quote-badge-box">
+                    <div class="quote-title">BÁO GIÁ</div>
+                    <div class="quote-meta-row">Số: <strong id="quoteCode">BG-0000</strong></div>
+                    <div class="quote-meta-row">Ngày gửi: <strong id="quoteDate">—</strong></div>
+                    <div class="quote-meta-row">Hạn hiệu lực: <strong id="quoteValidUntil">—</strong></div>
+                </div>
+            </div>
+
+            <!-- Status Banner -->
+            <div id="statusBanner" class="status-banner active">
+                <div id="bannerIcon" style="font-size: 1.5rem;">ℹ️</div>
+                <div>
+                    <strong id="bannerTitle">Thông báo báo giá</strong>
+                    <div id="bannerDesc">Kính mời Quý khách xem chi tiết các sản phẩm & giải pháp báo giá bên dưới.</div>
+                </div>
+            </div>
+
+            <!-- Parties -->
+            <div class="parties-box">
+                <div class="party-col">
+                    <h4>ĐƠN VỊ CUNG CẤP</h4>
+                    <div class="party-line"><span>Công ty:</span> <strong id="partyCompany">—</strong></div>
+                    <div class="party-line"><span>Chuyên viên:</span> <strong id="partyOwner">—</strong></div>
+                    <div class="party-line"><span>Hotline:</span> <span id="partyPhone">—</span></div>
+                </div>
+                <div class="party-col">
+                    <h4>QUÝ KHÁCH HÀNG</h4>
+                    <div class="party-line"><span>Đơn vị:</span> <strong id="custName">—</strong></div>
+                    <div class="party-line"><span>Mã số thuế:</span> <span id="custTax">—</span></div>
+                    <div class="party-line"><span>Địa chỉ:</span> <span id="custAddress">—</span></div>
+                </div>
+            </div>
+
+            <!-- Items Table -->
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th class="text-center" style="width: 40px;">STT</th>
+                        <th>Sản phẩm / Dịch vụ</th>
+                        <th class="text-center" style="width: 65px;">ĐVT</th>
+                        <th class="text-center" style="width: 55px;">SL</th>
+                        <th class="text-right" style="width: 125px;">Đơn giá</th>
+                        <th class="text-center" style="width: 65px;">CK (%)</th>
+                        <th class="text-right" style="width: 135px;">Thành tiền</th>
+                    </tr>
+                </thead>
+                <tbody id="itemsBody"></tbody>
+            </table>
+
+            <!-- Totals -->
+            <div class="totals-box">
+                <div class="total-row">
+                    <span>Tổng tiền hàng:</span>
+                    <strong id="subtotal">0 ₫</strong>
+                </div>
+                <div class="total-row">
+                    <span>Chiết khấu tổng (<span id="discPercent">0%</span>):</span>
+                    <strong id="discAmount" style="color: var(--danger);">0 ₫</strong>
+                </div>
+                <div class="total-row final">
+                    <span>TỔNG CỘNG:</span>
+                    <span id="totalAmount">0 ₫</span>
+                </div>
+            </div>
+
+            <!-- Words -->
+            <div class="words-box">
+                <span>Số tiền viết bằng chữ: </span>
+                <strong id="totalInWords">Không đồng chẵn.</strong>
+            </div>
+
+            <!-- Terms -->
+            <div class="terms-note">
+                <strong style="color: var(--text-heading); display: block; margin-bottom: 0.35rem;">ĐIỀU KHOẢN THANH TOÁN & GIAO HÀNG:</strong>
+                <div id="termsText" style="white-space: pre-line;">Theo thỏa thuận triển khai.</div>
+            </div>
+
+            <!-- Interactive Feedback Box (Story 3) -->
+            <div id="feedbackFormSection" class="feedback-card">
+                <h3>Phản Hồi & Xác Nhận Báo Giá Trực Tuyến</h3>
+                <p style="color: var(--text-muted); font-size: 0.875rem;">
+                    Kính mời Quý khách đưa ra quyết định chấp nhận hoặc từ chối báo giá này. Phản hồi sẽ được gửi ngay đến nhân viên tư vấn.
+                </p>
+
+                <div class="decision-buttons">
+                    <button type="button" id="btnAccept" class="decision-btn accept" onclick="selectDecision('ACCEPT')">
+                        <span>✓</span>
+                        <span>ĐỒNG Ý / CHẤP NHẬN BÁO GIÁ</span>
+                    </button>
+                    <button type="button" id="btnReject" class="decision-btn reject" onclick="selectDecision('REJECT')">
+                        <span>✕</span>
+                        <span>TỪ CHỐI BÁO GIÁ</span>
+                    </button>
+                </div>
+
+                <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem; color: var(--text-heading);">
+                    Ý kiến phản hồi / Lý do hoặc ghi chú của Quý khách:
+                </label>
+                <textarea id="feedbackComment" class="comment-area" rows="3" placeholder="Nhập ý kiến đóng góp, điều chỉnh số lượng hoặc lý do nếu từ chối..."></textarea>
+
+                <button type="button" id="submitFeedbackBtn" class="submit-btn" onclick="submitFeedback()">
+                    Gửi phản hồi xác nhận
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get("token");
+        let selectedDecision = null;
+
+        async function loadPublicQuote() {
+            if (!token) {
+                document.getElementById("loadingBox").innerHTML = `
+                    <div style="color: var(--danger); font-size: 1.1rem; font-weight: 700;">Liên kết không hợp lệ</div>
+                    <p style="margin-top: 0.5rem;">Không tìm thấy mã token truy cập báo giá trong đường dẫn.</p>
+                `;
+                return;
+            }
+
+            try {
+                const res = await fetch(`api/public/quotes?token=${encodeURIComponent(token)}`);
+                const json = await res.json();
+
+                if (!json.success || !json.data) {
+                    document.getElementById("loadingBox").innerHTML = `
+                        <div style="color: var(--danger); font-size: 1.1rem; font-weight: 700;">Không tìm thấy báo giá</div>
+                        <p style="margin-top: 0.5rem;">${json.message || "Báo giá không tồn tại hoặc đã bị hủy."}</p>
+                    `;
+                    return;
+                }
+
+                renderQuote(json.data);
+            } catch (err) {
+                document.getElementById("loadingBox").innerHTML = "Lỗi kết nối máy chủ: " + err.message;
+            }
+        }
+
+        function renderQuote(data) {
+            const q = data.quote;
+            const t = data.template || {};
+
+            // Company branding
+            if (t.companyLogoUrl) {
+                const logo = document.getElementById("tplLogo");
+                logo.src = t.companyLogoUrl;
+                logo.style.display = "block";
+            }
+            if (t.companyName) {
+                document.getElementById("tplCompanyName").textContent = t.companyName;
+                document.getElementById("partyCompany").textContent = t.companyName;
+            }
+            if (t.companyTaxCode) document.getElementById("tplTaxCode").textContent = t.companyTaxCode;
+            if (t.companyAddress) document.getElementById("tplAddress").textContent = t.companyAddress;
+            if (t.companyPhone) {
+                document.getElementById("tplPhone").textContent = t.companyPhone;
+                document.getElementById("partyPhone").textContent = t.companyPhone;
+            }
+            if (t.companyEmail) document.getElementById("tplEmail").textContent = t.companyEmail;
+            if (t.companyBankInfo) document.getElementById("tplBank").textContent = t.companyBankInfo;
+
+            // Quote Meta
+            document.getElementById("quoteCode").textContent = q.quoteNumber || ("BG-" + q.id);
+            document.getElementById("quoteDate").textContent = q.createdAt ? String(q.createdAt).split(" ")[0].split("T")[0] : "—";
+            document.getElementById("quoteValidUntil").textContent = q.validUntil || "Theo thỏa thuận";
+            document.getElementById("partyOwner").textContent = q.ownerName || "Chuyên viên Kinh doanh";
+
+            // Customer
+            document.getElementById("custName").textContent = q.customerName || "—";
+            document.getElementById("custTax").textContent = q.customerTaxCode || "Chưa cập nhật";
+            document.getElementById("custAddress").textContent = q.customerAddress || "—";
+
+            // Items
+            const tbody = document.getElementById("itemsBody");
+            tbody.innerHTML = "";
+            (q.items || []).forEach((it, idx) => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td class="text-center">${idx + 1}</td>
+                    <td>
+                        <strong style="color: var(--text-heading);">${escapeHtml(it.productName || "Sản phẩm")}</strong>
+                        <div style="font-size: 0.775rem; color: var(--text-muted);">${escapeHtml(it.productCode || "")}</div>
+                    </td>
+                    <td class="text-center">${escapeHtml(it.unit || "Bộ")}</td>
+                    <td class="text-center">${it.quantity || 1}</td>
+                    <td class="text-right">${formatMoney(it.unitPrice)}</td>
+                    <td class="text-center">${it.discountPercent > 0 ? it.discountPercent + "%" : "—"}</td>
+                    <td class="text-right" style="font-weight: 600; color: var(--primary);">${formatMoney(it.amount)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Financials
+            const sub = Number(q.subtotal || 0);
+            const tot = Number(q.totalAmount || 0);
+            const discVal = sub > tot ? sub - tot : 0;
+            const discPct = Number(q.discountPercent || 0);
+
+            document.getElementById("subtotal").textContent = formatMoney(sub);
+            document.getElementById("discPercent").textContent = discPct > 0 ? discPct + "%" : "0%";
+            document.getElementById("discAmount").textContent = formatMoney(discVal);
+            document.getElementById("totalAmount").textContent = formatMoney(tot);
+            document.getElementById("totalInWords").textContent = q.totalAmountInWords || "Không đồng chẵn.";
+
+            let terms = "";
+            if (q.paymentTerms) terms += "• ĐIỀU KHOẢN THANH TOÁN:\n" + q.paymentTerms + "\n";
+            if (q.deliveryTerms) terms += "• ĐIỀU KHOẢN GIAO HÀNG:\n" + q.deliveryTerms + "\n";
+            if (!terms && t.defaultTerms) terms = t.defaultTerms;
+            document.getElementById("termsText").textContent = terms || "Theo điều khoản quy định trong hợp đồng dịch vụ chính thức.";
+
+            // Status & Feedback Handling (Story 3 ACs)
+            const status = (q.status || "").toUpperCase();
+            const feedback = (q.customerFeedback || "").toUpperCase();
+            const banner = document.getElementById("statusBanner");
+            const bannerIcon = document.getElementById("bannerIcon");
+            const bannerTitle = document.getElementById("bannerTitle");
+            const bannerDesc = document.getElementById("bannerDesc");
+            const formSec = document.getElementById("feedbackFormSection");
+
+            if (feedback === "ACCEPTED" || status === "ACCEPTED" || status === "CONVERTED") {
+                banner.className = "status-banner accepted";
+                bannerIcon.textContent = "✓";
+                bannerTitle.textContent = "Báo giá đã được Quý khách CHẤP NHẬN";
+                bannerDesc.innerHTML = `Quý khách đã đồng ý báo giá này vào ngày <strong>${q.customerFeedbackAt ? String(q.customerFeedbackAt).split(".")[0] : "hôm nay"}</strong>.${q.customerFeedbackComment ? `<br>Ý kiến: <em>${escapeHtml(q.customerFeedbackComment)}</em>` : ""}`;
+                formSec.style.display = "none";
+            } else if (feedback === "REJECTED" || status === "REJECTED") {
+                banner.className = "status-banner rejected";
+                bannerIcon.textContent = "✕";
+                bannerTitle.textContent = "Báo giá đã TỪ CHỐI";
+                bannerDesc.innerHTML = `Quý khách đã từ chối báo giá này vào ngày <strong>${q.customerFeedbackAt ? String(q.customerFeedbackAt).split(".")[0] : "hôm nay"}</strong>.${q.customerFeedbackComment ? `<br>Lý do: <em>${escapeHtml(q.customerFeedbackComment)}</em>` : ""}`;
+                formSec.style.display = "none";
+            } else if (status === "EXPIRED") {
+                banner.className = "status-banner expired";
+                bannerIcon.textContent = "⚠️";
+                bannerTitle.textContent = "Báo giá đã HẾT HẠN HIỆU LỰC";
+                bannerDesc.textContent = `Báo giá này đã quá thời hạn hiệu lực (hết hạn ngày ${q.validUntil || "—"}). Quý khách vui lòng liên hệ chuyên viên tư vấn để nhận báo giá mới.`;
+                formSec.style.display = "none";
+            } else {
+                banner.className = "status-banner active";
+                bannerIcon.textContent = "ℹ️";
+                bannerTitle.textContent = "Kính gửi Quý khách Báo giá giải pháp";
+                bannerDesc.textContent = "Vui lòng xem xét các nội dung trên và bấm Chấp nhận hoặc Từ chối kèm ý kiến ở khung bên dưới.";
+                formSec.style.display = "block";
+            }
+
+            document.getElementById("loadingBox").style.display = "none";
+            document.getElementById("quoteContent").style.display = "block";
+        }
+
+        function selectDecision(decision) {
+            selectedDecision = decision;
+            document.getElementById("btnAccept").classList.toggle("selected", decision === "ACCEPT");
+            document.getElementById("btnReject").classList.toggle("selected", decision === "REJECT");
+        }
+
+        async function submitFeedback() {
+            if (!selectedDecision) {
+                alert("Vui lòng chọn 'ĐỒNG Ý / CHẤP NHẬN' hoặc 'TỪ CHỐI BÁO GIÁ' trước khi gửi phản hồi.");
+                return;
+            }
+
+            const comment = document.getElementById("feedbackComment").value.trim();
+            const btn = document.getElementById("submitFeedbackBtn");
+            btn.disabled = true;
+            btn.textContent = "Đang gửi phản hồi...";
+
+            try {
+                const res = await fetch("api/public/quotes/feedback", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        token: token,
+                        decision: selectedDecision,
+                        comment: comment
+                    })
+                });
+
+                const json = await res.json();
+                if (json.success && json.data) {
+                    alert(json.message || "Gửi phản hồi thành công! Xin chân thành cảm ơn Quý khách.");
+                    renderQuote(json.data);
+                } else {
+                    alert("Lỗi: " + (json.message || "Không thể gửi phản hồi."));
+                    btn.disabled = false;
+                    btn.textContent = "Gửi phản hồi xác nhận";
+                }
+            } catch (err) {
+                alert("Lỗi kết nối máy chủ: " + err.message);
+                btn.disabled = false;
+                btn.textContent = "Gửi phản hồi xác nhận";
+            }
+        }
+
+        function formatMoney(amount) {
+            return new Intl.NumberFormat("vi-VN", {
+                style: "currency",
+                currency: "VND",
+                maximumFractionDigits: 0
+            }).format(Number(amount) || 0);
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        document.addEventListener("DOMContentLoaded", loadPublicQuote);
+    </script>
+</body>
+</html>

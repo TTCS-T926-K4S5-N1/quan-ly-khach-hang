@@ -88,6 +88,10 @@ public final class VietnameseNumberToWords {
         return capitalize(words) + ".";
     }
 
+    public static String convert(BigDecimal amount) {
+        return toCurrencyWords(amount, "đồng");
+    }
+
     private static String readGroup(int group, boolean full) {
         int hundreds = group / 100;
         int tens = (group / 10) % 10;

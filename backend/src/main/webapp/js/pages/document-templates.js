@@ -1,205 +1,152 @@
-"use strict";
-
-const API_BASE = "http://localhost:8080/crm";
+﻿"use strict";
 
 let currentType = "QUOTE";
-let currentLogoData = null;
-let templateData = null;
-
-const tabButtons = document.querySelectorAll(".tmpl-tab");
-const form = document.getElementById("templateForm");
-const saveBtn = document.getElementById("saveTemplateBtn");
-const previewBtn = document.getElementById("previewPdfBtn");
-const logoFileInput = document.getElementById("logoFileInput");
-const logoPreview = document.getElementById("logoPreview");
-const removeLogoBtn = document.getElementById("removeLogoBtn");
-const colorPicker = document.getElementById("primaryColorPicker");
-const colorInput = document.getElementById("primaryColor");
-
-// Color sync
-if (colorPicker && colorInput) {
-    colorPicker.addEventListener("input", () => {
-        colorInput.value = colorPicker.value.toUpperCase();
-    });
-    colorInput.addEventListener("input", () => {
-        if (/^#[0-9A-Fa-f]{6}$/.test(colorInput.value)) {
-            colorPicker.value = colorInput.value;
-        }
-    });
-}
-
-// Logo upload
-if (logoFileInput) {
-    logoFileInput.addEventListener("change", (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        if (file.type !== "image/png" && file.type !== "image/jpeg") {
-            alert("Vui lòng chọn ảnh định dạng PNG hoặc JPEG.");
-            logoFileInput.value = "";
-            return;
-        }
-
-        if (file.size > 500 * 1024) {
-            alert("Dung lượng logo không được vượt quá 500 KB.");
-            logoFileInput.value = "";
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            currentLogoData = ev.target?.result;
-            showLogo(currentLogoData);
-        };
-        reader.readAsDataURL(file);
-    });
-}
-
-if (removeLogoBtn) {
-    removeLogoBtn.addEventListener("click", () => {
-        currentLogoData = null;
-        logoFileInput.value = "";
-        showLogo(null);
-    });
-}
-
-function showLogo(dataUrl) {
-    if (dataUrl) {
-        logoPreview.src = dataUrl;
-        logoPreview.style.display = "block";
-        removeLogoBtn.style.display = "inline-block";
-    } else {
-        logoPreview.src = "";
-        logoPreview.style.display = "none";
-        removeLogoBtn.style.display = "none";
-    }
-}
-
-// Tab click
-tabButtons.forEach(btn => {
-    btn.addEventListener("click", () => {
-        const target = btn.dataset.tab;
-        if (target === currentType) return;
-        tabButtons.forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        currentType = target;
-        loadTemplate(currentType);
-    });
-});
+let loadedData = {};
 
 async function loadTemplate(type) {
+    currentType = type;
     try {
-        const res = await fetch(`${API_BASE}/api/document-templates/${type}`, { credentials: "include" });
-        if (res.status === 401) {
-            window.location.href = "login";
-            return;
-        }
+        const res = await fetch(`api/document-templates?type=${type}`, { credentials: "include" });
         const json = await res.json();
-        if (!res.ok || !json?.success) {
-            throw new Error(json?.message || "Không thể tải cấu hình mẫu");
+        if (json.success && json.data) {
+            loadedData = json.data;
+            populateForm(loadedData);
+        } else {
+            showAlert("Không thể tải cấu hình mẫu: " + (json.message || "Lỗi không xác định"), "error");
         }
-        templateData = json.data;
-        populateForm(templateData);
     } catch (err) {
-        alert("Lỗi tải mẫu: " + err.message);
+        showAlert("Lỗi kết nối máy chủ: " + err.message, "error");
     }
+}
+
+function switchTemplateTab(type) {
+    currentType = type;
+    document.getElementById("tabQuote").classList.toggle("active", type === "QUOTE");
+    document.getElementById("tabContract").classList.toggle("active", type === "CONTRACT");
+    loadTemplate(type);
 }
 
 function populateForm(data) {
-    if (!data) return;
-    setValue("templateName", data.name || "");
-    setValue("templateTitle", data.title || "");
-    setValue("companyName", data.companyName || "");
-    setValue("companyAddress", data.companyAddress || "");
-    setValue("companyTaxCode", data.companyTaxCode || "");
-    setValue("companyPhone", data.companyPhone || "");
-    setValue("companyEmail", data.companyEmail || "");
-    setValue("companyWebsite", data.companyWebsite || "");
-    setValue("companyBankAccount", data.companyBankAccount || "");
-    setValue("representativeName", data.representativeName || "");
-    setValue("representativeTitle", data.representativeTitle || "");
-    setValue("introText", data.introText || "");
-    setValue("termsText", data.termsText || "");
-    setValue("footerText", data.footerText || "");
-    setValue("currencyUnit", data.currencyUnit || "đồng");
-    setValue("validityDays", data.validityDays || 30);
+    document.getElementById("templateName").value = data.templateName || "";
+    document.getElementById("companyName").value = data.companyName || "";
+    document.getElementById("companyTaxCode").value = data.companyTaxCode || "";
+    document.getElementById("companyAddress").value = data.companyAddress || "";
+    document.getElementById("companyPhone").value = data.companyPhone || "";
+    document.getElementById("companyEmail").value = data.companyEmail || "";
+    document.getElementById("companyBankInfo").value = data.companyBankInfo || "";
+    document.getElementById("companyLogoUrl").value = data.companyLogoUrl || "";
+    document.getElementById("headerContent").value = data.headerContent || "";
+    document.getElementById("defaultTerms").value = data.defaultTerms || "";
+    document.getElementById("footerContent").value = data.footerContent || "";
 
-    const color = data.primaryColor || "#1E3A8A";
-    setValue("primaryColor", color);
-    if (colorPicker) colorPicker.value = color;
-
-    currentLogoData = data.logoData || null;
-    showLogo(currentLogoData);
+    updateLogoPreview(data.companyLogoUrl || "");
+    updateSidePreview();
 }
 
-function setValue(id, val) {
+function updateLogoPreview(url) {
+    const img = document.getElementById("logoPreviewImg");
+    const noLogo = document.getElementById("noLogoText");
+    if (url && url.trim().length > 5) {
+        img.src = url.trim();
+        img.style.display = "block";
+        noLogo.style.display = "none";
+    } else {
+        img.src = "";
+        img.style.display = "none";
+        noLogo.style.display = "inline";
+    }
+}
+
+function updateSidePreview() {
+    const compName = document.getElementById("companyName").value;
+    const tax = document.getElementById("companyTaxCode").value;
+    const addr = document.getElementById("companyAddress").value;
+    const bank = document.getElementById("companyBankInfo").value;
+
+    if (compName) document.getElementById("prevCompName").textContent = compName;
+    if (tax) document.getElementById("prevTax").textContent = tax;
+    if (addr) document.getElementById("prevAddress").textContent = addr;
+    if (bank) document.getElementById("prevBank").textContent = bank;
+}
+
+["companyName", "companyTaxCode", "companyAddress", "companyBankInfo"].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.value = val;
+    if (el) el.addEventListener("input", updateSidePreview);
+});
+
+function resetFormToLoaded() {
+    populateForm(loadedData);
+    showAlert("Đã hoàn tác thay đổi.", "info");
 }
 
-function getValue(id) {
-    const el = document.getElementById(id);
-    return el ? el.value.trim() : "";
-}
+document.getElementById("templateForm").addEventListener("submit", async event => {
+    event.preventDefault();
 
-// Form submit
-if (form) {
-    form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        saveBtn.disabled = true;
-        saveBtn.textContent = "Đang lưu...";
+    const saveBtn = document.getElementById("saveBtn");
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Đang lưu...";
 
-        const payload = {
-            documentType: currentType,
-            name: getValue("templateName"),
-            title: getValue("templateTitle"),
-            companyName: getValue("companyName"),
-            companyAddress: getValue("companyAddress"),
-            companyTaxCode: getValue("companyTaxCode"),
-            companyPhone: getValue("companyPhone"),
-            companyEmail: getValue("companyEmail"),
-            companyWebsite: getValue("companyWebsite"),
-            companyBankAccount: getValue("companyBankAccount"),
-            representativeName: getValue("representativeName"),
-            representativeTitle: getValue("representativeTitle"),
-            introText: getValue("introText"),
-            termsText: getValue("termsText"),
-            footerText: getValue("footerText"),
-            currencyUnit: getValue("currencyUnit"),
-            validityDays: parseInt(getValue("validityDays") || "30", 10),
-            primaryColor: getValue("primaryColor"),
-            logoData: currentLogoData
-        };
+    const payload = {
+        templateName: document.getElementById("templateName").value.trim(),
+        companyName: document.getElementById("companyName").value.trim(),
+        companyTaxCode: document.getElementById("companyTaxCode").value.trim(),
+        companyAddress: document.getElementById("companyAddress").value.trim(),
+        companyPhone: document.getElementById("companyPhone").value.trim(),
+        companyEmail: document.getElementById("companyEmail").value.trim(),
+        companyBankInfo: document.getElementById("companyBankInfo").value.trim(),
+        companyLogoUrl: document.getElementById("companyLogoUrl").value.trim(),
+        headerContent: document.getElementById("headerContent").value.trim(),
+        defaultTerms: document.getElementById("defaultTerms").value.trim(),
+        footerContent: document.getElementById("footerContent").value.trim()
+    };
 
-        try {
-            const res = await fetch(`${API_BASE}/api/document-templates/${currentType}`, {
-                method: "PUT",
-                credentials: "include",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            });
-            const json = await res.json();
-            if (!res.ok || !json?.success) {
-                throw new Error(json?.message || "Lưu thất bại");
-            }
-            alert("Lưu cấu hình mẫu tài liệu thành công!");
-            templateData = json.data;
-            populateForm(templateData);
-        } catch (err) {
-            alert("Lỗi khi lưu cấu hình: " + err.message);
-        } finally {
-            saveBtn.disabled = false;
-            saveBtn.textContent = "Lưu cấu hình";
+    try {
+        const res = await fetch(`api/document-templates/${currentType}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(payload)
+        });
+
+        const json = await res.json();
+        if (json.success) {
+            loadedData = json.data;
+            populateForm(loadedData);
+            showAlert(`Lưu mẫu ${currentType === 'QUOTE' ? 'Báo giá' : 'Hợp đồng'} thành công! Thông tin thương hiệu đã được cập nhật.`, "success");
+        } else {
+            showAlert("Lỗi: " + (json.message || "Không thể cập nhật mẫu."), "error");
         }
-    });
+    } catch (err) {
+        showAlert("Lỗi máy chủ: " + err.message, "error");
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "💾 Lưu cấu hình mẫu";
+    }
+});
+
+function showAlert(msg, type = "success") {
+    const box = document.getElementById("alertMsg");
+    if (!box) return;
+    box.style.display = "block";
+    if (type === "success") {
+        box.style.background = "rgba(16, 185, 129, 0.15)";
+        box.style.color = "#059669";
+        box.style.border = "1px solid rgba(16, 185, 129, 0.3)";
+    } else if (type === "error") {
+        box.style.background = "rgba(239, 68, 68, 0.15)";
+        box.style.color = "#dc2626";
+        box.style.border = "1px solid rgba(239, 68, 68, 0.3)";
+    } else {
+        box.style.background = "rgba(59, 130, 246, 0.15)";
+        box.style.color = "#2563eb";
+        box.style.border = "1px solid rgba(59, 130, 246, 0.3)";
+    }
+    box.textContent = msg;
+    setTimeout(() => {
+        box.style.display = "none";
+    }, 5000);
 }
 
-// Preview PDF
-if (previewBtn) {
-    previewBtn.addEventListener("click", () => {
-        window.open(`${API_BASE}/api/document-templates/${currentType}/preview`, "_blank");
-    });
-}
-
-// Init
-loadTemplate(currentType);
+document.addEventListener("DOMContentLoaded", () => {
+    loadTemplate("QUOTE");
+});

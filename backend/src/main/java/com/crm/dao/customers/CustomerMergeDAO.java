@@ -33,6 +33,26 @@ public class CustomerMergeDAO {
     }
 
     /**
+     * Chuẩn hóa số điện thoại (bỏ ký tự không phải số, chuyển +84 thành 0)
+     */
+    public static String normalizePhone(String phone) {
+        if (phone == null) return "";
+        String clean = phone.replaceAll("[^0-9]", "").trim();
+        if (clean.startsWith("84") && clean.length() >= 10) {
+            clean = "0" + clean.substring(2);
+        }
+        return clean;
+    }
+
+    /**
+     * Chuẩn hóa email
+     */
+    public static String normalizeEmail(String email) {
+        if (email == null) return "";
+        return email.trim().toLowerCase();
+    }
+
+    /**
      * Chuẩn hóa tên công ty (loại bỏ tiền tố, hậu tố loại hình doanh nghiệp phổ biến)
      */
     public static String normalizeCompanyName(String name) {
@@ -118,38 +138,80 @@ public class CustomerMergeDAO {
         }
     }
 
-    /**
-     * Kiểm tra trùng lặp cho 1 bản ghi khách hàng (khi nhập form hoặc xem trang 360)
-     */
     public List<Map<String, Object>> checkDuplicates(String name, String taxCode, String website, Long excludeId) throws SQLException {
+        return checkDuplicates(name, taxCode, website, null, null, excludeId);
+    }
+
+    /**
+     * Kiểm tra trùng lặp thời gian thực theo Email, Số điện thoại, Mã số thuế, Website và Tên công ty
+     */
+    public List<Map<String, Object>> checkDuplicates(String name, String taxCode, String website, String email, String phone, Long excludeId) throws SQLException {
         List<Map<String, Object>> candidates = getAllActiveCustomers(excludeId);
         List<Map<String, Object>> matched = new ArrayList<>();
 
         String normTax = normalizeTaxCode(taxCode);
         String normWeb = normalizeWebsite(website);
         String normName = normalizeCompanyName(name);
+        String normEmail = normalizeEmail(email);
+        String normPhone = normalizePhone(phone);
 
         for (Map<String, Object> candidate : candidates) {
             String cTax = normalizeTaxCode((String) candidate.get("taxCode"));
             String cWeb = normalizeWebsite((String) candidate.get("website"));
             String cName = normalizeCompanyName((String) candidate.get("name"));
+            String cEmail = normalizeEmail((String) candidate.get("email"));
+            String cPhone = normalizePhone((String) candidate.get("phone"));
+            String cContactEmails = (String) candidate.get("contactEmails");
+            String cContactPhones = (String) candidate.get("contactPhones");
 
             List<String> matchReasons = new ArrayList<>();
             double confidence = 0.0;
 
-            // 1. Trùng mã số thuế
+            // 1. Trùng email (cả email công ty lẫn email người liên hệ)
+            if (!normEmail.isBlank()) {
+                if (!cEmail.isBlank() && normEmail.equals(cEmail)) {
+                    matchReasons.add("Trùng email công ty (" + candidate.get("email") + ")");
+                    confidence = Math.max(confidence, 1.0);
+                } else if (cContactEmails != null && !cContactEmails.isBlank()) {
+                    for (String ce : cContactEmails.split(",")) {
+                        if (normEmail.equals(normalizeEmail(ce))) {
+                            matchReasons.add("Trùng email người liên hệ (" + ce.trim() + ")");
+                            confidence = Math.max(confidence, 1.0);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // 2. Trùng số điện thoại (cả số chính lẫn số người liên hệ)
+            if (!normPhone.isBlank()) {
+                if (!cPhone.isBlank() && normPhone.equals(cPhone)) {
+                    matchReasons.add("Trùng số điện thoại chính (" + candidate.get("phone") + ")");
+                    confidence = Math.max(confidence, 1.0);
+                } else if (cContactPhones != null && !cContactPhones.isBlank()) {
+                    for (String cp : cContactPhones.split(",")) {
+                        if (normPhone.equals(normalizePhone(cp))) {
+                            matchReasons.add("Trùng số điện thoại người liên hệ (" + cp.trim() + ")");
+                            confidence = Math.max(confidence, 1.0);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // 3. Trùng mã số thuế
             if (!normTax.isBlank() && !cTax.isBlank() && normTax.equals(cTax)) {
                 matchReasons.add("Trùng mã số thuế (" + candidate.get("taxCode") + ")");
                 confidence = Math.max(confidence, 1.0);
             }
 
-            // 2. Trùng website
+            // 4. Trùng website
             if (!normWeb.isBlank() && !cWeb.isBlank() && normWeb.equals(cWeb)) {
                 matchReasons.add("Trùng website (" + candidate.get("website") + ")");
                 confidence = Math.max(confidence, 0.95);
             }
 
-            // 3. Tên công ty gần giống
+            // 5. Tên công ty gần giống
             if (!normName.isBlank() && !cName.isBlank()) {
                 if (normName.equals(cName)) {
                     matchReasons.add("Tên công ty trùng khớp sau chuẩn hóa (100%)");
@@ -185,6 +247,36 @@ public class CustomerMergeDAO {
     }
 
     /**
+     * Gợi ý khách hàng đã tồn tại để gắn lead vào (User Story: Lead trùng với khách hàng đã có được gợi ý gắn thẳng)
+     */
+    public Map<String, Object> suggestExistingCustomer(String email, String phone, String companyName) throws SQLException {
+        List<Map<String, Object>> matches = checkDuplicates(companyName, null, null, email, phone, null);
+        Map<String, Object> result = new LinkedHashMap<>();
+        if (matches.isEmpty()) {
+            result.put("hasSuggestion", false);
+            return result;
+        }
+
+        Map<String, Object> top = matches.get(0);
+        int confidence = ((Number) top.get("confidence")).intValue();
+        if (confidence < 75) {
+            result.put("hasSuggestion", false);
+            return result;
+        }
+
+        result.put("hasSuggestion", true);
+        result.put("confidence", confidence);
+        result.put("suggestedCustomerId", top.get("id"));
+        result.put("suggestedCustomerName", top.get("name"));
+        result.put("ownerName", top.get("ownerName"));
+        result.put("email", top.get("email"));
+        result.put("phone", top.get("phone"));
+        result.put("reasons", top.get("matchReasons"));
+        result.put("suggestionMessage", "Lead này trùng thông tin với Khách hàng #" + top.get("id") + " (" + top.get("name") + ") do " + (top.get("ownerName") != null ? top.get("ownerName") : "chưa phân bổ") + " phụ trách.");
+        return result;
+    }
+
+    /**
      * Tìm tất cả các cặp khách hàng trùng lặp trên toàn hệ thống
      */
     public List<Map<String, Object>> findAllDuplicatePairs() throws SQLException {
@@ -198,6 +290,8 @@ public class CustomerMergeDAO {
             String tax1 = normalizeTaxCode((String) c1.get("taxCode"));
             String web1 = normalizeWebsite((String) c1.get("website"));
             String name1 = normalizeCompanyName((String) c1.get("name"));
+            String phone1 = normalizePhone((String) c1.get("phone"));
+            String email1 = normalizeEmail((String) c1.get("email"));
 
             for (int j = i + 1; j < all.size(); j++) {
                 Map<String, Object> c2 = all.get(j);
@@ -209,9 +303,23 @@ public class CustomerMergeDAO {
                 String tax2 = normalizeTaxCode((String) c2.get("taxCode"));
                 String web2 = normalizeWebsite((String) c2.get("website"));
                 String name2 = normalizeCompanyName((String) c2.get("name"));
+                String phone2 = normalizePhone((String) c2.get("phone"));
+                String email2 = normalizeEmail((String) c2.get("email"));
 
                 List<String> reasons = new ArrayList<>();
                 double score = 0.0;
+
+                // Trùng số điện thoại
+                if (!phone1.isBlank() && !phone2.isBlank() && phone1.equals(phone2)) {
+                    reasons.add("Trùng số điện thoại (" + c1.get("phone") + ")");
+                    score = Math.max(score, 1.0);
+                }
+
+                // Trùng email
+                if (!email1.isBlank() && !email2.isBlank() && email1.equals(email2)) {
+                    reasons.add("Trùng địa chỉ email (" + c1.get("email") + ")");
+                    score = Math.max(score, 1.0);
+                }
 
                 // Trùng MST
                 if (!tax1.isBlank() && !tax2.isBlank() && tax1.equals(tax2)) {
@@ -281,6 +389,18 @@ public class CustomerMergeDAO {
 
         // Đánh giá các điểm trùng khớp
         List<String> matchPoints = new ArrayList<>();
+        String ph1 = normalizePhone((String) c1.get("phone"));
+        String ph2 = normalizePhone((String) c2.get("phone"));
+        if (!ph1.isBlank() && ph1.equals(ph2)) {
+            matchPoints.add("Số điện thoại giống nhau: " + c1.get("phone"));
+        }
+
+        String em1 = normalizeEmail((String) c1.get("email"));
+        String em2 = normalizeEmail((String) c2.get("email"));
+        if (!em1.isBlank() && em1.equals(em2)) {
+            matchPoints.add("Email giống nhau: " + c1.get("email"));
+        }
+
         String t1 = normalizeTaxCode((String) c1.get("taxCode"));
         String t2 = normalizeTaxCode((String) c2.get("taxCode"));
         if (!t1.isBlank() && t1.equals(t2)) {
@@ -308,7 +428,7 @@ public class CustomerMergeDAO {
      * - Giữ lại masterId
      * - Chuyển toàn bộ contacts, opportunities, activities, attachments, quotes từ duplicateId sang masterId
      * - Đánh dấu duplicateId là MERGED và is_deleted = 1
-     * - Ghi log activity vào masterId
+     * - Ghi log activity bảo lưu toàn bộ lịch sử của cả 2 bản ghi
      */
     public Map<String, Object> mergeCustomers(
             long masterId,
@@ -402,7 +522,14 @@ public class CustomerMergeDAO {
                     ps.executeUpdate();
                 }
 
-                // 8. Cập nhật các trường thông tin ghi đè lên Master Customer nếu có chỉ định
+                // 8. Chuyển web_lead_submissions
+                try (PreparedStatement ps = conn.prepareStatement("UPDATE web_lead_submissions SET customer_id = ? WHERE customer_id = ?")) {
+                    ps.setLong(1, masterId);
+                    ps.setLong(2, duplicateId);
+                    ps.executeUpdate();
+                }
+
+                // 9. Cập nhật các trường thông tin ghi đè lên Master Customer nếu có chỉ định
                 if (fieldOverrides != null && !fieldOverrides.isEmpty()) {
                     StringBuilder upd = new StringBuilder("UPDATE customers SET updated_at = NOW()");
                     List<Object> params = new ArrayList<>();
@@ -447,26 +574,26 @@ public class CustomerMergeDAO {
                     }
                 }
 
-                // 9. Thêm hoạt động hệ thống ghi nhận việc gộp khách hàng
-                String noteSql = """
-                        INSERT INTO activities (
-                            customer_id, owner_user_id, type, subject, description, status, created_at
-                        ) VALUES (?, ?, 'NOTE', 'Gộp khách hàng trùng lặp', ?, 'COMPLETED', NOW())
+                // 10. Thêm hoạt động hệ thống ghi nhận việc gộp khách hàng (Bảo lưu toàn bộ lịch sử)
+                String actSql = """
+                        INSERT INTO activities (customer_id, owner_user_id, type, subject, description, status, created_at)
+                        VALUES (?, ?, 'AUDIT', 'Gộp khách hàng tiềm năng trùng lặp', ?, 'COMPLETED', NOW())
                         """;
-                String noteDesc = String.format(
-                        "Đã gộp dữ liệu từ khách hàng '%s' (Mã: #%d) vào khách hàng này. Giữ lại toàn bộ %d người liên hệ, %d cơ hội, %d hoạt động, %d tệp đính kèm. Thực hiện bởi: %s.",
-                        dupName, duplicateId, contactsMerged, oppsMerged, activitiesMerged, attachmentsMerged, operatorName
-                );
-                try (PreparedStatement ps = conn.prepareStatement(noteSql)) {
+                try (PreparedStatement ps = conn.prepareStatement(actSql)) {
                     ps.setLong(1, masterId);
                     ps.setLong(2, operatorUserId);
-                    ps.setString(3, noteDesc);
+                    String desc = String.format(
+                            "Đã gộp thành công bản ghi trùng \"%s\" (#%d) vào khách hàng này. " +
+                            "Đã bảo lưu nguyên vẹn: %d người liên hệ, %d cơ hội bán hàng, %d lịch sử hoạt động, %d tệp đính kèm. Thao tác thực hiện bởi %s.",
+                            dupName, duplicateId, contactsMerged, oppsMerged, activitiesMerged, attachmentsMerged, operatorName
+                    );
+                    ps.setString(3, desc);
                     ps.executeUpdate();
                 }
 
-                // 10. Đánh dấu bản ghi duplicate là MERGED và soft-delete
-                String softDeleteSql = "UPDATE customers SET is_deleted = 1, status = 'MERGED', updated_at = NOW() WHERE id = ?";
-                try (PreparedStatement ps = conn.prepareStatement(softDeleteSql)) {
+                // 11. Đánh dấu bản ghi duplicate là MERGED và soft-delete
+                String deleteSql = "UPDATE customers SET status = 'MERGED', is_deleted = 1, updated_at = NOW() WHERE id = ?";
+                try (PreparedStatement ps = conn.prepareStatement(deleteSql)) {
                     ps.setLong(1, duplicateId);
                     ps.executeUpdate();
                 }
@@ -475,6 +602,7 @@ public class CustomerMergeDAO {
 
                 Map<String, Object> summary = new LinkedHashMap<>();
                 summary.put("masterId", masterId);
+                summary.put("masterName", masterName);
                 summary.put("mergedDuplicateId", duplicateId);
                 summary.put("duplicateName", dupName);
                 summary.put("contactsMerged", contactsMerged);
@@ -482,6 +610,7 @@ public class CustomerMergeDAO {
                 summary.put("activitiesMerged", activitiesMerged);
                 summary.put("attachmentsMerged", attachmentsMerged);
                 summary.put("quotesMerged", quotesMerged);
+                summary.put("operatorName", operatorName);
                 return summary;
 
             } catch (Exception e) {
@@ -501,7 +630,9 @@ public class CustomerMergeDAO {
                     u.full_name AS owner_name,
                     (SELECT COUNT(*) FROM contacts WHERE customer_id = c.id AND is_deleted = 0) AS contacts_count,
                     (SELECT COUNT(*) FROM opportunities WHERE customer_id = c.id AND is_deleted = 0) AS opps_count,
-                    (SELECT COUNT(*) FROM activities WHERE customer_id = c.id) AS acts_count
+                    (SELECT COUNT(*) FROM activities WHERE customer_id = c.id) AS acts_count,
+                    (SELECT GROUP_CONCAT(phone SEPARATOR ',') FROM contacts WHERE customer_id = c.id AND is_deleted = 0) AS contact_phones,
+                    (SELECT GROUP_CONCAT(email SEPARATOR ',') FROM contacts WHERE customer_id = c.id AND is_deleted = 0) AS contact_emails
                 FROM customers c
                 LEFT JOIN users u ON u.id = c.owner_user_id
                 WHERE c.is_deleted = 0
@@ -531,6 +662,8 @@ public class CustomerMergeDAO {
                 m.put("contactsCount", rs.getInt("contacts_count"));
                 m.put("opportunitiesCount", rs.getInt("opps_count"));
                 m.put("activitiesCount", rs.getInt("acts_count"));
+                m.put("contactPhones", rs.getString("contact_phones"));
+                m.put("contactEmails", rs.getString("contact_emails"));
                 list.add(m);
             }
         }
@@ -598,10 +731,10 @@ public class CustomerMergeDAO {
                 // Lấy danh sách opportunities mẫu
                 List<Map<String, Object>> opps = new ArrayList<>();
                 try (PreparedStatement ops = conn.prepareStatement("""
-                        SELECT o.id, o.name, o.amount, COALESCE(ps.name, o.status) AS stage_name, o.probability
-                        FROM opportunities o
-                        LEFT JOIN pipeline_stages ps ON ps.id = o.stage_id
-                        WHERE o.customer_id = ? AND o.is_deleted = 0 ORDER BY o.id DESC
+                        SELECT id, name, amount, stage_id, status, expected_close_date
+                        FROM opportunities
+                        WHERE customer_id = ? AND is_deleted = 0
+                        ORDER BY id DESC
                         """)) {
                     ops.setLong(1, customerId);
                     try (ResultSet ors = ops.executeQuery()) {
@@ -610,8 +743,9 @@ public class CustomerMergeDAO {
                             om.put("id", ors.getLong("id"));
                             om.put("name", ors.getString("name"));
                             om.put("amount", ors.getDouble("amount"));
-                            om.put("stageName", ors.getString("stage_name"));
-                            om.put("probability", ors.getInt("probability"));
+                            om.put("stageId", ors.getObject("stage_id"));
+                            om.put("status", ors.getString("status"));
+                            om.put("expectedCloseDate", ors.getDate("expected_close_date"));
                             opps.add(om);
                         }
                     }

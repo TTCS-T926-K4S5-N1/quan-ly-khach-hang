@@ -1,423 +1,310 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
 <script>
 (function () {
     try {
-        var theme =
-            localStorage.getItem("crm_ui_theme");
-
-        document.documentElement.setAttribute(
-            "data-theme",
-            theme === "dark"
-                ? "dark"
-                : "light"
-        );
-
-        document.documentElement.removeAttribute(
-            "data-crm-theme"
-        );
+        var theme = localStorage.getItem("crm_ui_theme");
+        document.documentElement.setAttribute("data-theme", theme === "dark" ? "dark" : "light");
+        document.documentElement.removeAttribute("data-crm-theme");
     } catch (e) {
-        document.documentElement.setAttribute(
-            "data-theme",
-            "light"
-        );
+        document.documentElement.setAttribute("data-theme", "light");
     }
 })();
 </script>
 
 <meta charset="UTF-8">
-
-<meta
-    name="viewport"
-    content="width=device-width,initial-scale=1.0"
->
-
-<title>Tạo Báo giá</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Soạn Báo Giá - CRM</title>
 
 <link rel="stylesheet" href="css/design-system.css">
 <link rel="stylesheet" href="css/app-shell.css">
 <link rel="stylesheet" href="css/pages/quote-editor.css">
-
-
-
-
-
-
-
-
-
-
-
 <link rel="stylesheet" href="css/animations.css">
+<style>
+.version-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 700;
+}
+.badge-active { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+.badge-inactive { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
+.tier-card {
+    padding: 12px 14px;
+    border-radius: 8px;
+    margin-top: 14px;
+    font-size: 12.5px;
+    line-height: 1.45;
+}
+.tier-none { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
+.tier-team-lead { background: #fefce8; border: 1px solid #fde047; color: #854d0e; }
+.tier-director { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+.disc-type-select {
+    height: 35px;
+    border: 1px solid var(--crm-border);
+    border-radius: 6px;
+    padding: 0 4px;
+    font-size: 12px;
+    background: #fff;
+}
+.sent-notice-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1e40af;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 13px;
+}
+</style>
 </head>
 
 <body class="crm-private">
 
-
 <aside class="crm-sidebar">
-
     <div class="crm-brand">
         <div class="crm-brand-mark">C</div>
         <span class="crm-brand-name">Corporate CRM</span>
     </div>
 
     <nav class="crm-nav">
-
+        <div class="crm-nav-section">Không gian làm việc</div>
         <a href="dashboard" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
             <span class="crm-nav-label">Tổng quan</span>
         </a>
-
         <a href="customers" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
             <span class="crm-nav-label">Khách hàng</span>
         </a>
-
         <a href="pipeline" class="crm-nav-item">
             <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 9-8 9-8-9 8-9Z"/></svg></span>
             <span class="crm-nav-label">Cơ hội</span>
         </a>
-
         <a href="quotations" class="crm-nav-item active">
             <span class="crm-nav-icon">▤</span>
             <span class="crm-nav-label">Báo giá</span>
         </a>
-
     </nav>
-
-    
-
 </aside>
 
-
 <header class="crm-topbar">
-
     <div class="crm-search">
-
-        <svg viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="7"/>
-            <path d="m20 20-4-4"/>
-        </svg>
-
-        <input
-            id="globalSearch"
-            type="search"
-            placeholder="Tìm kiếm..."
-        >
-
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input id="globalSearch" type="search" placeholder="Tìm kiếm...">
         <kbd>Ctrl K</kbd>
-
     </div>
 
     <div class="crm-top-actions">
-
         <div class="crm-user">
-
-            <button
-                id="userButton"
-                class="crm-user-button"
-                type="button"
-            >
-                <div class="crm-avatar">U</div>
-
+            <button id="userButton" class="crm-user-button" type="button">
+                <div class="crm-avatar" id="userAvatarChar">U</div>
                 <div class="crm-user-copy">
-                    <span class="crm-user-name">Người dùng</span>
-                    <span class="crm-user-role">Vai trò</span>
+                    <span class="crm-user-name" id="userFullName">Người dùng</span>
+                    <span class="crm-user-role" id="userRoleTitle">Vai trò</span>
                 </div>
-
                 <span><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
             </button>
-
             <div id="userDropdown" class="crm-user-dropdown">
-                <a href="#">Hồ sơ cá nhân</a>
-                <button type="button">Đăng xuất</button>
+                <a href="profile">Hồ sơ cá nhân</a>
+                <button type="button" id="btnLogout">Đăng xuất</button>
             </div>
-
         </div>
-
     </div>
-
 </header>
-
 
 <main class="crm-main quote-editor-page">
 
     <section class="editor-head">
-
         <div>
-
-            <a
-                href="quotations"
-                class="back-link"
-            >
-                ← Danh sách báo giá
-            </a>
-
-            <h1 id="editorPageTitle">
-                Tạo Báo giá
-            </h1>
-
-            <p>
-                Nhập thông tin và các dòng sản phẩm.
-            </p>
-
+            <a href="quotations" class="back-link">← Danh sách báo giá</a>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <h1 id="editorPageTitle">Tạo Báo Giá Mới</h1>
+                <span id="quoteVersionBadge" class="version-badge badge-active" style="display: none;">v1 (Hiệu lực)</span>
+                <span id="quoteStatusBadge" class="quote-status draft" style="display: none;">Nháp</span>
+            </div>
+            <p id="editorSubtitle">Soạn báo giá kế thừa từ cơ hội, thiết lập chiết khấu đa cấp và kiểm soát giá sàn.</p>
         </div>
 
         <div class="editor-head-actions">
-
-            <button
-                id="exportQuotePdfButton"
-                class="crm-btn crm-btn-secondary"
-                type="button"
-                style="display:none; align-items:center; gap:6px;"
-            >
-                <svg style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Xuất PDF
+            <button id="btnCreateNewVersion" class="crm-btn crm-btn-secondary" type="button" style="display: none; border-color: #3b82f6; color: #2563eb;">
+                📑 Nhân bản Phiên bản mới
             </button>
-
-            <button
-                id="saveDraftButton"
-                class="crm-btn crm-btn-secondary"
-                type="button"
-            >
-                Lưu nháp
+            <button id="saveDraftButton" class="crm-btn crm-btn-secondary" type="button">
+                💾 Lưu nháp
             </button>
-
-            <button
-                id="submitApprovalButton"
-                class="crm-btn crm-btn-primary"
-                type="button"
-            >
-                Gửi duyệt
+            <button id="submitApprovalButton" class="crm-btn crm-btn-primary" type="button">
+                🚀 Gửi duyệt báo giá
             </button>
-
         </div>
-
     </section>
 
+    <!-- Sent Notice Banner (Story 3) -->
+    <div id="sentNoticeBanner" class="sent-notice-banner" style="display: none;">
+        <div>
+            <strong>ℹ️ Báo giá này đã được gửi cho khách hàng.</strong>
+            <div>Để đảm bảo lịch sử cam kết, hệ thống sẽ tự động tạo một phiên bản mới (vN+1) ở trạng thái Nháp khi bạn lưu, giữ nguyên phiên bản đã gửi.</div>
+        </div>
+        <button type="button" class="crm-btn crm-btn-secondary" onclick="document.getElementById('btnCreateNewVersion').click()" style="background:#fff; white-space:nowrap;">
+            Tạo phiên bản ngay
+        </button>
+    </div>
 
+    <!-- Opportunity Inheritance Alert (Story 1) -->
+    <div id="oppInheritAlert" class="sent-notice-banner" style="display: none; background: #f0fdf4; border-color: #bbf7d0; color: #166534;">
+        <div>
+            <strong>✨ Kế thừa thành công từ Cơ hội: <span id="inheritedOppName"></span></strong>
+            <div>Đã tự động tải danh sách sản phẩm, đơn giá niêm yết, giá sàn và thông tin khách hàng. Bạn có thể sửa đổi linh hoạt.</div>
+        </div>
+    </div>
+
+    <!-- Meta Fields -->
     <section class="quote-meta crm-card">
-
-        <div class="quote-meta-grid">
-
+        <div class="quote-meta-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
             <label>
                 Mã báo giá
-
-                <input
-                    id="quoteCode"
-                    class="crm-input"
-                    type="text"
-                    placeholder="VD: BG-001"
-                >
+                <input id="quoteCode" class="crm-input" type="text" placeholder="Tự sinh (VD: BG-100234)" readonly style="background: #f8fafc; font-weight: 700;">
             </label>
-
 
             <label>
-                Khách hàng
-
-                <input
-                    id="quoteCustomer"
-                    class="crm-input"
-                    type="text"
-                >
+                Tiêu đề báo giá <em>*</em>
+                <input id="quoteTitle" class="crm-input" type="text" placeholder="VD: Báo giá giải pháp CRM cho Khách hàng..." required>
             </label>
-
 
             <label>
-                Cơ hội
-
-                <input
-                    id="quoteOpportunity"
-                    class="crm-input"
-                    type="text"
-                >
+                Khách hàng <em>*</em>
+                <input id="quoteCustomer" class="crm-input" type="text" placeholder="Chọn hoặc nhập tên khách hàng..." required>
             </label>
-
 
             <label>
-                Hiệu lực đến
-
-                <input
-                    id="quoteValidUntil"
-                    class="crm-input"
-                    type="date"
-                >
+                Cơ hội liên quan
+                <input id="quoteOpportunity" class="crm-input" type="text" placeholder="Gắn mã hoặc tên cơ hội...">
             </label>
 
+            <label>
+                Hiệu lực báo giá đến <em>*</em>
+                <input id="quoteValidUntil" class="crm-input" type="date" required>
+            </label>
         </div>
-
     </section>
 
-
+    <!-- Product Lines -->
     <section class="crm-card product-lines-card">
-
         <header class="section-head">
-
             <div>
-                <h2>
-                    Dòng sản phẩm / dịch vụ
-                </h2>
-
-                <p>
-                    Thành tiền được tính tự động theo số lượng, đơn giá và chiết khấu.
-                </p>
+                <h2>Dòng sản phẩm & Dịch vụ báo giá</h2>
+                <p>Mỗi dòng hỗ trợ chiết khấu theo <b>%</b> hoặc <b>số tiền ₫</b>. Tự động kiểm tra giá sàn theo thời gian thực.</p>
             </div>
-
-            <button
-                id="addQuoteLine"
-                class="crm-btn crm-btn-secondary"
-                type="button"
-            >
-                + Thêm dòng
+            <button id="addQuoteLine" class="crm-btn crm-btn-secondary" type="button">
+                + Thêm dòng sản phẩm
             </button>
-
         </header>
 
-
         <div class="line-table-scroll">
-
             <table class="line-table">
-
                 <thead>
-                <tr>
-                    <th>Sản phẩm / dịch vụ</th>
-                    <th>SL</th>
-                    <th>Đơn giá</th>
-                    <th>Giảm %</th>
-                    <th>Thành tiền</th>
-                    <th></th>
-                </tr>
+                    <tr>
+                        <th style="min-width: 220px;">Sản phẩm / Dịch vụ</th>
+                        <th style="width: 80px;">SL</th>
+                        <th style="width: 140px;">Đơn giá (₫)</th>
+                        <th style="width: 75px;">Loại CK</th>
+                        <th style="width: 110px;">Mức CK</th>
+                        <th style="width: 120px;">Tiền CK</th>
+                        <th style="width: 140px; text-align: right;">Thành tiền</th>
+                        <th style="width: 40px;"></th>
+                    </tr>
                 </thead>
-
                 <tbody id="quoteLineBody"></tbody>
-
             </table>
-
         </div>
 
-
-        <div
-            id="lineEmpty"
-            class="line-empty"
-        >
-            Chưa có dòng sản phẩm.
+        <div id="lineEmpty" class="line-empty">
+            Chưa có dòng sản phẩm nào. Bấm "+ Thêm dòng sản phẩm" để bắt đầu.
         </div>
-
     </section>
 
-
+    <!-- Bottom: Terms & Summary -->
     <section class="quote-bottom-grid">
-
         <article class="crm-card quote-terms">
-
-            <h2>
-                Điều khoản
-            </h2>
+            <h2>Điều khoản & Cam kết</h2>
 
             <label>
                 Điều khoản thanh toán
-
-                <textarea
-                    id="paymentTerms"
-                    rows="4"
-                    placeholder="Nhập điều khoản thanh toán..."
-                ></textarea>
+                <textarea id="paymentTerms" rows="3" placeholder="VD: Đợt 1: Tạm ứng 40% ngay sau khi ký hợp đồng; Đợt 2: Thanh toán 60% sau khi bàn giao nghiệm thu."></textarea>
             </label>
 
             <label>
-                Điều khoản giao hàng
-
-                <textarea
-                    id="deliveryTerms"
-                    rows="4"
-                    placeholder="Nhập điều khoản giao hàng..."
-                ></textarea>
+                Điều khoản giao hàng / Triển khai
+                <textarea id="deliveryTerms" rows="3" placeholder="VD: Bàn giao tài liệu và triển khai hệ thống trong vòng 15 ngày làm việc kể từ ngày tạm ứng."></textarea>
             </label>
 
+            <label>
+                Điều khoản chung & Bảo hành
+                <textarea id="termsAndConditions" rows="3" placeholder="VD: Bảo hành và hỗ trợ kỹ thuật tiêu chuẩn 12 tháng kể từ ngày nghiệm thu."></textarea>
+            </label>
         </article>
 
-
         <aside class="crm-card quote-summary">
-
-            <h2>
-                Tổng cộng
-            </h2>
+            <h2>Tổng cộng thanh toán</h2>
 
             <div class="summary-row">
-                <span>Tạm tính</span>
-                <strong id="subtotalText">0 ₫</strong>
+                <span>Tổng tiền hàng (Gross)</span>
+                <strong id="grossTotalText">0 ₫</strong>
             </div>
 
             <div class="summary-row">
-                <span>Chiết khấu</span>
-                <strong id="discountText">0 ₫</strong>
+                <span>Tổng chiết khấu dòng</span>
+                <strong id="lineDiscountText" style="color: #dc2626;">0 ₫</strong>
+            </div>
+
+            <div class="summary-row">
+                <span style="display:flex; align-items:center; gap:6px;">
+                    Chiết khấu tổng báo giá (%)
+                </span>
+                <div style="display: flex; align-items: center; gap: 4px; max-width: 110px;">
+                    <input id="headerDiscountInput" type="number" min="0" max="100" step="0.5" value="0" class="crm-input" style="height: 30px; font-size: 12px; padding: 0 6px; text-align: right;">
+                    <span style="font-weight: 700;">%</span>
+                </div>
+            </div>
+
+            <div class="summary-row">
+                <span>Tổng giảm giá toàn đơn</span>
+                <strong id="totalDiscountText" style="color: #dc2626;">0 ₫ (<span id="totalDiscountPctText">0%</span>)</strong>
             </div>
 
             <div class="summary-row total">
-                <span>Thành tiền</span>
-                <strong id="totalText">0 ₫</strong>
+                <span>Thành tiền thanh toán</span>
+                <strong id="totalText" style="color: #15803d; font-size: 20px;">0 ₫</strong>
             </div>
 
-
-            <div
-                id="approvalWarning"
-                class="approval-warning"
-                hidden
-            >
-                <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v5m0 3v1"/></svg> Mức chiết khấu đang chạm ngưỡng cần duyệt.
-            </div>
-
-
-            <div class="approval-demo">
-
-                <span>
-                    Mô phỏng duyệt FE
-                </span>
-
-                <div class="approval-buttons">
-
-                    <button
-                        id="approveQuote"
-                        class="approval-btn approve"
-                        type="button"
-                    >
-                        Duyệt
-                    </button>
-
-                    <button
-                        id="rejectQuote"
-                        class="approval-btn reject"
-                        type="button"
-                    >
-                        Từ chối
-                    </button>
-
+            <!-- Approval Tier Warning Box (Story 1 & 2) -->
+            <div id="approvalTierBox" class="tier-card tier-none">
+                <div style="font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;" id="tierTitle">
+                    ✅ Tự động phê duyệt
                 </div>
-
+                <div id="tierDesc">Mức chiết khấu ≤ 10% và không có sản phẩm dưới giá sàn. Báo giá tự động duyệt khi gửi.</div>
             </div>
 
+            <div style="margin-top: 14px; font-size: 11px; color: #64748b; line-height: 1.4; border-top: 1px dashed var(--crm-border); padding-top: 10px;">
+                <b>Quy định duyệt chiết khấu:</b><br>
+                • ≤ 10% & trên giá sàn: Tự động duyệt.<br>
+                • 10% - 20%: Trưởng nhóm kinh doanh duyệt.<br>
+                • &gt; 20% hoặc Dưới giá sàn: Bắt buộc Giám đốc kinh doanh duyệt.
+            </div>
         </aside>
-
     </section>
 
 </main>
 
-<header class="crm-mobile-header"></header>
-<div id="drawerOverlay" class="crm-drawer-overlay"></div>
-<aside id="mobileDrawer" class="crm-mobile-drawer"></aside>
-
-
-
-
-
 <script src="js/pages/quote-editor.js"></script>
-
 <script src="js/page-transition.js"></script>
-
-
-
-
 <script src="js/theme.js"></script>
 <script src="js/shared-shell.js"></script>
 <script src="js/ui-core.js"></script>

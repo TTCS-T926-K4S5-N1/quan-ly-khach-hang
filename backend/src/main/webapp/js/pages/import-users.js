@@ -7,6 +7,7 @@ let selectedFile = null;
 let batchToken = null;
 let previewRows = [];
 let currentFilter = "all";
+let currentStatusFilter = "all";
 let currentSearch = "";
 
 // DOM Elements
@@ -31,15 +32,19 @@ const downloadInvalidButton = document.getElementById("downloadInvalidTemplate")
 const loadValidDemoButton = document.getElementById("loadValidDemo");
 const loadInvalidDemoButton = document.getElementById("loadInvalidDemo");
 
-const previewSearchInput = document.getElementById("previewSearchInput");
-
 /* =========================================================
    INITIALIZATION
 ========================================================= */
-document.addEventListener("DOMContentLoaded", () => {
+function safeInit() {
     bindEvents();
     updateStepper(1);
-});
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", safeInit);
+} else {
+    safeInit();
+}
 
 function bindEvents() {
     // Template downloads
@@ -96,11 +101,37 @@ function bindEvents() {
         });
     });
 
-    // Table search
-    previewSearchInput?.addEventListener("input", event => {
-        currentSearch = event.target.value.trim().toLowerCase();
+    // Status filter dropdown
+    const statusSelect = document.getElementById("previewStatusFilter");
+    statusSelect?.addEventListener("change", event => {
+        currentStatusFilter = event.target.value || "all";
         renderPreviewTable();
     });
+
+    // Table search - handle input, search (browser clear 'x'), and keyup
+    const searchInput = document.getElementById("previewSearchInput");
+    const onSearchChange = event => {
+        currentSearch = (event.target.value || "").trim();
+        renderPreviewTable();
+    };
+    searchInput?.addEventListener("input", onSearchChange);
+    searchInput?.addEventListener("search", onSearchChange);
+    searchInput?.addEventListener("keyup", onSearchChange);
+
+    // Clear search button
+    const clearSearchBtn = document.getElementById("clearSearchBtn");
+    clearSearchBtn?.addEventListener("click", () => {
+        if (searchInput) {
+            searchInput.value = "";
+            searchInput.focus();
+        }
+        currentSearch = "";
+        renderPreviewTable();
+    });
+
+    // Reset all filters button
+    const resetFilterBtn = document.getElementById("resetFilterBtn");
+    resetFilterBtn?.addEventListener("click", () => resetAllFilters());
 }
 
 /* =========================================================
@@ -200,6 +231,7 @@ function clearSelectedFile() {
     selectedFile = null;
     batchToken = null;
     previewRows = [];
+    resetAllFilters(false);
     clearFileInput();
 
     if (selectedFileInfo) selectedFileInfo.hidden = true;
@@ -245,6 +277,7 @@ async function uploadAndPreview() {
 
         previewRows = [...validRows, ...errorRows].sort((a, b) => Number(a.row) - Number(b.row));
 
+        resetAllFilters(false);
         setupPreviewDashboard(validRows.length, errorRows.length);
         renderPreviewTable();
 
@@ -279,6 +312,7 @@ function loadValidDemoData() {
         { row: 6, fullName: "Vũ Minh Đức", email: "vuminhduc.leads@company.com", status: "INACTIVE", valid: true, error: "" }
     ];
 
+    resetAllFilters(false);
     setupPreviewDashboard(5, 0);
     renderPreviewTable();
     updateStepper(3);
@@ -306,6 +340,7 @@ function loadInvalidDemoData() {
         { row: 9, fullName: "Vũ Trạng Thái Sai", email: "trangthaisai@company.com", status: "PENDING", valid: false, error: "Trạng thái không hợp lệ (chỉ nhận ACTIVE / INACTIVE)" }
     ];
 
+    resetAllFilters(false);
     setupPreviewDashboard(2, 6);
     renderPreviewTable();
     updateStepper(3);
@@ -348,35 +383,178 @@ function setupPreviewDashboard(validCount, errorCount) {
 }
 
 /* =========================================================
+   VIETNAMESE ACCENT REMOVAL & SEARCH NORMALIZATION
+========================================================= */
+function removeVietnameseTones(str) {
+    if (!str) return "";
+    str = String(str);
+    str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
+    str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
+    str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
+    str = str.replace(/ò|ó|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
+    str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
+    str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
+    str = str.replace(/đ/g, "d");
+    str = str.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, "a");
+    str = str.replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, "e");
+    str = str.replace(/Ì|Í|Ị|Ỉ|Ĩ/g, "i");
+    str = str.replace(/Ò|Ó|Ọ|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "o");
+    str = str.replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "u");
+    str = str.replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, "y");
+    str = str.replace(/Đ/g, "d");
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+function updateFilterUiState(filteredCount, totalCount) {
+    const badge = document.getElementById("filterResultBadge");
+    if (badge) {
+        badge.textContent = `Hiển thị ${filteredCount} / ${totalCount} dòng`;
+        if (totalCount > 0 && filteredCount < totalCount) {
+            badge.style.background = "#dbeafe";
+            badge.style.color = "#1d4ed8";
+            badge.style.border = "1px solid #93c5fd";
+        } else {
+            badge.style.background = "#e2e8f0";
+            badge.style.color = "#475569";
+            badge.style.border = "1px solid transparent";
+        }
+    }
+
+    const clearSearchBtn = document.getElementById("clearSearchBtn");
+    if (clearSearchBtn) {
+        clearSearchBtn.hidden = !currentSearch;
+    }
+
+    const isFiltered = currentFilter !== "all" || currentStatusFilter !== "all" || Boolean(currentSearch);
+    const resetBtn = document.getElementById("resetFilterBtn");
+    if (resetBtn) {
+        resetBtn.hidden = !isFiltered;
+    }
+}
+
+function resetAllFilters(shouldRender = true) {
+    currentFilter = "all";
+    currentStatusFilter = "all";
+    currentSearch = "";
+
+    const searchInput = document.getElementById("previewSearchInput");
+    if (searchInput) searchInput.value = "";
+
+    const statusSelect = document.getElementById("previewStatusFilter");
+    if (statusSelect) statusSelect.value = "all";
+
+    document.querySelectorAll(".preview-filter-tabs .tab-btn").forEach(btn => {
+        if (btn.dataset.filter === "all") {
+            btn.classList.add("active");
+        } else {
+            btn.classList.remove("active");
+        }
+    });
+
+    if (shouldRender) {
+        renderPreviewTable();
+    }
+}
+
+/* =========================================================
    RENDER PREVIEW TABLE
 ========================================================= */
 function renderPreviewTable() {
     if (!previewBody) return;
     previewBody.innerHTML = "";
 
+    const query = currentSearch.trim();
+    const queryLower = query.toLowerCase();
+    const queryNoTone = removeVietnameseTones(query);
+
     const filtered = previewRows.filter(row => {
-        // Tab filter
+        // 1. Tab filter (valid / error / all)
         if (currentFilter === "valid" && !row.valid) return false;
         if (currentFilter === "error" && row.valid) return false;
 
-        // Search filter
-        if (currentSearch) {
-            const query = currentSearch;
-            const text = `${row.fullName || ""} ${row.email || ""} ${row.error || ""}`.toLowerCase();
-            if (!text.includes(query)) return false;
+        // 2. Status filter
+        if (currentStatusFilter !== "all") {
+            const rowStatus = String(row.status || "").toUpperCase();
+            if (rowStatus !== currentStatusFilter) return false;
+        }
+
+        // 3. Search query filter
+        if (query) {
+            const nameRaw = String(row.fullName || "");
+            const nameLower = nameRaw.toLowerCase();
+            const nameNoTone = removeVietnameseTones(nameRaw);
+            const nameWords = nameNoTone.split(/\s+/).filter(Boolean);
+
+            // Name matching:
+            // - If query has space: substring of full name
+            // - If single word: any word in name starts with query or equals query
+            // - Also check raw name with accents
+            const matchName =
+                nameLower.includes(queryLower) ||
+                (queryNoTone.includes(" ")
+                    ? nameNoTone.includes(queryNoTone)
+                    : nameWords.some(w => w.startsWith(queryNoTone) || w === queryNoTone));
+
+            // Email matching:
+            // Match username part before '@' (don't match common @company.com unless query has '@')
+            const fullEmail = String(row.email || "").toLowerCase();
+            const emailUser = fullEmail.split("@")[0] || "";
+            const emailParts = emailUser.split(/[._\-]/).filter(Boolean);
+
+            const matchEmail = query.includes("@")
+                ? fullEmail.includes(queryLower)
+                : (query.length <= 2
+                    ? (emailUser.startsWith(queryLower) || emailParts.some(p => p.startsWith(queryLower)))
+                    : emailUser.includes(queryLower));
+
+            // Status matching: exact for active/inactive or vietnamese equivalent
+            const status = String(row.status || "").toLowerCase();
+            const matchStatus =
+                (queryLower === "active" && status === "active") ||
+                (queryLower === "inactive" && status === "inactive") ||
+                (queryNoTone === "hoat dong" && status === "active") ||
+                (queryNoTone === "ngung hoat dong" && status === "inactive");
+
+            // Row number matching:
+            const matchRow =
+                query === String(row.row) ||
+                query === `#${row.row}` ||
+                queryNoTone === `dong ${row.row}` ||
+                queryLower === `dòng ${row.row}`;
+
+            // Error matching:
+            const errorText = String(row.error || "").toLowerCase();
+            const errorNoTone = removeVietnameseTones(row.error || "");
+            const matchError = errorText.includes(queryLower) || errorNoTone.includes(queryNoTone);
+
+            // Validation status keyword:
+            const matchValid =
+                (queryNoTone === "hop le" || queryNoTone === "hople") ? row.valid :
+                ((queryNoTone === "loi" || queryNoTone === "co loi") ? !row.valid : false);
+
+            if (!matchName && !matchEmail && !matchStatus && !matchRow && !matchError && !matchValid) {
+                return false;
+            }
         }
 
         return true;
     });
 
+    updateFilterUiState(filtered.length, previewRows.length);
+
     if (filtered.length === 0) {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td colspan="6" style="text-align:center;padding:32px;color:#64748b;">
-                Không có dòng dữ liệu nào khớp với bộ lọc hiện tại.
+            <td colspan="6" style="text-align:center;padding:36px 20px;color:#64748b;">
+                <div style="font-size:26px;margin-bottom:8px;">🔍</div>
+                <strong style="display:block;font-size:14px;color:#0f172a;margin-bottom:4px;">Không có dòng dữ liệu nào khớp với bộ lọc</strong>
+                <span style="font-size:12px;color:#64748b;">
+                    Thử đổi từ khóa tìm kiếm hoặc bấm <button type="button" id="inlineResetFilter" style="background:none;border:none;color:#2563eb;text-decoration:underline;cursor:pointer;font-size:12px;font-weight:600;padding:0;">Bỏ lọc</button> để xem lại toàn bộ danh sách.
+                </span>
             </td>
         `;
         previewBody.appendChild(tr);
+        document.getElementById("inlineResetFilter")?.addEventListener("click", () => resetAllFilters());
         return;
     }
 
@@ -384,10 +562,10 @@ function renderPreviewTable() {
         const tr = document.createElement("tr");
         tr.className = row.valid ? "row-valid" : "row-error";
 
-        const hasNameError = !row.valid && row.error.toLowerCase().includes("fullname");
-        const hasEmailError = !row.valid && (row.error.toLowerCase().includes("email") || row.error.toLowerCase().includes("trùng"));
-        const hasPassError = !row.valid && row.error.toLowerCase().includes("password");
-        const hasStatusError = !row.valid && row.error.toLowerCase().includes("status");
+        const hasNameError = !row.valid && String(row.error || "").toLowerCase().includes("fullname");
+        const hasEmailError = !row.valid && (String(row.error || "").toLowerCase().includes("email") || String(row.error || "").toLowerCase().includes("trùng"));
+        const hasPassError = !row.valid && String(row.error || "").toLowerCase().includes("password");
+        const hasStatusError = !row.valid && String(row.error || "").toLowerCase().includes("status");
 
         tr.innerHTML = `
             <td style="font-weight:700;color:#64748b;">#${row.row}</td>

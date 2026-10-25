@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
 <script>
@@ -6,6 +6,7 @@
     try {
         var theme = localStorage.getItem("crm_ui_theme");
         document.documentElement.setAttribute("data-theme", theme === "dark" ? "dark" : "light");
+        document.documentElement.removeAttribute("data-crm-theme");
     } catch (e) {
         document.documentElement.setAttribute("data-theme", "light");
     }
@@ -13,171 +14,262 @@
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Cấu hình Mẫu tài liệu PDF | Corporate CRM</title>
+<title>Cấu hình Mẫu Báo Giá & Hợp Đồng - Corporate CRM</title>
 <link rel="stylesheet" href="css/design-system.css">
 <link rel="stylesheet" href="css/app-shell.css">
-<link rel="stylesheet" href="css/pages/document-templates.css">
 <link rel="stylesheet" href="css/animations.css">
+<style>
+    .tpl-page {
+        padding: 1.5rem 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .tpl-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.75rem;
+    }
+    .tpl-tabs {
+        display: flex;
+        gap: 0.5rem;
+        border-bottom: 2px solid var(--border, #e2e8f0);
+        margin-bottom: 1.5rem;
+    }
+    .tpl-tab-btn {
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        font-size: 0.925rem;
+        border: none;
+        background: none;
+        cursor: pointer;
+        color: var(--text-muted, #64748b);
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+        transition: all 0.2s ease;
+    }
+    .tpl-tab-btn.active {
+        color: var(--primary, #2563eb);
+        border-bottom-color: var(--primary, #2563eb);
+    }
+    .tpl-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1.5rem;
+    }
+    .form-group {
+        margin-bottom: 1.15rem;
+    }
+    .form-group label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 0.4rem;
+        color: var(--text-heading, #0f172a);
+    }
+    .form-group input, .form-group textarea {
+        width: 100%;
+        padding: 0.65rem 0.85rem;
+        border: 1px solid var(--border, #cbd5e1);
+        border-radius: 8px;
+        font-size: 0.9rem;
+        background: var(--surface-bg, #ffffff);
+        color: var(--text-body, #1e293b);
+        font-family: inherit;
+    }
+    .form-group textarea {
+        resize: vertical;
+        line-height: 1.5;
+    }
+    .preview-card {
+        background: var(--surface-card, #ffffff);
+        border: 1px solid var(--border, #e2e8f0);
+        border-radius: 12px;
+        padding: 1.5rem;
+        position: sticky;
+        top: 1.5rem;
+    }
+    .logo-preview-box {
+        width: 100%;
+        height: 90px;
+        border: 2px dashed var(--border, #cbd5e1);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 0.5rem;
+        background: #f8fafc;
+        overflow: hidden;
+    }
+    .logo-preview-box img {
+        max-height: 75px;
+        max-width: 90%;
+        object-fit: contain;
+    }
+</style>
 </head>
-
 <body class="crm-private">
 
-<aside class="crm-sidebar" id="desktopNavigation">
-    <!-- Populated by shared-shell.js -->
+<aside class="crm-sidebar">
+    <div class="crm-brand">
+        <div class="crm-brand-mark">C</div>
+        <span class="crm-brand-name">Corporate CRM</span>
+    </div>
+    <nav class="crm-nav">
+        <a href="dashboard" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+            <span class="crm-nav-label">Tổng quan</span>
+        </a>
+        <a href="customers" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
+            <span class="crm-nav-label">Khách hàng</span>
+        </a>
+        <a href="pipeline" class="crm-nav-item">
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24"><path d="m12 3 8 9-8 9-8-9 8-9Z"/></svg></span>
+            <span class="crm-nav-label">Cơ hội</span>
+        </a>
+        <a href="quotations" class="crm-nav-item">
+            <span class="crm-nav-icon">▤</span>
+            <span class="crm-nav-label">Báo giá</span>
+        </a>
+        <a href="document-templates.html" class="crm-nav-item active">
+            <span class="crm-nav-icon">⚙️</span>
+            <span class="crm-nav-label">Mẫu Báo giá & HĐ</span>
+        </a>
+    </nav>
 </aside>
 
-<header class="crm-topbar">
-    <div class="crm-search">
-        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-        <input id="globalSearch" type="search" placeholder="Tìm kiếm...">
-        <kbd>Ctrl K</kbd>
-    </div>
-</header>
-
-<main class="crm-main tmpl-container">
-    <section class="tmpl-header">
+<main class="crm-main tpl-page">
+    <div class="tpl-header">
         <div>
-            <h1>Cấu hình Mẫu tài liệu PDF</h1>
-            <p style="color:var(--crm-text-muted, #6b7280); font-size:13px; margin-top:4px;">
-                Tùy chỉnh thông tin công ty, logo, màu sắc thương hiệu và điều khoản mẫu xuất PDF cho Báo giá & Hợp đồng.
+            <h1 style="font-size: 1.6rem; font-weight: 800; color: var(--text-heading, #0f172a);">Cấu hình Mẫu Báo Giá & Hợp Đồng</h1>
+            <p style="color: var(--text-muted, #64748b); font-size: 0.9rem; margin-top: 0.25rem;">
+                Quản lý nhận diện thương hiệu, logo công ty, thông tin pháp lý và điều khoản mẫu xuất PDF.
             </p>
         </div>
         <div>
-            <button id="previewPdfBtn" type="button" class="crm-btn crm-btn-secondary" style="display:flex; align-items:center; gap:6px;">
-                <svg style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                Xem trước PDF
-            </button>
+            <a href="quotations" class="crm-btn" style="text-decoration: none;">← Quay lại Báo giá</a>
         </div>
-    </section>
-
-    <div class="tmpl-tabs">
-        <button type="button" class="tmpl-tab active" data-tab="QUOTE">Mẫu Báo giá (QUOTE)</button>
-        <button type="button" class="tmpl-tab" data-tab="CONTRACT">Mẫu Hợp đồng (CONTRACT)</button>
     </div>
 
-    <form id="templateForm">
-        <div class="tmpl-grid">
-            <div class="tmpl-card">
-                <div class="tmpl-section-title">Thông tin chung & Doanh nghiệp</div>
-                
-                <div class="tmpl-form-row">
-                    <div class="tmpl-form-group">
-                        <label for="templateName">Tên cấu hình mẫu <em>*</em></label>
-                        <input id="templateName" class="crm-input" type="text" required>
-                    </div>
-                    <div class="tmpl-form-group">
-                        <label for="templateTitle">Tiêu đề văn bản <em>*</em></label>
-                        <input id="templateTitle" class="crm-input" type="text" required>
-                    </div>
+    <!-- Tab navigation -->
+    <div class="tpl-tabs">
+        <button id="tabQuote" class="tpl-tab-btn active" onclick="switchTemplateTab('QUOTE')">
+            📄 Mẫu Báo Giá (QUOTE)
+        </button>
+        <button id="tabContract" class="tpl-tab-btn" onclick="switchTemplateTab('CONTRACT')">
+            📜 Mẫu Hợp Đồng (CONTRACT)
+        </button>
+    </div>
+
+    <div id="alertMsg" style="display:none; padding: 0.85rem 1.25rem; border-radius: 8px; margin-bottom: 1.25rem; font-weight: 500;"></div>
+
+    <div class="tpl-grid">
+        <!-- Main Form -->
+        <div class="crm-card" style="padding: 1.75rem; background: var(--surface-card, #ffffff); border: 1px solid var(--border, #e2e8f0); border-radius: 12px;">
+            <form id="templateForm">
+                <div class="form-group">
+                    <label>Tên tiêu đề mẫu tài liệu</label>
+                    <input id="templateName" type="text" placeholder="Ví dụ: Mẫu Báo giá Doanh nghiệp Chuẩn Nhận diện">
                 </div>
 
-                <div class="tmpl-form-group">
-                    <label for="companyName">Tên công ty / Doanh nghiệp <em>*</em></label>
-                    <input id="companyName" class="crm-input" type="text" required>
-                </div>
-
-                <div class="tmpl-form-group">
-                    <label for="companyAddress">Địa chỉ trụ sở</label>
-                    <input id="companyAddress" class="crm-input" type="text">
-                </div>
-
-                <div class="tmpl-form-row">
-                    <div class="tmpl-form-group">
-                        <label for="companyTaxCode">Mã số thuế</label>
-                        <input id="companyTaxCode" class="crm-input" type="text">
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label>Tên công ty / Doanh nghiệp xuất hóa đơn & chứng từ (*)</label>
+                        <input id="companyName" type="text" required placeholder="TẬP ĐOÀN CÔNG NGHỆ & GIẢI PHÁP CRM">
                     </div>
-                    <div class="tmpl-form-group">
-                        <label for="companyPhone">Số điện thoại / Hotline</label>
-                        <input id="companyPhone" class="crm-input" type="text">
+                    <div class="form-group">
+                        <label>Mã số thuế (*)</label>
+                        <input id="companyTaxCode" type="text" placeholder="0108996688">
                     </div>
                 </div>
 
-                <div class="tmpl-form-row">
-                    <div class="tmpl-form-group">
-                        <label for="companyEmail">Email liên hệ</label>
-                        <input id="companyEmail" class="crm-input" type="email">
-                    </div>
-                    <div class="tmpl-form-group">
-                        <label for="companyWebsite">Website</label>
-                        <input id="companyWebsite" class="crm-input" type="text">
-                    </div>
+                <div class="form-group">
+                    <label>Địa chỉ trụ sở / Văn phòng đại diện</label>
+                    <input id="companyAddress" type="text" placeholder="Tầng 18, Tòa nhà Keangnam Landmark 72, Mễ Trì, Hà Nội">
                 </div>
 
-                <div class="tmpl-form-group">
-                    <label for="companyBankAccount">Thông tin tài khoản ngân hàng</label>
-                    <input id="companyBankAccount" class="crm-input" type="text" placeholder="STK - Tên ngân hàng - Chi nhánh">
-                </div>
-
-                <div class="tmpl-form-row">
-                    <div class="tmpl-form-group">
-                        <label for="representativeName">Người đại diện ký</label>
-                        <input id="representativeName" class="crm-input" type="text">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label>Số điện thoại / Hotline</label>
+                        <input id="companyPhone" type="text" placeholder="1900 8866 - 024.3988.9999">
                     </div>
-                    <div class="tmpl-form-group">
-                        <label for="representativeTitle">Chức vụ người đại diện</label>
-                        <input id="representativeTitle" class="crm-input" type="text">
+                    <div class="form-group">
+                        <label>Email hỗ trợ / liên hệ</label>
+                        <input id="companyEmail" type="email" placeholder="sales@crmenterprise.vn">
                     </div>
                 </div>
 
-                <div class="tmpl-section-title" style="margin-top:24px;">Nội dung văn bản & Điều khoản</div>
-
-                <div class="tmpl-form-group">
-                    <label for="introText">Đoạn giới thiệu / Căn cứ</label>
-                    <textarea id="introText" class="crm-input" rows="3"></textarea>
-                    <div class="hint">Thẻ thay thế: {companyName}, {customerName}, {quoteNumber}, {signedDate}, {validityDays}</div>
+                <div class="form-group">
+                    <label>Thông tin Tài khoản Ngân hàng (Thanh toán)</label>
+                    <input id="companyBankInfo" type="text" placeholder="Ngân hàng MBBank - Chi nhánh Sở Giao Dịch - STK: 888899996666">
                 </div>
 
-                <div class="tmpl-form-group">
-                    <label for="termsText">Điều khoản & Ghi chú</label>
-                    <textarea id="termsText" class="crm-input" rows="6"></textarea>
-                    <div class="hint">Với hợp đồng, các dòng bắt đầu bằng "Điều ..." sẽ được tự động định dạng tiêu đề in đậm.</div>
+                <div class="form-group">
+                    <label>Đường dẫn Logo công ty (URL ảnh)</label>
+                    <input id="companyLogoUrl" type="url" placeholder="https://domain.com/logo.png" oninput="updateLogoPreview(this.value)">
                 </div>
 
-                <div class="tmpl-form-group">
-                    <label for="footerText">Nội dung chân trang</label>
-                    <input id="footerText" class="crm-input" type="text">
-                </div>
-            </div>
-
-            <div class="tmpl-card">
-                <div class="tmpl-section-title">Nhận diện thương hiệu</div>
-
-                <div class="tmpl-form-group">
-                    <label>Logo công ty (PNG/JPEG &le; 500 KB)</label>
-                    <input id="logoFileInput" type="file" accept="image/png,image/jpeg" class="crm-input" style="padding:6px;">
-                    <img id="logoPreview" class="tmpl-logo-preview" style="display:none;" alt="Logo Preview">
-                    <button id="removeLogoBtn" type="button" class="crm-btn crm-btn-secondary" style="margin-top:8px; display:none; font-size:12px; padding:4px 8px;">Xóa logo</button>
+                <div class="form-group">
+                    <label>Lời mở đầu / Thông điệp chào mừng (Header Content)</label>
+                    <textarea id="headerContent" rows="3" placeholder="Kính gửi Quý khách hàng..."></textarea>
                 </div>
 
-                <div class="tmpl-form-group">
-                    <label for="primaryColor">Màu chủ đạo (HEX)</label>
-                    <div class="tmpl-color-picker">
-                        <input id="primaryColorPicker" type="color" value="#1E3A8A">
-                        <input id="primaryColor" class="crm-input" type="text" value="#1E3A8A" maxlength="7">
-                    </div>
+                <div class="form-group">
+                    <label>Điều khoản mặc định (Default Terms & Conditions)</label>
+                    <textarea id="defaultTerms" rows="5" placeholder="• Đơn giá chưa bao gồm thuế VAT..."></textarea>
                 </div>
 
-                <div class="tmpl-form-group">
-                    <label for="currencyUnit">Đơn vị tiền tệ</label>
-                    <input id="currencyUnit" class="crm-input" type="text" value="đồng">
+                <div class="form-group">
+                    <label>Lời kết / Chân trang (Footer Note)</label>
+                    <input id="footerContent" type="text" placeholder="Cảm ơn Quý khách đã tin tưởng và hợp tác!">
                 </div>
 
-                <div class="tmpl-form-group">
-                    <label for="validityDays">Thời hạn hiệu lực mặc định (ngày)</label>
-                    <input id="validityDays" class="crm-input" type="number" min="1" max="365" value="30">
-                </div>
-
-                <div class="tmpl-actions">
-                    <button id="saveTemplateBtn" type="submit" class="crm-btn crm-btn-primary" style="width:100%;">
-                        Lưu cấu hình
+                <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+                    <button type="submit" id="saveBtn" class="crm-btn crm-btn-primary">
+                        💾 Lưu cấu hình mẫu
                     </button>
+                    <button type="button" class="crm-btn" onclick="resetFormToLoaded()">
+                        Hủy thay đổi
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Preview Column -->
+        <div>
+            <div class="preview-card">
+                <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 1rem; color: var(--text-heading, #0f172a);">
+                    Xem trước Nhận diện Thương hiệu
+                </h3>
+
+                <div style="font-size: 0.85rem; color: var(--text-muted, #64748b); margin-bottom: 0.5rem;">
+                    Logo đại diện:
+                </div>
+                <div class="logo-preview-box">
+                    <img id="logoPreviewImg" src="" alt="Logo preview" style="display:none;">
+                    <span id="noLogoText" style="color: var(--text-muted); font-size: 0.85rem;">(Chưa có logo)</span>
+                </div>
+
+                <div style="margin-top: 1.25rem; font-size: 0.85rem; line-height: 1.5;">
+                    <div style="font-weight: 700; color: var(--primary, #2563eb); margin-bottom: 0.25rem;" id="prevCompName">TẬP ĐOÀN CÔNG NGHỆ CRM</div>
+                    <div style="color: var(--text-muted); margin-bottom: 0.25rem;">MST: <span id="prevTax">0108996688</span></div>
+                    <div style="color: var(--text-muted); margin-bottom: 0.25rem;" id="prevAddress">Tầng 18, Keangnam Landmark 72, Hà Nội</div>
+                    <div style="color: var(--text-muted);" id="prevBank">STK: MBBank 888899996666</div>
+                </div>
+
+                <hr style="margin: 1.25rem 0; border: none; border-top: 1px solid var(--border, #e2e8f0);">
+
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+                    ℹ️ Khi lưu, mọi Báo giá và Hợp đồng xuất PDF sẽ lập tức sử dụng thông tin và logo mới được cấu hình tại đây.
                 </div>
             </div>
         </div>
-    </form>
+    </div>
 </main>
 
-<script src="js/shared-shell.js"></script>
 <script src="js/pages/document-templates.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/shared-shell.js"></script>
 </body>
 </html>

@@ -1,0 +1,709 @@
+"use strict";
+
+const API_BASE = "http://localhost:8080/crm";
+
+let selectedYear = 2026;
+let selectedPeriodType = "MONTH"; // "MONTH", "QUARTER", "YEAR"
+let selectedPeriodValue = 10;
+let activeTypeFilter = "ALL"; // "ALL", "USER", "TEAM"
+
+let targetsList = [];
+let metadata = { users: [], teams: [] };
+
+/* =========================================================
+   API CLIENT
+========================================================= */
+async function api(path, options = {}) {
+    const config = {
+        credentials: "include",
+        headers: {
+            "Accept": "application/json",
+            ...(options.body ? { "Content-Type": "application/json" } : {}),
+            ...(options.headers || {})
+        },
+        ...options
+    };
+
+    const response = await fetch(API_BASE + path, config);
+    let result = null;
+    try {
+        result = await response.json();
+    } catch (_) {
+        result = null;
+    }
+
+    if (response.status === 401) {
+        localStorage.removeItem("crm_ui_session");
+        window.location.href = "login";
+        throw new Error("Phiên đăng nhập đã hết hạn.");
+    }
+
+    if (!response.ok || !result?.success) {
+        const error = new Error(result?.message || `HTTP ${response.status}`);
+        error.status = response.status;
+        error.data = result?.data;
+        throw error;
+    }
+
+    return result.data;
+}
+
+/* =========================================================
+   FORMATTERS
+========================================================= */
+function formatMoney(amount) {
+    if (amount == null) return "0 ₫";
+    return Number(amount).toLocaleString("vi-VN") + " ₫";
+}
+
+function escapeHtml(str) {
+    if (str == null) return "";
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+/* =========================================================
+   INITIALIZATION & DATA LOADING
+========================================================= */
+async function loadMetadata() {
+    try {
+        const data = await api("/api/sales-targets/meta");
+        if (data) {
+            metadata = data;
+            populateFormDropdowns();
+        }
+    } catch (err) {
+        console.warn("Could not load targets metadata:", err);
+    }
+}
+
+function populateFormDropdowns() {
+    const userSelect = document.getElementById("formUserId");
+    if (userSelect && metadata.users) {
+        userSelect.innerHTML = `<option value="">-- Chọn nhân viên kinh doanh --</option>` +
+            metadata.users.map(u => `
+                <option value="${u.id}">${escapeHtml(u.fullName)} (${escapeHtml(u.email || '')}${u.teamName ? ' - ' + escapeHtml(u.teamName) : ''})</option>
+            `).join("");
+    }
+
+    const teamSelect = document.getElementById("formTeamId");
+    if (teamSelect && metadata.teams) {
+        teamSelect.innerHTML = `<option value="">-- Chọn nhóm kinh doanh --</option>` +
+            metadata.teams.map(t => `
+                <option value="${t.id}">${escapeHtml(t.name)} (${t.memberCount || 0} thành viên)</option>
+            `).join("");
+    }
+}
+
+function buildQueryParams() {
+    let q = `year=${selectedYear}`;
+    if (selectedPeriodType === "MONTH" && selectedPeriodValue != null) {
+        q += `&month=${selectedPeriodValue}`;
+    } else if (selectedPeriodType === "QUARTER" && selectedPeriodValue != null) {
+        q += `&quarter=${selectedPeriodValue}`;
+    }
+    return q;
+}
+
+async function loadTargetsSummary() {
+    try {
+        const q = buildQueryParams();
+        const summary = await api(`/api/sales-targets/summary?${q}`);
+        if (!summary) return;
+
+        document.getElementById("kpiTargetAmount").textContent = formatMoney(summary.totalTargetAmount);
+        document.getElementById("kpiTargetDeals").textContent = summary.totalTargetDeals || 0;
+
+        document.getElementById("kpiActualAmount").textContent = formatMoney(summary.totalActualAmount);
+        document.getElementById("kpiActualDeals").textContent = summary.totalActualDeals || 0;
+
+        const rate = Number(summary.overallAchievementRate || 0);
+        const rateEl = document.getElementById("kpiOverallRate");
+        rateEl.textContent = `${rate}%`;
+        if (rate >= 100) rateEl.style.color = "#059669";
+        else if (rate >= 70) rateEl.style.color = "#2563eb";
+        else rateEl.style.color = "#dc2626";
+
+        const variance = Number(summary.totalVariance || 0);
+        const varEl = document.getElementById("kpiVarianceText");
+        varEl.textContent = (variance >= 0 ? "+" : "") + formatMoney(variance);
+        varEl.style.color = variance >= 0 ? "#059669" : "#dc2626";
+
+        document.getElementById("kpiAchievedCount").textContent = `${summary.completedCount || 0} / ${summary.totalTargetsCount || 0}`;
+        document.getElementById("kpiCountCompleted").textContent = summary.completedCount || 0;
+        document.getElementById("kpiCountOnTrack").textContent = summary.onTrackCount || 0;
+        document.getElementById("kpiCountBehind").textContent = summary.behindCount || 0;
+    } catch (err) {
+        console.error("Failed to load targets summary:", err);
+    }
+}
+
+async function loadTargets() {
+    const tbody = document.getElementById("targetsTableBody");
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 40px; color: #94a3b8;">⏳ Đang tải dữ liệu chỉ tiêu doanh số...</td></tr>`;
+
+    try {
+        const q = buildQueryParams() + `&type=${activeTypeFilter}`;
+        const data = await api(`/api/sales-targets?${q}`);
+        targetsList = Array.isArray(data) ? data : [];
+
+        if (targetsList.length > 0 && targetsList[0].startDate && targetsList[0].endDate) {
+            const s = new Date(targetsList[0].startDate).toLocaleDateString("vi-VN");
+            const e = new Date(targetsList[0].endDate).toLocaleDateString("vi-VN");
+            document.getElementById("periodDateRangeLabel").textContent = `(${s} ~ ${e})`;
+        }
+
+        renderTargetsTable();
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 40px; color: #ef4444;">❌ Lỗi tải dữ liệu chỉ tiêu: ${escapeHtml(err.message)}</td></tr>`;
+    }
+}
+
+function renderTargetsTable() {
+    const tbody = document.getElementById("targetsTableBody");
+    if (!targetsList || targetsList.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="10" style="text-align: center; padding: 60px 20px; color: #94a3b8;">
+                    <div style="font-size: 32px; margin-bottom: 8px;">🎯</div>
+                    <div style="font-weight: 600; font-size: 15px; color: #475569;">Chưa có chỉ tiêu nào được khai báo cho kỳ này</div>
+                    <div style="font-size: 13px; margin-top: 4px;">Bấm "+ Khai báo chỉ tiêu" để thiết lập chỉ tiêu doanh số đầu kỳ.</div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = targetsList.map(t => {
+        const isUser = t.targetType === "USER";
+        const displayName = isUser ? (t.userName || "Chưa rõ") : (t.teamName || "Chưa rõ");
+        const subInfo = isUser ? (t.userEmail || "") : "Nhóm kinh doanh";
+        const initial = displayName.charAt(0).toUpperCase();
+
+        // Rate & Progress bar
+        const rate = Number(t.achievementRate || 0);
+        const clampedRate = Math.min(100, Math.max(0, rate));
+        let barClass = "bar-red";
+        let statusTag = `<span class="target-status-badge status-behind">⚠️ Nguy cơ</span>`;
+
+        if (rate >= 100) {
+            barClass = "bar-green";
+            statusTag = `<span class="target-status-badge status-completed">🏆 Đạt / Vượt</span>`;
+        } else if (rate >= 70) {
+            barClass = "bar-amber";
+            statusTag = `<span class="target-status-badge status-on-track">⚡ Đang tiến độ</span>`;
+        }
+
+        // Variance
+        const variance = Number(t.variance || 0);
+        const varianceFormatted = (variance >= 0 ? "+" : "") + formatMoney(variance);
+        const varianceColor = variance >= 0 ? "#059669" : "#dc2626";
+
+        // Mismatch warning for team targets (Story 2 AC)
+        let mismatchBadge = "";
+        if (!isUser && t.isMismatched) {
+            mismatchBadge = `
+                <div style="margin-top: 5px; font-size: 11px; padding: 4px 7px; border-radius: 4px; background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; line-height: 1.35; text-align: left;">
+                    <div style="font-weight: 700; display: flex; align-items: center; gap: 4px;">
+                        <span>⚠️</span> Lệch tổng thành viên!
+                    </div>
+                    <div>Tổng TV: <strong>${formatMoney(t.teamMembersSum)}</strong></div>
+                    <div>Lệch: <span style="font-weight: 600;">${(t.mismatchDiff || 0) > 0 ? '+' : ''}${formatMoney(t.mismatchDiff)}</span></div>
+                </div>
+            `;
+        }
+
+        // Locked badge for passed period targets (Story 2 AC)
+        let lockedBadge = "";
+        if (t.isLocked) {
+            lockedBadge = `
+                <div style="margin-top: 4px;">
+                    <span style="display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">
+                        🔒 Đã qua kỳ (Đã khoá)
+                    </span>
+                </div>
+            `;
+        }
+
+        return `
+            <tr data-id="${t.id}">
+                <td>
+                    <div class="entity-cell">
+                        <div class="entity-avatar ${isUser ? '' : 'team-avatar'}">
+                            ${isUser ? initial : '👥'}
+                        </div>
+                        <div>
+                            <div class="entity-info-name">${escapeHtml(displayName)}</div>
+                            <div class="entity-info-sub">${escapeHtml(subInfo)}</div>
+                        </div>
+                    </div>
+                </td>
+                <td style="font-size: 12.5px; color: #475569;">
+                    ${escapeHtml(t.teamName || "—")}
+                </td>
+                <td style="font-weight: 600; font-size: 12.5px; color: #334155; white-space: nowrap;">
+                    ${escapeHtml(t.periodLabel || "")}
+                    ${lockedBadge}
+                </td>
+                <td style="text-align: right; font-weight: 700; color: #0f172a; white-space: nowrap;">
+                    ${formatMoney(t.targetAmount)}
+                    ${t.targetDeals > 0 ? `<div style="font-size: 11px; color: #64748b; font-weight: normal;">(Mục tiêu: ${t.targetDeals} deal)</div>` : ''}
+                    ${mismatchBadge}
+                </td>
+                <td style="text-align: right; font-weight: 700; color: #059669; white-space: nowrap;">
+                    ${formatMoney(t.actualAmount)}
+                    <div style="font-size: 11px; color: #059669; font-weight: normal;">(${t.actualDeals || 0} deal WON)</div>
+                </td>
+                <td>
+                    <div class="achievement-progress-wrapper">
+                        <div class="achievement-progress-track">
+                            <div class="achievement-progress-bar ${barClass}" style="width: ${clampedRate}%;"></div>
+                        </div>
+                        <div class="achievement-rate-text">
+                            <span style="color: ${rate >= 100 ? '#059669' : (rate >= 70 ? '#2563eb' : '#dc2626')}">${rate}%</span>
+                            <span style="font-size: 11px; color: #64748b; font-weight: normal;">${t.actualDeals || 0}/${t.targetDeals || 0} deal</span>
+                        </div>
+                    </div>
+                </td>
+                <td style="text-align: right; font-weight: 700; color: ${varianceColor}; white-space: nowrap;">
+                    ${varianceFormatted}
+                </td>
+                <td style="text-align: center;">
+                    ${statusTag}
+                </td>
+                <td style="font-size: 12px; color: #64748b; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(t.notes || '')}">
+                    ${escapeHtml(t.notes || "—")}
+                    ${t.changeReason ? `<div style="color: #b45309; font-size: 11px; margin-top: 2px;">(Sửa: ${escapeHtml(t.changeReason)})</div>` : ''}
+                </td>
+                <td style="text-align: right; white-space: nowrap;">
+                    <button type="button" class="target-action-btn" onclick="openEditTargetModal(${t.id})" title="${t.isLocked ? 'Chỉ tiêu đã khoá - Yêu cầu nêu lý do chỉnh sửa' : 'Chỉnh sửa chỉ tiêu'}">
+                        ${t.isLocked ? '🔒 Sửa (Kèm lý do)' : '✏️ Sửa'}
+                    </button>
+                    ${!t.isLocked ? `
+                    <button type="button" class="target-action-btn btn-delete" onclick="deleteTarget(${t.id})" title="Xóa chỉ tiêu">
+                        🗑️
+                    </button>` : ''}
+                </td>
+            </tr>
+        `;
+    }).join("");
+}
+
+/* =========================================================
+   PERIOD CONTROLS HANDLERS
+========================================================= */
+function updatePeriodDropdownOptions() {
+    const select = document.getElementById("selectTargetPeriodValue");
+    if (!select) return;
+
+    if (selectedPeriodType === "MONTH") {
+        select.style.display = "inline-block";
+        select.innerHTML = Array.from({ length: 12 }, (_, i) => i + 1).map(m => `
+            <option value="${m}" ${m === selectedPeriodValue ? 'selected' : ''}>Tháng ${m}</option>
+        `).join("");
+    } else if (selectedPeriodType === "QUARTER") {
+        select.style.display = "inline-block";
+        select.innerHTML = Array.from({ length: 4 }, (_, i) => i + 1).map(q => `
+            <option value="${q}" ${q === selectedPeriodValue ? 'selected' : ''}>Quý ${q}</option>
+        `).join("");
+    } else {
+        // Whole year
+        select.style.display = "none";
+        document.getElementById("periodDateRangeLabel").textContent = `(01/01/${selectedYear} ~ 31/12/${selectedYear})`;
+    }
+}
+
+/* =========================================================
+   MODAL: KHAI BÁO / CHỈNH SỬA CHỈ TIÊU (Story 2 AC)
+========================================================= */
+function openCreateTargetModal() {
+    document.getElementById("targetModalTitle").textContent = "🎯 Khai báo Chỉ tiêu Doanh số Mới";
+    document.getElementById("formTargetId").value = "";
+    document.querySelector("input[name='targetEntityType'][value='USER']").checked = true;
+    onTargetTypeChange();
+
+    document.getElementById("formUserId").value = "";
+    document.getElementById("formTeamId").value = "";
+    document.getElementById("formYear").value = selectedYear;
+    document.getElementById("formPeriodType").value = selectedPeriodType;
+    onFormPeriodTypeChange();
+
+    if (selectedPeriodType !== "YEAR") {
+        document.getElementById("formPeriodValue").value = selectedPeriodValue || (selectedPeriodType === "MONTH" ? 10 : 4);
+    }
+
+    document.getElementById("formTargetAmount").value = "";
+    document.getElementById("formAmountFormatted").textContent = "";
+    document.getElementById("formTargetDeals").value = "";
+    document.getElementById("formNotes").value = "";
+
+    // Reset locked and team validation states
+    document.getElementById("lockedTargetNotice").style.display = "none";
+    document.getElementById("formChangeReasonGroup").style.display = "none";
+    document.getElementById("formChangeReason").value = "";
+    document.getElementById("teamValidationAlert").style.display = "none";
+
+    document.getElementById("modalTargetForm").classList.add("active");
+}
+
+let currentEditingTarget = null;
+
+function openEditTargetModal(id) {
+    const target = targetsList.find(t => t.id === id);
+    if (!target) return;
+    currentEditingTarget = target;
+
+    document.getElementById("targetModalTitle").textContent = target.isLocked ? "🔒 Điều chỉnh Chỉ tiêu Đã qua kỳ" : "✏️ Cập nhật Chỉ tiêu Doanh số";
+    document.getElementById("formTargetId").value = target.id;
+
+    const isUser = target.userId != null;
+    document.querySelector(`input[name='targetEntityType'][value='${isUser ? 'USER' : 'TEAM'}']`).checked = true;
+    onTargetTypeChange();
+
+    if (isUser) {
+        document.getElementById("formUserId").value = target.userId;
+    } else {
+        document.getElementById("formTeamId").value = target.teamId;
+    }
+
+    document.getElementById("formYear").value = target.periodYear;
+
+    let pType = "YEAR";
+    if (target.periodMonth != null) pType = "MONTH";
+    else if (target.periodQuarter != null) pType = "QUARTER";
+
+    document.getElementById("formPeriodType").value = pType;
+    onFormPeriodTypeChange();
+
+    if (pType === "MONTH") {
+        document.getElementById("formPeriodValue").value = target.periodMonth;
+    } else if (pType === "QUARTER") {
+        document.getElementById("formPeriodValue").value = target.periodQuarter;
+    }
+
+    document.getElementById("formTargetAmount").value = target.targetAmount || 0;
+    document.getElementById("formAmountFormatted").textContent = formatMoney(target.targetAmount);
+    document.getElementById("formTargetDeals").value = target.targetDeals || "";
+    document.getElementById("formNotes").value = target.notes || "";
+
+    // Story 2 AC: Chỉ tiêu đã qua kỳ thì khoá lại, sửa phải có lý do và được ghi nhật ký
+    const lockedNotice = document.getElementById("lockedTargetNotice");
+    const reasonGroup = document.getElementById("formChangeReasonGroup");
+    const reasonInput = document.getElementById("formChangeReason");
+
+    if (target.isLocked) {
+        lockedNotice.style.display = "block";
+        reasonGroup.style.display = "block";
+        reasonInput.value = target.changeReason || "";
+    } else {
+        lockedNotice.style.display = "none";
+        reasonGroup.style.display = "none";
+        reasonInput.value = "";
+    }
+
+    if (!isUser) {
+        checkTeamValidation();
+    } else {
+        document.getElementById("teamValidationAlert").style.display = "none";
+    }
+
+    document.getElementById("modalTargetForm").classList.add("active");
+}
+
+function closeTargetModal() {
+    document.getElementById("modalTargetForm").classList.remove("active");
+    currentEditingTarget = null;
+}
+
+function onTargetTypeChange() {
+    const type = document.querySelector("input[name='targetEntityType']:checked")?.value || "USER";
+    const groupUser = document.getElementById("groupSelectUser");
+    const groupTeam = document.getElementById("groupSelectTeam");
+
+    if (type === "USER") {
+        groupUser.style.display = "block";
+        groupTeam.style.display = "none";
+        document.getElementById("formUserId").required = true;
+        document.getElementById("formTeamId").required = false;
+        document.getElementById("teamValidationAlert").style.display = "none";
+    } else {
+        groupUser.style.display = "none";
+        groupTeam.style.display = "block";
+        document.getElementById("formUserId").required = false;
+        document.getElementById("formTeamId").required = true;
+        checkTeamValidation();
+    }
+}
+
+function onFormPeriodTypeChange() {
+    const pType = document.getElementById("formPeriodType").value;
+    const valueGroup = document.getElementById("formPeriodValueGroup");
+    const valSelect = document.getElementById("formPeriodValue");
+    const valLabel = document.getElementById("formPeriodValueLabel");
+
+    if (pType === "MONTH") {
+        valueGroup.style.display = "block";
+        valLabel.innerHTML = `Tháng <span style="color:#ef4444;">*</span>`;
+        valSelect.innerHTML = Array.from({ length: 12 }, (_, i) => i + 1).map(m => `
+            <option value="${m}">Tháng ${m}</option>
+        `).join("");
+    } else if (pType === "QUARTER") {
+        valueGroup.style.display = "block";
+        valLabel.innerHTML = `Quý <span style="color:#ef4444;">*</span>`;
+        valSelect.innerHTML = Array.from({ length: 4 }, (_, i) => i + 1).map(q => `
+            <option value="${q}">Quý ${q}</option>
+        `).join("");
+    } else {
+        valueGroup.style.display = "none";
+    }
+
+    checkTeamValidation();
+}
+
+/**
+ * Story 2 AC: Chỉ tiêu của nhóm phải bằng tổng chỉ tiêu các thành viên, lệch thì cảnh báo
+ */
+async function checkTeamValidation() {
+    const entityType = document.querySelector("input[name='targetEntityType']:checked")?.value;
+    if (entityType !== "TEAM") {
+        document.getElementById("teamValidationAlert").style.display = "none";
+        return;
+    }
+
+    const teamId = Number(document.getElementById("formTeamId")?.value);
+    if (!teamId || isNaN(teamId)) {
+        document.getElementById("teamValidationAlert").style.display = "none";
+        return;
+    }
+
+    const year = Number(document.getElementById("formYear")?.value) || selectedYear;
+    const pType = document.getElementById("formPeriodType")?.value;
+    let month = null;
+    let quarter = null;
+    if (pType === "MONTH") {
+        month = Number(document.getElementById("formPeriodValue")?.value);
+        quarter = Math.floor((month - 1) / 3) + 1;
+    } else if (pType === "QUARTER") {
+        quarter = Number(document.getElementById("formPeriodValue")?.value);
+    }
+
+    try {
+        let q = `teamId=${teamId}&year=${year}`;
+        if (month) q += `&month=${month}`;
+        if (quarter) q += `&quarter=${quarter}`;
+
+        const res = await api(`/api/sales-targets/team-validation?${q}`);
+        if (!res) return;
+
+        const membersSum = Number(res.membersSum || 0);
+        const enteredAmount = Number(document.getElementById("formTargetAmount")?.value || 0);
+        const diff = enteredAmount - membersSum;
+
+        const alertBox = document.getElementById("teamValidationAlert");
+        const msgEl = document.getElementById("teamValidationMsg");
+
+        if (diff !== 0) {
+            alertBox.style.display = "block";
+            msgEl.innerHTML = `
+                <div>• Tổng chỉ tiêu các thành viên trong nhóm: <strong>${formatMoney(membersSum)}</strong></div>
+                <div>• Chỉ tiêu nhóm đang nhập: <strong>${formatMoney(enteredAmount)}</strong></div>
+                <div style="margin-top: 3px; font-weight: 600; color: #dc2626;">
+                    ${diff > 0 ? `⚠️ Nhóm cao hơn tổng thành viên: +${formatMoney(diff)}` : `⚠️ Nhóm thấp hơn tổng thành viên: ${formatMoney(diff)}`}
+                </div>
+            `;
+        } else {
+            alertBox.style.display = "none";
+        }
+    } catch (err) {
+        console.warn("Could not validate team targets sum:", err);
+    }
+}
+
+async function submitTargetForm() {
+    const idVal = document.getElementById("formTargetId").value;
+    const entityType = document.querySelector("input[name='targetEntityType']:checked").value;
+    const userId = entityType === "USER" ? Number(document.getElementById("formUserId").value) : null;
+    const teamId = entityType === "TEAM" ? Number(document.getElementById("formTeamId").value) : null;
+
+    if (entityType === "USER" && (!userId || isNaN(userId))) {
+        alert("Vui lòng chọn nhân viên kinh doanh.");
+        return;
+    }
+    if (entityType === "TEAM" && (!teamId || isNaN(teamId))) {
+        alert("Vui lòng chọn nhóm kinh doanh.");
+        return;
+    }
+
+    const year = Number(document.getElementById("formYear").value);
+    const pType = document.getElementById("formPeriodType").value;
+    let month = null;
+    let quarter = null;
+
+    if (pType === "MONTH") {
+        month = Number(document.getElementById("formPeriodValue").value);
+        quarter = Math.floor((month - 1) / 3) + 1;
+    } else if (pType === "QUARTER") {
+        quarter = Number(document.getElementById("formPeriodValue").value);
+    }
+
+    const amount = Number(document.getElementById("formTargetAmount").value);
+    if (isNaN(amount) || amount < 0) {
+        alert("Vui lòng nhập chỉ tiêu doanh số hợp lệ (>= 0).");
+        return;
+    }
+
+    const deals = Number(document.getElementById("formTargetDeals").value) || 0;
+    const notes = document.getElementById("formNotes").value.trim();
+
+    // Story 2 AC: Chỉ tiêu đã qua kỳ thì khoá lại, sửa phải có lý do và được ghi nhật ký
+    const changeReason = document.getElementById("formChangeReason").value.trim();
+    if (currentEditingTarget?.isLocked && !changeReason) {
+        alert("⚠️ Chỉ tiêu này đã qua kỳ (bị khóa). Bạn bắt buộc phải nhập lý do điều chỉnh để lưu vào nhật ký kiểm toán hệ thống.");
+        document.getElementById("formChangeReason").focus();
+        return;
+    }
+
+    const payload = {
+        id: idVal ? Number(idVal) : null,
+        userId: userId,
+        teamId: teamId,
+        periodYear: year,
+        periodMonth: month,
+        periodQuarter: quarter,
+        targetAmount: amount,
+        targetDeals: deals,
+        notes: notes,
+        changeReason: changeReason
+    };
+
+    const btn = document.getElementById("btnSaveTarget");
+    btn.disabled = true;
+    btn.textContent = "⏳ Đang lưu...";
+
+    try {
+        await api("/api/sales-targets", {
+            method: "POST",
+            body: JSON.stringify(payload)
+        });
+
+        closeTargetModal();
+        alert(idVal ? "✅ Đã cập nhật chỉ tiêu doanh số thành công!" : "✅ Đã khai báo chỉ tiêu doanh số mới thành công!");
+
+        await loadTargetsSummary();
+        await loadTargets();
+    } catch (err) {
+        alert("Lỗi lưu chỉ tiêu: " + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "💾 Lưu chỉ tiêu";
+    }
+}
+
+async function deleteTarget(id) {
+    if (!confirm(`Bạn có chắc chắn muốn xóa chỉ tiêu doanh số này không?`)) {
+        return;
+    }
+
+    try {
+        await api(`/api/sales-targets/${id}`, { method: "DELETE" });
+        alert("✅ Đã xóa chỉ tiêu thành công.");
+        await loadTargetsSummary();
+        await loadTargets();
+    } catch (err) {
+        alert("Lỗi xóa chỉ tiêu: " + err.message);
+    }
+}
+
+/* =========================================================
+   EVENT LISTENERS & INIT
+========================================================= */
+document.addEventListener("DOMContentLoaded", async () => {
+    // Story 2 AC: Nhân viên chỉ xem được chỉ tiêu của chính mình
+    let currentUserSession = null;
+    try {
+        currentUserSession = JSON.parse(localStorage.getItem("crm_ui_session"));
+    } catch (_) {}
+    const roles = currentUserSession?.roles || [];
+    const isPureSalesRep = roles.includes("SALES_REP") && !roles.includes("ADMIN") && !roles.includes("DIRECTOR") && !roles.includes("TEAM_LEAD");
+    if (isPureSalesRep) {
+        document.getElementById("btnOpenCreateTargetModal")?.remove();
+        const teamTab = document.querySelector(".target-view-tab[data-type='TEAM']");
+        if (teamTab) teamTab.style.display = "none";
+        const allTab = document.querySelector(".target-view-tab[data-type='ALL']");
+        if (allTab) allTab.textContent = "👤 Chỉ tiêu của tôi";
+    }
+
+    // 1. Load Metadata
+    await loadMetadata();
+
+    // 2. Setup Period Controls
+    updatePeriodDropdownOptions();
+
+    // 3. Load Summary & Targets
+    await loadTargetsSummary();
+    await loadTargets();
+
+    // Year Change
+    document.getElementById("selectTargetYear")?.addEventListener("change", (e) => {
+        selectedYear = Number(e.target.value);
+        loadTargetsSummary();
+        loadTargets();
+    });
+
+    // Period Type Pills Change
+    document.querySelectorAll(".period-pill-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll(".period-pill-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            selectedPeriodType = btn.dataset.periodType || "MONTH";
+            if (selectedPeriodType === "MONTH") selectedPeriodValue = 10;
+            else if (selectedPeriodType === "QUARTER") selectedPeriodValue = 4;
+            else selectedPeriodValue = null;
+
+            updatePeriodDropdownOptions();
+            loadTargetsSummary();
+            loadTargets();
+        });
+    });
+
+    // Month/Quarter dropdown Change
+    document.getElementById("selectTargetPeriodValue")?.addEventListener("change", (e) => {
+        selectedPeriodValue = Number(e.target.value);
+        loadTargetsSummary();
+        loadTargets();
+    });
+
+    // Target View Tabs (ALL, USER, TEAM)
+    document.querySelectorAll(".target-view-tab").forEach(tab => {
+        tab.addEventListener("click", () => {
+            document.querySelectorAll(".target-view-tab").forEach(t => t.classList.remove("active"));
+            tab.classList.add("active");
+            activeTypeFilter = tab.dataset.type || "ALL";
+            loadTargets();
+        });
+    });
+
+    // Header buttons
+    document.getElementById("btnRefreshTargets")?.addEventListener("click", () => {
+        loadTargetsSummary();
+        loadTargets();
+    });
+
+    document.getElementById("btnOpenCreateTargetModal")?.addEventListener("click", openCreateTargetModal);
+    document.getElementById("btnSaveTarget")?.addEventListener("click", submitTargetForm);
+
+    // Live amount formatted helper & live team validation check
+    document.getElementById("formTargetAmount")?.addEventListener("input", (e) => {
+        const val = Number(e.target.value);
+        document.getElementById("formAmountFormatted").textContent = val ? formatMoney(val) : "";
+        checkTeamValidation();
+    });
+
+    document.getElementById("formTeamId")?.addEventListener("change", checkTeamValidation);
+    document.getElementById("formPeriodValue")?.addEventListener("change", checkTeamValidation);
+    document.getElementById("formYear")?.addEventListener("change", checkTeamValidation);
+});

@@ -118,4 +118,96 @@ public class CustomerFilterCriteria {
     public void setSize(int size) {
         this.size = size > 0 ? size : 20;
     }
+
+    private String customFieldKey;
+    private String customFieldValue;
+    private String scoreGrade;
+    private String assignmentStatus;
+    private String sortBy;
+
+    public String getCustomFieldKey() {
+        return customFieldKey;
+    }
+
+    public void setCustomFieldKey(String customFieldKey) {
+        this.customFieldKey = customFieldKey;
+    }
+
+    public String getCustomFieldValue() {
+        return customFieldValue;
+    }
+
+    public void setCustomFieldValue(String customFieldValue) {
+        this.customFieldValue = customFieldValue;
+    }
+
+    public String getScoreGrade() {
+        return scoreGrade;
+    }
+
+    public void setScoreGrade(String scoreGrade) {
+        this.scoreGrade = scoreGrade;
+    }
+
+    public String getAssignmentStatus() {
+        return assignmentStatus;
+    }
+
+    public void setAssignmentStatus(String assignmentStatus) {
+        this.assignmentStatus = assignmentStatus;
+    }
+
+    public String getSortBy() {
+        return sortBy;
+    }
+
+    public void setSortBy(String sortBy) {
+        this.sortBy = sortBy;
+    }
+
+    private Boolean slaBreached;
+    private String leadSource;
+    private String createdFrom;
+    private String createdTo;
+    private String datePreset;
+
+    public Boolean getSlaBreached() {
+        return slaBreached;
+    }
+
+    public void setSlaBreached(Boolean slaBreached) {
+        this.slaBreached = slaBreached;
+    }
+
+    public String getLeadSource() {
+        return leadSource;
+    }
+
+    public void setLeadSource(String leadSource) {
+        this.leadSource = leadSource;
+    }
+
+    public String getCreatedFrom() {
+        return createdFrom;
+    }
+
+    public void setCreatedFrom(String createdFrom) {
+        this.createdFrom = createdFrom;
+    }
+
+    public String getCreatedTo() {
+        return createdTo;
+    }
+
+    public void setCreatedTo(String createdTo) {
+        this.createdTo = createdTo;
+    }
+
+    public String getDatePreset() {
+        return datePreset;
+    }
+
+    public void setDatePreset(String datePreset) {
+        this.datePreset = datePreset;
+    }
 }

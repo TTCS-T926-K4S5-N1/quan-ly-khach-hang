@@ -43,6 +43,91 @@ public class MenuService {
         }
 
 
+        if (permissions.contains("lead.read") || permissions.contains("lead.form.manage") || permissions.contains("lead.create")) {
+
+            menu.add(
+                    item(
+                            "LEAD_FORMS",
+                            "Biểu mẫu Lead",
+                            "lead-forms",
+                            "workspace",
+                            "form"
+                    )
+            );
+        }
+
+        if (permissions.contains("campaign.read") || permissions.contains("campaign.manage") || permissions.contains("lead.read") || permissions.contains("customer.read")) {
+
+            menu.add(
+                    item(
+                            "CAMPAIGNS",
+                            "Chiến dịch",
+                            "campaigns",
+                            "workspace",
+                            "campaign"
+                    )
+            );
+
+            menu.add(
+                    item(
+                            "EMAIL_MARKETING",
+                            "Mẫu & Gửi Email",
+                            "email-marketing",
+                            "workspace",
+                            "mail"
+                    )
+            );
+        }
+
+        if (permissions.contains("report.lead_source") || permissions.contains("campaign.read") || permissions.contains("lead.read") || permissions.contains("customer.read")) {
+            menu.add(
+                    item(
+                            "LEAD_REPORTS",
+                            "Báo cáo Nguồn Lead",
+                            "lead-reports",
+                            "workspace",
+                            "campaign"
+                    )
+            );
+        }
+
+        if (permissions.contains("opportunity.read") || permissions.contains("report.read") || permissions.contains("forecast.read")) {
+            menu.add(
+                    item(
+                            "FORECAST_REPORT",
+                            "Dự báo & Chỉ tiêu",
+                            "forecast-report",
+                            "workspace",
+                            "report"
+                    )
+            );
+        }
+
+        if (permissions.contains("activity.read") || permissions.contains("report.read") || permissions.contains("team.read")) {
+            menu.add(
+                    item(
+                            "TEAM_ACTIVITY_REPORT",
+                            "Năng suất Nhóm",
+                            "team-activity-report",
+                            "workspace",
+                            "pie-chart"
+                    )
+            );
+        }
+
+        if (permissions.contains("lead.routing.read") || permissions.contains("lead.routing.manage") || permissions.contains("customer.read")) {
+            menu.add(
+                    item(
+                            "LEAD_ROUTING",
+                            "Phân bổ & Chấm điểm",
+                            "lead-routing",
+                            "workspace",
+                            "routing"
+                    )
+            );
+        }
+
+
         if (permissions.contains("opportunity.read")) {
 
             menu.add(
@@ -238,6 +323,22 @@ public class MenuService {
                             "win-loss-settings",
                             "admin",
                             "winLoss"
+                    )
+            );
+        }
+
+        if (
+                permissions.contains("system.admin")
+                || permissions.contains("pipeline.manage")
+                || permissions.contains("opportunity.read")
+        ) {
+            menu.add(
+                    item(
+                            "AUTOMATION_RULES",
+                            "Tự động hoá Khi – Thì",
+                            "automation-rules",
+                            "admin",
+                            "activity"
                     )
             );
         }

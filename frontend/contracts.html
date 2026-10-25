@@ -12,11 +12,9 @@
     }
 })();
 </script>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-
-<title>Quản lý Hợp đồng - Corporate CRM</title>
+<title>Quản lý Hợp đồng & Hiệu lực Gia hạn - CRM</title>
 
 <link rel="stylesheet" href="css/design-system.css">
 <link rel="stylesheet" href="css/app-shell.css">
@@ -31,45 +29,7 @@
         <div class="crm-brand-mark">C</div>
         <span class="crm-brand-name">Corporate CRM</span>
     </div>
-
-    <nav class="crm-nav">
-        <div class="crm-nav-section">Không gian làm việc</div>
-
-        <a href="dashboard.html" class="crm-nav-item">
-            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
-            <span class="crm-nav-label">Tổng quan</span>
-        </a>
-
-        <a href="customers.html" class="crm-nav-item">
-            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
-            <span class="crm-nav-label">Khách hàng</span>
-        </a>
-
-        <a href="pipeline.html" class="crm-nav-item">
-            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 9-8 9-8-9 8-9Z"/></svg></span>
-            <span class="crm-nav-label">Cơ hội</span>
-        </a>
-
-        <a href="quotations.html" class="crm-nav-item">
-            <span class="crm-nav-icon">▤</span>
-            <span class="crm-nav-label">Báo giá</span>
-        </a>
-
-        <a href="contracts.html" class="crm-nav-item active">
-            <span class="crm-nav-icon">📑</span>
-            <span class="crm-nav-label">Hợp đồng</span>
-        </a>
-
-        <a href="activities.html" class="crm-nav-item">
-            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m7 12 3 3 7-7"/></svg></span>
-            <span class="crm-nav-label">Hoạt động</span>
-        </a>
-
-        <a href="calendar.html" class="crm-nav-item">
-            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4m8-4v4M3 10h18"/></svg></span>
-            <span class="crm-nav-label">Lịch</span>
-        </a>
-    </nav>
+    <nav class="crm-nav" id="desktopNavigation"></nav>
 </aside>
 
 <header class="crm-topbar">
@@ -78,176 +38,250 @@
             <circle cx="11" cy="11" r="7"/>
             <path d="m20 20-4-4"/>
         </svg>
-        <input id="globalSearch" type="search" placeholder="Tìm kiếm hợp đồng...">
+        <input id="globalSearch" type="search" placeholder="Tìm kiếm hợp đồng... (Ctrl + K)">
         <kbd>Ctrl K</kbd>
-    </div>
-
-    <div class="crm-top-actions">
-        <span class="user-role-badge">Kế toán (Accountant)</span>
-        <div class="crm-avatar" style="background:#059669; color:#fff; font-weight:700;">KT</div>
     </div>
 </header>
 
 <main class="crm-main contracts-page">
-
-    <!-- PAGE HEADER -->
-    <section class="contracts-head">
-        <div>
-            <p class="page-kicker">CRM / Hợp đồng kinh tế</p>
-            <h1>Quản lý Hợp đồng</h1>
-            <span>Theo dõi các hợp đồng được chuyển đổi từ báo giá đã chấp nhận và tiến độ thực hiện.</span>
-        </div>
-
-        <a href="quotations.html" class="crm-btn crm-btn-primary" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
-            <span>+ Chuyển Báo giá thành HĐ</span>
-        </a>
-    </section>
-
-    <!-- KPI STATS CARDS -->
-    <section class="contracts-summary">
-        <article class="crm-card summary-card total">
-            <span>Tổng số hợp đồng</span>
-            <strong id="statTotalContracts">0</strong>
-        </article>
-
-        <article class="crm-card summary-card value">
-            <span>Tổng giá trị hợp đồng</span>
-            <strong id="statTotalValue">0 ₫</strong>
-        </article>
-
-        <article class="crm-card summary-card active">
-            <span>Đang hiệu lực</span>
-            <strong id="statActiveContracts">0</strong>
-        </article>
-
-        <article class="crm-card summary-card expired">
-            <span>Hết hạn / Sắp đến hạn</span>
-            <strong id="statExpiredContracts">0</strong>
-        </article>
-    </section>
-
-    <!-- FILTER TOOLBAR -->
-    <section class="contracts-filter crm-card">
-        <input
-            id="contractSearch"
-            class="crm-input"
-            type="search"
-            placeholder="🔍 Tìm số HĐ, khách hàng, cơ hội, báo giá gốc..."
-        >
-
-        <select id="contractStatusFilter" class="crm-input">
-            <option value="">Tất cả trạng thái</option>
-            <option value="ACTIVE">Đang hiệu lực</option>
-            <option value="EXPIRED">Đã hết hạn</option>
-            <option value="TERMINATED">Đã thanh lý</option>
-        </select>
-
-        <button id="btnResetFilter" type="button" class="crm-btn crm-btn-secondary">
-            Đặt lại
-        </button>
-    </section>
-
-    <!-- CONTRACTS TABLE CARD -->
-    <section class="crm-card contracts-table-card">
-        <div class="table-scroll">
-            <table class="contracts-data-table">
-                <thead>
-                    <tr>
-                        <th style="min-width:160px;">Số Hợp đồng</th>
-                        <th style="min-width:180px;">Khách hàng</th>
-                        <th style="min-width:160px;">Cơ hội liên quan</th>
-                        <th style="min-width:140px; text-align:right;">Giá trị HĐ</th>
-                        <th style="min-width:110px;">Ngày ký</th>
-                        <th style="min-width:150px;">Thời hạn hiệu lực</th>
-                        <th style="min-width:120px;">Báo giá gốc</th>
-                        <th style="min-width:110px;">Trạng thái</th>
-                        <th style="min-width:100px; text-align:right;">Thao tác</th>
-                    </tr>
-                </thead>
-                <tbody id="contractsTableBody">
-                    <!-- Populated dynamically via JS -->
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Empty State -->
-        <div id="contractsEmpty" class="contracts-empty" style="display:none;">
-            <div class="contracts-empty-icon">📑</div>
-            <strong>Chưa có hợp đồng nào</strong>
-            <span>Hãy chuyển đổi báo giá được chấp nhận sang hợp đồng để bắt đầu theo dõi.</span>
-            <a href="quotations.html" class="crm-btn crm-btn-primary" style="margin-top:10px; text-decoration:none;">
-                Xem danh sách Báo giá
-            </a>
-        </div>
-    </section>
-
-</main>
-
-<!-- CONTRACT DETAILS DRAWER / MODAL -->
-<div id="contractDetailOverlay" class="contract-detail-overlay"></div>
-<aside id="contractDetailDrawer" class="contract-detail-drawer">
-    <header>
-        <div>
-            <strong id="drawerContractNumber">Chi tiết Hợp đồng</strong>
-            <span id="drawerCustomerName">Khách hàng</span>
-        </div>
-        <button id="btnCloseDetailDrawer" type="button">&times;</button>
-    </header>
-
-    <div class="drawer-body">
-        <div class="detail-section">
-            <h4>Thông tin chung</h4>
-            <div class="detail-grid">
-                <div><span>Khách hàng:</span> <strong id="detailCustomer">—</strong></div>
-                <div><span>Cơ hội liên quan:</span> <strong id="detailOpportunity">—</strong></div>
-                <div><span>Báo giá gốc:</span> <strong id="detailQuoteCode">—</strong></div>
-                <div><span>Giá trị hợp đồng:</span> <strong id="detailTotal" style="color:var(--crm-primary);">0 ₫</strong></div>
-                <div><span>Ngày ký:</span> <strong id="detailSignedDate">—</strong></div>
-                <div><span>Ngày hiệu lực:</span> <strong id="detailEffectiveDate">—</strong></div>
-                <div><span>Ngày hết hạn:</span> <strong id="detailExpiryDate">—</strong></div>
-                <div><span>Trạng thái:</span> <strong id="detailStatus">—</strong></div>
+    <div class="contracts-container">
+        <!-- Header Block -->
+        <div class="contracts-header">
+            <div class="contracts-title-block">
+                <p class="page-kicker" style="margin: 0 0 2px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--crm-primary); font-weight: 700;">
+                    CRM / Hợp đồng kinh tế
+                </p>
+                <h1>
+                    <span>📜</span> Quản lý Hợp đồng & Hiệu lực Gia hạn
+                </h1>
+                <p>Theo dõi ngày hết hạn, số ngày còn lại và chủ động tạo cơ hội gia hạn để không mất doanh thu.</p>
+            </div>
+            <div class="contracts-header-actions">
+                <button id="btnConfigureThreshold" class="crm-btn crm-btn-secondary" style="font-size: 13px;" title="Cấu hình số ngày cảnh báo sắp hết hạn">
+                    <span>⚙️</span> Ngưỡng cảnh báo: <strong id="lblThresholdBadge" style="color: var(--crm-primary); margin-left: 2px;">30 ngày</strong>
+                </button>
+                <button id="btnRefreshContracts" class="crm-btn crm-btn-secondary" title="Tải lại dữ liệu">🔄 Tải lại</button>
+                <a href="quotations" class="crm-btn crm-btn-primary" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                    <span>+ Báo giá sang HĐ</span>
+                </a>
             </div>
         </div>
 
-        <div class="detail-section">
-            <h4>Điều khoản thanh toán</h4>
-            <div id="detailPaymentTerms" class="detail-box-text">
-                —
+        <!-- KPI Cards Grid -->
+        <div class="contract-kpis-grid">
+            <div class="contract-kpi-card">
+                <div class="kpi-label">📋 Tổng số Hợp đồng</div>
+                <div class="kpi-value" id="kpiTotalCount">0</div>
+                <div class="kpi-subtext">Tổng giá trị: <span id="kpiTotalValue">0 ₫</span></div>
+            </div>
+
+            <div class="contract-kpi-card active-card">
+                <div class="kpi-label">⚡ Đang Hiệu lực</div>
+                <div class="kpi-value" style="color: #059669;" id="kpiActiveCount">0</div>
+                <div class="kpi-subtext">Còn hạn an toàn dài ngày</div>
+            </div>
+
+            <div class="contract-kpi-card expiring-alert">
+                <div class="kpi-label">⚠️ Sắp Hết Hạn (&le; <span class="threshold-display">30</span> ngày)</div>
+                <div class="kpi-value" style="color: #b45309;" id="kpiExpiringCount">0</div>
+                <div class="kpi-subtext">Cần bảo vệ: <strong id="kpiExpiringAmount" style="color: #dc2626;">0 ₫</strong></div>
+            </div>
+
+            <div class="contract-kpi-card expired-alert">
+                <div class="kpi-label">🚨 Đã Hết Hạn</div>
+                <div class="kpi-value" style="color: #dc2626;" id="kpiExpiredCount">0</div>
+                <div class="kpi-subtext">Cần xử lý tái ký ngay</div>
+            </div>
+
+            <div class="contract-kpi-card renewed-card">
+                <div class="kpi-label">🔄 Đã Tạo Cơ Hội Gia Hạn</div>
+                <div class="kpi-value" style="color: #7c3aed;" id="kpiRenewedCount">0</div>
+                <div class="kpi-subtext">Đã kế thừa vào Pipeline</div>
             </div>
         </div>
 
-        <div class="detail-section">
-            <h4>Ghi chú / Điều khoản bổ sung</h4>
-            <div id="detailNotes" class="detail-box-text">
-                Không có ghi chú thêm.
+        <!-- Controls: Filters & Search -->
+        <div class="contract-controls-bar">
+            <div class="contract-filter-tabs">
+                <button class="contract-tab-btn active" data-filter="ALL">
+                    Tất cả <span class="badge-count" id="badgeAll">0</span>
+                </button>
+                <button class="contract-tab-btn" data-filter="EXPIRING_SOON" style="color: #b45309;">
+                    ⚠️ Sắp hết hạn <span class="badge-count" id="badgeExpiringSoon" style="background: #fef3c7; color: #92400e;">0</span>
+                </button>
+                <button class="contract-tab-btn" data-filter="EXPIRED" style="color: #dc2626;">
+                    🚨 Đã hết hạn <span class="badge-count" id="badgeExpired" style="background: #fee2e2; color: #991b1b;">0</span>
+                </button>
+                <button class="contract-tab-btn" data-filter="ACTIVE">
+                    ✅ Đang hiệu lực <span class="badge-count" id="badgeActive">0</span>
+                </button>
+                <button class="contract-tab-btn" data-filter="RENEWED" style="color: #7c3aed;">
+                    🔄 Đã gia hạn <span class="badge-count" id="badgeRenewed">0</span>
+                </button>
+            </div>
+
+            <div class="contract-search-box">
+                <input type="text" id="contractSearchInput" class="contract-search-input" placeholder="🔍 Tìm số HĐ, tiêu đề, khách hàng...">
             </div>
         </div>
 
-        <div class="detail-section">
-            <h4>Danh mục Sản phẩm / Dịch vụ kế thừa</h4>
-            <div class="detail-table-wrapper">
-                <table class="detail-lines-table">
+        <!-- Contracts Data Table -->
+        <div class="contracts-card">
+            <div class="contracts-table-wrapper">
+                <table class="contracts-table">
                     <thead>
                         <tr>
-                            <th>Sản phẩm / Dịch vụ</th>
-                            <th style="text-align:center;">SL</th>
-                            <th style="text-align:right;">Đơn giá</th>
-                            <th style="text-align:center;">Giảm</th>
-                            <th style="text-align:center;">VAT</th>
-                            <th style="text-align:right;">Thành tiền</th>
+                            <th style="min-width:140px;">Số Hợp đồng</th>
+                            <th style="min-width:180px;">Khách hàng & Tiêu đề</th>
+                            <th style="min-width:130px;">Giá trị HĐ (₫)</th>
+                            <th style="min-width:140px;">Ngày ký & Hiệu lực</th>
+                            <th style="min-width:150px;">Ngày hết hạn & Còn lại</th>
+                            <th style="min-width:120px;">Trạng thái</th>
+                            <th style="min-width:130px;">Phụ trách</th>
+                            <th style="width:120px; text-align: center;">Thao tác</th>
                         </tr>
                     </thead>
-                    <tbody id="detailLinesBody"></tbody>
+                    <tbody id="contractsTableBody">
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 40px; color: #94a3b8;">
+                                ⏳ Đang tải dữ liệu hợp đồng...
+                            </td>
+                        </tr>
+                    </tbody>
                 </table>
+            </div>
+
+            <!-- Empty State -->
+            <div id="contractsEmpty" class="contracts-empty" style="display:none;">
+                <div class="contracts-empty-icon">📑</div>
+                <strong>Chưa có hợp đồng nào</strong>
+                <span>Hãy chuyển đổi báo giá được chấp nhận sang hợp đồng để bắt đầu theo dõi.</span>
+                <a href="quotations" class="crm-btn crm-btn-primary" style="margin-top:10px; text-decoration:none; display:inline-block;">
+                    Xem danh sách Báo giá
+                </a>
+            </div>
+
+            <!-- Standard Pagination Component -->
+            <div class="crm-pagination" id="contractPagination" style="margin-top: 14px;">
+                <div class="crm-pagination-info">
+                    Hiển thị <span id="contractPaginationRange">0-0</span> của <span id="contractPaginationTotal">0</span> hợp đồng
+                </div>
+                <div class="crm-pagination-size">
+                    <label for="contractPageSizeSelect">Hiển thị:</label>
+                    <select id="contractPageSizeSelect" class="crm-pagination-size-select">
+                        <option value="10" selected>10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+                <div class="crm-pagination-controls" id="contractPaginationControls">
+                    <!-- Populated dynamically via JS -->
+                </div>
             </div>
         </div>
     </div>
-</aside>
+</main>
 
+<!-- MODAL 1: TẠO CƠ HỘI GIA HẠN TỪ HỢP ĐỒNG -->
+<div id="modalRenewContract" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>🔄 Tạo Cơ Hội Gia Hạn từ Hợp Đồng</h3>
+            <button class="modal-close-btn" onclick="closeRenewModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 18px;">
+                <div style="font-size: 13px; color: #64748b; margin-bottom: 4px;">Hợp đồng gốc:</div>
+                <div style="font-weight: 700; font-size: 15px; color: #0f172a;" id="renewContractNumber">—</div>
+                <div style="font-size: 13px; color: #334155; margin-top: 2px;" id="renewCustomerName">—</div>
+                <div style="display: flex; gap: 16px; margin-top: 8px; font-size: 12.5px; color: #64748b;">
+                    <div>Giá trị gốc: <strong id="renewContractTotal" style="color: #059669;">—</strong></div>
+                    <div>Ngày hết hạn: <strong id="renewExpiryDate" style="color: #b45309;">—</strong></div>
+                </div>
+            </div>
+
+            <form id="renewForm">
+                <input type="hidden" id="renewContractId">
+                <div class="form-group">
+                    <label for="renewOppTitle">Tiêu đề Cơ hội gia hạn <span style="color:#ef4444;">*</span></label>
+                    <input type="text" id="renewOppTitle" required placeholder="VD: Gia hạn HĐ HD-001 - Khách hàng ABC">
+                </div>
+                <div class="form-group">
+                    <label for="renewOppAmount">Giá trị dự kiến gia hạn (₫) <span style="color:#ef4444;">*</span></label>
+                    <input type="number" id="renewOppAmount" required min="0" step="1000">
+                    <small style="color: #64748b; font-size: 12px; margin-top: 4px; display: block;">Mặc định kế thừa bằng giá trị hợp đồng gốc.</small>
+                </div>
+                <div class="form-group">
+                    <label for="renewNotes">Ghi chú gia hạn / Yêu cầu mới</label>
+                    <textarea id="renewNotes" rows="3" placeholder="Nhập ghi chú hoặc yêu cầu nâng cấp/điều chỉnh gói dịch vụ từ khách hàng..."></textarea>
+                </div>
+
+                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px; font-size: 12.5px; color: #1e40af;">
+                    💡 <strong>Tự động kế thừa:</strong> Khi tạo cơ hội gia hạn, toàn bộ danh mục sản phẩm từ Hợp đồng sẽ tự động sao chép sang danh mục sản phẩm của Cơ hội mới trong Pipeline.
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="crm-btn crm-btn-secondary" onclick="closeRenewModal()">Hủy</button>
+            <button type="button" class="crm-btn crm-btn-primary" id="btnSubmitRenew" style="background: #059669; border-color: #059669;">
+                🚀 Xác nhận tạo Cơ hội Gia hạn
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 2: CẤU HÌNH NGƯỠNG CẢNH BÁO SẮP HẾT HẠN -->
+<div id="modalThresholdSettings" class="modal-overlay">
+    <div class="modal-content" style="max-width: 480px;">
+        <div class="modal-header">
+            <h3>⚙️ Cấu hình Ngưỡng Cảnh báo Hết hạn</h3>
+            <button class="modal-close-btn" onclick="closeThresholdModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size: 13.5px; color: #64748b; margin-top: 0; line-height: 1.5;">
+                Hệ thống sẽ tự động gắn cờ cảnh báo <strong>"Sắp hết hạn"</strong> và hiển thị màu nổi bật cho các hợp đồng có số ngày hiệu lực còn lại nhỏ hơn hoặc bằng ngưỡng này.
+            </p>
+
+            <div class="form-group">
+                <label for="inputThresholdDays">Số ngày cảnh báo trước khi hết hạn:</label>
+                <input type="number" id="inputThresholdDays" min="1" max="365" value="30" style="font-size: 16px; font-weight: 700;">
+                
+                <div class="preset-threshold-chips">
+                    <button type="button" class="preset-chip-btn" onclick="setPresetThreshold(15)">15 ngày</button>
+                    <button type="button" class="preset-chip-btn active" onclick="setPresetThreshold(30)">30 ngày</button>
+                    <button type="button" class="preset-chip-btn" onclick="setPresetThreshold(45)">45 ngày</button>
+                    <button type="button" class="preset-chip-btn" onclick="setPresetThreshold(60)">60 ngày</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="crm-btn crm-btn-secondary" onclick="closeThresholdModal()">Đóng</button>
+            <button type="button" class="crm-btn crm-btn-primary" id="btnSaveThreshold">💾 Lưu cấu hình</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 3: CHI TIẾT HỢP ĐỒNG -->
+<div id="modalContractDetail" class="modal-overlay">
+    <div class="modal-content" style="max-width: 720px;">
+        <div class="modal-header">
+            <h3 id="detailContractTitle">Chi tiết Hợp đồng</h3>
+            <button class="modal-close-btn" onclick="closeDetailModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="detailModalBody">
+            ⏳ Đang tải thông tin hợp đồng...
+        </div>
+        <div class="modal-footer">
+            <a id="btnDetailPrint" href="#" target="_blank" class="crm-btn crm-btn-secondary" style="text-decoration:none;">🖨️ Xem bản in / PDF</a>
+            <button type="button" class="crm-btn crm-btn-primary" onclick="closeDetailModal()">Đóng</button>
+        </div>
+    </div>
+</div>
+
+<script src="js/shared-shell.js"></script>
 <script src="js/pages/contracts.js"></script>
 <script src="js/page-transition.js"></script>
 <script src="js/theme.js"></script>
-<script src="js/shared-shell.js"></script>
 <script src="js/ui-core.js"></script>
 <script src="js/ui-effects.js"></script>
 </body>

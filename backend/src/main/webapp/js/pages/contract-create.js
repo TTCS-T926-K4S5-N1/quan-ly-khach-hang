@@ -1,722 +1,268 @@
-"use strict";
-
-/* =========================================================
-   CONVERT QUOTE TO CONTRACT CONTROLLER (SCRUM-93 / SCRUM-237 [FE])
-   Đối tượng sử dụng: Kế toán (Accountant)
-========================================================= */
+﻿"use strict";
 
 const params = new URLSearchParams(window.location.search);
 const quoteId = params.get("id");
 
-let quote = null;
 const blocked = document.getElementById("contractBlocked");
-const blockedReasonTitle = document.getElementById("blockedReasonTitle");
-const blockedReasonDesc = document.getElementById("blockedReasonDesc");
 const createButton = document.getElementById("createContractButton");
-const exportPdfButton = document.getElementById("exportContractPdfBtn");
+const contractForm = document.getElementById("contractForm");
+const validationBox = document.getElementById("contractValidation");
 
-/* =========================================================
-   SEED DATA NẾU CHƯA CÓ TRONG LOCALSTORAGE
-========================================================= */
-function ensureSeedQuotes() {
-    let quotes = [];
-    try {
-        quotes = JSON.parse(localStorage.getItem("crm_ui_quotes")) || [];
-    } catch (_) {
-        quotes = [];
-    }
+let currentQuote = null;
 
-    if (!Array.isArray(quotes) || quotes.length === 0) {
-        quotes = [
-            {
-                id: 101,
-                code: "BG-2026-001",
-                title: "Báo giá Hệ thống ERP Cloud đa nhà máy",
-                customer: "Tập đoàn Công nghiệp Foxconn VN",
-                customerId: 1,
-                opportunity: "Triển khai ERP Foxconn Đình Trám & Quế Võ",
-                opportunityId: 1001,
-                total: 850000000,
-                subtotal: 900000000,
-                discountPercent: 5.5,
-                vatPercent: 10,
-                status: "approved",
-                validUntil: "2026-11-15",
-                paymentTerms: "Đợt 1: Tạm ứng 50% ngay sau khi ký hợp đồng. Đợt 2: Thanh toán 50% còn lại trong vòng 7 ngày sau khi nghiệm thu bàn giao.",
-                lines: [
-                    { product: "Gói giải pháp Quản trị Sản xuất ERP Cloud (License 100 User)", quantity: 1, price: 500000000, discount: 5, vat: 10, total: 475000000 },
-                    { product: "Dịch vụ Tích hợp API Dây chuyền Tự động hóa & Barcode", quantity: 1, price: 250000000, discount: 0, vat: 10, total: 250000000 },
-                    { product: "Đào tạo & Chuyển giao Vận hành hệ thống (3 tháng)", quantity: 1, price: 150000000, discount: 10, vat: 10, total: 135000000 }
-                ]
-            },
-            {
-                id: 102,
-                code: "BG-2026-002",
-                title: "Báo giá Nâng cấp Hạ tầng & Phần mềm Du lịch",
-                customer: "Công ty TNHH Dịch vụ & Du lịch Viettravel Sun",
-                customerId: 2,
-                opportunity: "Số hóa quy trình Booking Tour Viettravel",
-                opportunityId: 1002,
-                total: 320000000,
-                subtotal: 350000000,
-                discountPercent: 8.5,
-                vatPercent: 8,
-                status: "approved",
-                validUntil: "2026-11-30",
-                paymentTerms: "Thanh toán 100% giá trị hợp đồng trong vòng 7 ngày làm việc kể từ ngày ký.",
-                lines: [
-                    { product: "Module Đặt Tour & Thanh toán Trực tuyến Đa kênh", quantity: 1, price: 200000000, discount: 10, vat: 8, total: 180000000 },
-                    { product: "Tổng đài Chăm sóc Khách hàng IP Call Center Cloud", quantity: 1, price: 150000000, discount: 5, vat: 8, total: 140000000 }
-                ]
-            },
-            {
-                id: 103,
-                code: "BG-2026-003",
-                title: "Báo giá Triển khai Phần mềm Khách hàng Thân thiết",
-                customer: "Chuỗi Bán lẻ Thời trang NEM Fashion",
-                customerId: 3,
-                opportunity: "Tích hợp Loyalty System 50 Showroom NEM",
-                opportunityId: 1003,
-                total: 185000000,
-                subtotal: 185000000,
-                discountPercent: 0,
-                vatPercent: 8,
-                status: "pending",
-                validUntil: "2026-11-10",
-                paymentTerms: "Đợt 1: Tạm ứng 50% khi ký. Đợt 2: 50% khi nghiệm thu.",
-                lines: [
-                    { product: "Phần mềm Tích điểm & Thẻ thành viên NEM Fashion App", quantity: 1, price: 185000000, discount: 0, vat: 8, total: 185000000 }
-                ]
-            }
-        ];
-        localStorage.setItem("crm_ui_quotes", JSON.stringify(quotes));
-    }
-}
-
-/* =========================================================
-   SEED SAMPLE OPPORTUNITIES IF NOT PRESENT
-========================================================= */
-function ensureSeedOpportunities() {
-    let opps = [];
-    try {
-        opps = JSON.parse(localStorage.getItem("crm_ui_opportunities")) || [];
-    } catch (_) {
-        opps = [];
-    }
-
-    if (!Array.isArray(opps) || opps.length === 0) {
-        opps = [
-            {
-                id: 1001,
-                name: "Triển khai ERP Foxconn Đình Trám & Quế Võ",
-                customer: "Tập đoàn Công nghiệp Foxconn VN",
-                customerName: "Tập đoàn Công nghiệp Foxconn VN",
-                value: 850000000,
-                amount: 850000000,
-                stage: "4",
-                stageId: 4,
-                probability: 75,
-                owner: "Lê Hoàng Nam",
-                status: "OPEN"
-            },
-            {
-                id: 1002,
-                name: "Số hóa quy trình Booking Tour Viettravel",
-                customer: "Công ty TNHH Dịch vụ & Du lịch Viettravel Sun",
-                customerName: "Công ty TNHH Dịch vụ & Du lịch Viettravel Sun",
-                value: 320000000,
-                amount: 320000000,
-                stage: "4",
-                stageId: 4,
-                probability: 75,
-                owner: "Phạm Mai Phương",
-                status: "OPEN"
-            }
-        ];
-        localStorage.setItem("crm_ui_opportunities", JSON.stringify(opps));
-    }
-}
-
-/* =========================================================
-   DATE UTILITIES
-========================================================= */
-function todayString() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function generateContractNumber() {
-    const now = new Date();
-    const datePart = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-    const contracts = getContracts();
-    
-    // Count contracts created today
-    const prefix = `HD-${datePart}-`;
-    const todayContracts = contracts.filter(c => (c.contractNumber || "").startsWith(prefix));
-    const nextSeq = String(todayContracts.length + 1).padStart(3, "0");
-    return `${prefix}${nextSeq}`;
-}
-
-/* =========================================================
-   PAGE INITIALIZATION
-========================================================= */
 async function initContractPage() {
-    ensureSeedQuotes();
-    ensureSeedOpportunities();
-
-    const quotes = getQuotes();
-    
-    // Tìm quote theo id hoặc lấy quote approved đầu tiên nếu không có id truyền vào
-    if (quoteId) {
-        quote = quotes.find(item => String(item.id) === String(quoteId));
-    } else {
-        quote = quotes.find(item => (item.status || "").toLowerCase() === "approved") || quotes[0];
-    }
-
-    // Nếu vẫn chưa tìm thấy thì gọi API backend
-    if (!quote && quoteId) {
-        try {
-            const res = await fetch(`http://localhost:8080/crm/api/quotes/${quoteId}`, { credentials: "include" });
-            const json = await res.json();
-            if (json?.success && json.data) {
-                const q = json.data;
-                quote = {
-                    id: q.id,
-                    code: q.quoteNumber || `BG-${q.id}`,
-                    customer: q.customerName || "Khách hàng",
-                    customerId: q.customerId,
-                    opportunity: q.opportunityName || "Cơ hội kinh doanh",
-                    opportunityId: q.opportunityId,
-                    total: Number(q.totalAmount || 0),
-                    status: (q.status || "").toLowerCase(),
-                    lines: q.items || []
-                };
-            }
-        } catch (_) {}
-    }
-
-    // Xử lý các trạng thái hợp lệ
-    if (!quote) {
-        showBlockedState("Không tìm thấy thông tin báo giá", "Vui lòng chọn báo giá hợp lệ từ danh sách báo giá.");
+    if (!quoteId) {
+        showBlocked("Không tìm thấy ID báo giá trong đường dẫn. Vui lòng quay lại danh sách Báo giá để chọn.");
         return;
     }
 
-    renderQuoteData(quote);
+    try {
+        const res = await fetch(`api/quotes/${quoteId}`, { credentials: "include" });
+        const json = await res.json();
 
-    const st = (quote.status || "").toLowerCase();
-    if (st === "converted") {
-        showBlockedState(
-            "Báo giá này đã được chuyển thành Hợp đồng!",
-            `Báo giá <strong>${escapeHtml(quote.code)}</strong> đã tạo hợp đồng kinh tế trước đó. Bạn có thể xem hợp đồng trong danh mục Quản lý Hợp đồng.`
-        );
-        return;
-    }
-
-    if (st !== "approved" && st !== "accepted") {
-        showBlockedState(
-            "Báo giá này chưa được chấp nhận / phê duyệt!",
-            `Trạng thái hiện tại của báo giá là <strong>${st.toUpperCase()}</strong>. Theo quy định kế toán, chỉ các báo giá đã có phê duyệt của Ban giám đốc hoặc khách hàng chấp nhận mới được khởi tạo hợp đồng.`
-        );
-        return;
-    }
-
-    // Báo giá hợp lệ -> Cho phép tạo hợp đồng
-    if (blocked) blocked.hidden = true;
-    if (createButton) createButton.disabled = false;
-    if (exportPdfButton) exportPdfButton.disabled = false;
-
-    // Khởi tạo các giá trị form mặc định
-    setupDefaultFormValues();
-}
-
-function showBlockedState(title, message) {
-    if (blocked) {
-        blocked.hidden = false;
-        if (blockedReasonTitle) {
-            blockedReasonTitle.textContent = title;
-        } else {
-            blocked.innerHTML = `<strong>${title}</strong><br>${message}`;
-        }
-        if (blockedReasonDesc) blockedReasonDesc.innerHTML = message;
-    }
-    if (createButton) createButton.disabled = true;
-    if (exportPdfButton) exportPdfButton.disabled = true;
-}
-
-function setupDefaultFormValues() {
-    // 1. Tự sinh số HĐ mặc định
-    const numInput = document.getElementById("contractNumber");
-    if (numInput && !numInput.value) {
-        numInput.value = generateContractNumber();
-    }
-
-    // 2. Ngày ký mặc định là hôm nay
-    const signedInput = document.getElementById("signedDate");
-    if (signedInput && !signedInput.value) {
-        signedInput.value = todayString();
-    }
-
-    // 3. Ngày hiệu lực mặc định là hôm nay
-    const effInput = document.getElementById("effectiveDate");
-    if (effInput && !effInput.value) {
-        effInput.value = todayString();
-    }
-
-    // 4. Ngày hết hạn mặc định 1 năm sau
-    const expInput = document.getElementById("expiryDate");
-    if (expInput && !expInput.value) {
-        const nextYear = new Date();
-        nextYear.setFullYear(nextYear.getFullYear() + 1);
-        expInput.value = `${nextYear.getFullYear()}-${String(nextYear.getMonth() + 1).padStart(2, "0")}-${String(nextYear.getDate()).padStart(2, "0")}`;
-    }
-
-    // 5. Điều khoản thanh toán kế thừa từ báo giá hoặc mẫu mặc định
-    const ptArea = document.getElementById("contractPaymentTerms");
-    if (ptArea && !ptArea.value) {
-        ptArea.value = quote?.paymentTerms || "Đợt 1: Tạm ứng 50% ngay sau khi ký hợp đồng. Đợt 2: Thanh toán 50% còn lại trong vòng 7 ngày sau khi nghiệm thu bàn giao.";
-    }
-}
-
-/* =========================================================
-   RENDER INHERITED QUOTE DATA (LOCKED READ-ONLY)
-========================================================= */
-function renderQuoteData(quote) {
-    text("contractQuoteCode", quote.code || `BG-${quote.id}`);
-    text("contractCustomer", quote.customer || "Khách hàng");
-    text("contractOpportunity", quote.opportunity || "Cơ hội kinh doanh");
-    text("contractTotal", money(quote.total));
-
-    const ptArea = document.getElementById("contractPaymentTerms");
-    if (ptArea && quote.paymentTerms) {
-        ptArea.value = quote.paymentTerms;
-    }
-
-    const body = document.getElementById("contractLines");
-    if (!body) return;
-    body.innerHTML = "";
-
-    const lines = quote.lines || [];
-    if (lines.length === 0) {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td colspan="6" style="text-align:center; padding:20px; color:var(--crm-muted);">Dịch vụ trọn gói theo báo giá ${escapeHtml(quote.code)}</td>`;
-        body.appendChild(tr);
-        return;
-    }
-
-    lines.forEach(line => {
-        const qty = Number(line.quantity || 1);
-        const price = Number(line.price || 0);
-        const discount = Number(line.discount || line.discountPercent || 0);
-        const vat = Number(line.vat || line.vatPercent || 10);
-        
-        let lineTotal = line.total !== undefined ? line.total : (qty * price * (1 - discount / 100));
-
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-            <td>
-                <strong style="color:var(--crm-text);">${escapeHtml(line.product || line.productName || "Gói dịch vụ")}</strong>
-            </td>
-            <td style="text-align:center;">${qty}</td>
-            <td style="text-align:right;">${money(price)}</td>
-            <td style="text-align:center;">${discount > 0 ? `${discount}%` : "—"}</td>
-            <td style="text-align:center;">${vat}%</td>
-            <td style="text-align:right; font-weight:700; color:var(--crm-primary);">${money(lineTotal)}</td>
-        `;
-        body.appendChild(tr);
-    });
-}
-
-/* =========================================================
-   FORM SUBMISSION & VALIDATION
-========================================================= */
-function bindPageEvents() {
-    initContractPage();
-
-    // Nút tự sinh số HĐ
-    document.getElementById("btnAutoGenerateCode")?.addEventListener("click", () => {
-        const numInput = document.getElementById("contractNumber");
-        if (numInput) {
-            numInput.value = generateContractNumber();
-            clearFieldError("contractNumberError");
-        }
-    });
-
-    // Dropdown chọn mẫu điều khoản thanh toán
-    document.getElementById("contractPaymentTermsSelect")?.addEventListener("change", e => {
-        const val = e.target.value;
-        const textarea = document.getElementById("contractPaymentTerms");
-        if (textarea && val && val !== "custom") {
-            textarea.value = val;
-            clearFieldError("paymentTermsError");
-        }
-    });
-
-    // Real-time validation khi rời ô
-    document.getElementById("contractNumber")?.addEventListener("blur", validateContractNumber);
-    document.getElementById("expiryDate")?.addEventListener("change", validateDates);
-    document.getElementById("effectiveDate")?.addEventListener("change", validateDates);
-
-    // Xuất PDF Hợp đồng (SCRUM-94)
-    exportPdfButton?.addEventListener("click", async () => {
-        if (!quote || (quote.status !== "approved" && quote.status !== "accepted")) {
-            alert("Báo giá chưa được phê duyệt, không thể xuất PDF hợp đồng!");
+        if (!json.success || !json.data) {
+            showBlocked(json.message || "Không tìm thấy thông tin báo giá.");
             return;
         }
+
+        currentQuote = json.data;
+        renderQuoteData(currentQuote);
+
+        const status = (currentQuote.status || "").toUpperCase();
+        // Story 1: Kế toán chuyển một báo giá được chấp nhận (ACCEPTED) hoặc đã duyệt (APPROVED) thành hợp đồng
+        if (status !== "APPROVED" && status !== "ACCEPTED") {
+            showBlocked(`Báo giá này đang ở trạng thái <strong>${statusText(status)}</strong>. Chỉ báo giá <strong>Đã duyệt</strong> hoặc <strong>Khách chấp nhận</strong> mới được chuyển thành hợp đồng.`);
+            return;
+        }
+
+        // Check if already converted
+        if (status === "CONVERTED" || currentQuote.contractId) {
+            showBlocked(`Báo giá này đã được chuyển thành hợp đồng trước đó (HĐ #${currentQuote.contractId || ""}).`);
+            return;
+        }
+
+        blocked.hidden = true;
+        createButton.disabled = false;
+
+        // Auto prefill defaults
+        const todayStr = new Date().toISOString().split("T")[0];
+        const signedInput = document.getElementById("signedDate");
+        const effectiveInput = document.getElementById("effectiveDate");
+        const numberInput = document.getElementById("contractNumber");
+
+        if (signedInput && !signedInput.value) signedInput.value = todayStr;
+        if (effectiveInput && !effectiveInput.value) effectiveInput.value = todayStr;
+        if (numberInput && !numberInput.value) {
+            const rawCode = currentQuote.quoteNumber || ("BG-" + currentQuote.id);
+            numberInput.value = "HD-" + rawCode.replace(/^BG-?/i, "");
+        }
+    } catch (err) {
+        showBlocked("Lỗi kết nối máy chủ: " + err.message);
+    }
+}
+
+function showBlocked(msgHtml) {
+    if (blocked) {
+        blocked.hidden = false;
+        blocked.innerHTML = msgHtml;
+    }
+    if (createButton) createButton.disabled = true;
+}
+
+function renderQuoteData(q) {
+    text("contractQuoteCode", q.quoteNumber || `BG-${q.id}`);
+    text("contractCustomer", q.customerName || "—");
+    text("contractOpportunity", q.opportunityName || "—");
+    text("contractTotal", formatMoney(q.totalAmount));
+
+    const termsInput = document.getElementById("contractPaymentTerms");
+    if (termsInput && !termsInput.value) {
+        termsInput.value = q.paymentTerms || "• Thanh toán 50% ngay sau khi ký kết hợp đồng.\n• Thanh toán 50% còn lại sau khi hoàn thành bàn giao và nghiệm thu.";
+    }
+
+    const tbody = document.getElementById("contractLines");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    const items = q.items || [];
+    if (items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 1.5rem;">Báo giá không có sản phẩm nào.</td></tr>`;
+        return;
+    }
+
+    items.forEach(item => {
+        const tr = document.createElement("tr");
+        const unitPrice = Number(item.unitPrice || 0);
+        const qty = Number(item.quantity || 1);
+        const discPercent = Number(item.discountPercent || 0);
+        const lineTotal = Number(item.amount || (unitPrice * qty * (1 - discPercent / 100)));
+
+        tr.innerHTML = `
+            <td>
+                <div style="font-weight: 600; color: var(--text-heading);">${escapeHtml(item.productName || item.productCode || "Sản phẩm")}</div>
+                <small style="color: var(--text-muted);">${escapeHtml(item.productCode || "")} ${item.unit ? `(${escapeHtml(item.unit)})` : ""}</small>
+            </td>
+            <td style="text-align: center;">${qty}</td>
+            <td style="text-align: right;">${formatMoney(unitPrice)}</td>
+            <td style="text-align: center;">${discPercent > 0 ? discPercent + "%" : "0%"}</td>
+            <td style="text-align: right; font-weight: 600; color: var(--primary);">${formatMoney(lineTotal)}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+if (contractForm) {
+    contractForm.addEventListener("submit", async event => {
+        event.preventDefault();
+
+        if (!currentQuote) return;
 
         const number = value("contractNumber");
         const signed = value("signedDate");
         const effective = value("effectiveDate");
         const expiry = value("expiryDate");
-        const terms = value("contractPaymentTerms");
-        const validation = document.getElementById("contractValidation");
+        const paymentTerms = value("contractPaymentTerms");
 
         if (!number || !signed || !effective) {
-            if (validation) validation.textContent = "Vui lòng nhập số hợp đồng, ngày ký và ngày hiệu lực trước khi xuất PDF.";
+            showValidation("Vui lòng nhập đầy đủ Số hợp đồng (*), Ngày ký (*) và Ngày hiệu lực (*).", "error");
             return;
         }
-        if (expiry && expiry < effective) {
-            if (validation) validation.textContent = "Ngày hết hạn không được trước ngày hiệu lực.";
-            return;
-        }
-        if (validation) validation.textContent = "";
 
-        exportPdfButton.disabled = true;
-        exportPdfButton.textContent = "Đang tạo PDF...";
+        clearValidation();
+        createButton.disabled = true;
+        createButton.innerHTML = `<span class="crm-spinner" style="display:inline-block;width:1rem;height:1rem;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin 0.6s linear infinite;margin-right:0.5rem;"></span> Đang xử lý...`;
 
         try {
-            const res = await fetch(`http://localhost:8080/crm/api/quotes/${quote.id}/contract-pdf`, {
-                method: "POST",
-                credentials: "include",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    contractNumber: number,
-                    signedDate: signed,
-                    effectiveDate: effective,
-                    expiryDate: expiry || null,
-                    paymentTerms: terms || null
-                })
-            });
-
-            if (!res.ok) {
-                let msg = "Lỗi khi xuất PDF hợp đồng";
-                try {
-                    const j = await res.json();
-                    if (j?.message) msg = j.message;
-                } catch (_) {}
-                throw new Error(msg);
-            }
-
-            const blob = await res.blob();
-            const disposition = res.headers.get("Content-Disposition") || "";
-            let filename = `HopDong_${number}.pdf`;
-            const match = disposition.match(/filename="?([^";]+)"?/);
-            if (match && match[1]) filename = match[1];
-
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            setTimeout(() => window.URL.revokeObjectURL(url), 1000);
-        } catch (err) {
-            alert("Lỗi xuất PDF: " + err.message);
-        } finally {
-            exportPdfButton.disabled = false;
-            exportPdfButton.textContent = "Xuất PDF Hợp đồng";
-        }
-    });
-
-    // Xử lý Submit Form
-    const contractForm = document.getElementById("contractForm");
-    contractForm?.addEventListener("submit", async event => {
-        event.preventDefault();
-
-        if (!quote || (quote.status !== "approved" && quote.status !== "accepted")) {
-            alert("Báo giá chưa được phê duyệt, không thể tạo hợp đồng!");
-            return;
-        }
-
-        // Validate toàn diện
-        let isValid = true;
-        if (!validateContractNumber()) isValid = false;
-        if (!validateDates()) isValid = false;
-
-        const signed = value("signedDate");
-        if (!signed) {
-            setFieldError("signedDateError", "Vui lòng chọn ngày ký hợp đồng.");
-            isValid = false;
-        } else {
-            clearFieldError("signedDateError");
-        }
-
-        const terms = value("contractPaymentTerms");
-        if (!terms) {
-            setFieldError("paymentTermsError", "Vui lòng nhập điều khoản thanh toán hợp đồng.");
-            isValid = false;
-        } else {
-            clearFieldError("paymentTermsError");
-        }
-
-        if (!isValid) {
-            const validationBox = document.getElementById("contractValidation");
-            if (validationBox) validationBox.textContent = "Vui lòng kiểm tra và sửa các thông tin báo đỏ ở trên.";
-            return;
-        }
-
-        // Lưu Hợp đồng & Đồng bộ trạng thái
-        await processContractCreation();
-    });
-}
-
-if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", bindPageEvents);
-} else {
-    bindPageEvents();
-}
-
-/* =========================================================
-   VALIDATION HELPERS
-========================================================= */
-function validateContractNumber() {
-    const num = value("contractNumber");
-    if (!num) {
-        setFieldError("contractNumberError", "Số hợp đồng là trường bắt buộc.");
-        return false;
-    }
-
-    // Kiểm tra tính duy nhất (Unique validation)
-    const contracts = getContracts();
-    const isDuplicate = contracts.some(c => (c.contractNumber || "").toLowerCase() === num.toLowerCase());
-    if (isDuplicate) {
-        setFieldError("contractNumberError", `Số hợp đồng "${num}" đã tồn tại. Vui lòng nhập số khác hoặc bấm [⚡ Tự sinh số HĐ].`);
-        return false;
-    }
-
-    clearFieldError("contractNumberError");
-    return true;
-}
-
-function validateDates() {
-    const effective = value("effectiveDate");
-    const expiry = value("expiryDate");
-
-    if (!effective) {
-        setFieldError("effectiveDateError", "Vui lòng chọn ngày bắt đầu hiệu lực.");
-        return false;
-    }
-    clearFieldError("effectiveDateError");
-
-    // Ngày hết hạn phải >= ngày hiệu lực
-    if (expiry && expiry < effective) {
-        setFieldError("expiryDateError", "Ngày hết hạn không được nhỏ hơn ngày bắt đầu hiệu lực.");
-        return false;
-    }
-
-    clearFieldError("expiryDateError");
-    return true;
-}
-
-function setFieldError(elementId, msg) {
-    const el = document.getElementById(elementId);
-    if (el) el.textContent = msg;
-}
-
-function clearFieldError(elementId) {
-    const el = document.getElementById(elementId);
-    if (el) el.textContent = "";
-}
-
-/* =========================================================
-   XỬ LÝ TẠO HỢP ĐỒNG & ĐỒNG BỘ TRẠNG THÁI (CORE LOGIC)
-========================================================= */
-async function processContractCreation() {
-    const number = value("contractNumber");
-    const signed = value("signedDate");
-    const effective = value("effectiveDate");
-    const expiry = value("expiryDate");
-    const paymentTerms = value("contractPaymentTerms");
-    const notes = value("contractNotes");
-
-    const newContractId = `contract_${Date.now()}`;
-
-    // 1. Tạo bản ghi Hợp đồng mới
-    const contractData = {
-        id: newContractId,
-        contractNumber: number,
-        signedDate: signed,
-        effectiveDate: effective,
-        expiryDate: expiry,
-        paymentTerms: paymentTerms,
-        notes: notes,
-        quoteId: quote.id,
-        quoteCode: quote.code || `BG-${quote.id}`,
-        customer: quote.customer,
-        customerId: quote.customerId,
-        opportunity: quote.opportunity || "Cơ hội kinh doanh",
-        opportunityId: quote.opportunityId,
-        total: Number(quote.total || 0),
-        subtotal: Number(quote.subtotal || 0),
-        discountPercent: Number(quote.discountPercent || 0),
-        vatPercent: Number(quote.vatPercent || 10),
-        lines: quote.lines || [],
-        status: "ACTIVE", // Đang hiệu lực
-        createdAt: new Date().toISOString()
-    };
-
-    // 2. Lưu vào danh sách Hợp đồng (crm_ui_contracts)
-    const contracts = getContracts();
-    contracts.unshift(contractData);
-    localStorage.setItem("crm_ui_contracts", JSON.stringify(contracts));
-
-    // 3. Đồng bộ trạng thái Báo giá sang "Đã tạo hợp đồng" (converted)
-    const quotes = getQuotes();
-    const qIndex = quotes.findIndex(q => String(q.id) === String(quote.id));
-    if (qIndex !== -1) {
-        quotes[qIndex].status = "converted";
-        quotes[qIndex].contractNumber = number;
-        quotes[qIndex].contractId = newContractId;
-    }
-    localStorage.setItem("crm_ui_quotes", JSON.stringify(quotes));
-
-    // 4. Đồng bộ trạng thái Cơ hội (Opportunity) sang "Đóng thắng" (Closed Won)
-    syncOpportunityToWon(quote.opportunityId, quote.opportunity, quote.total);
-
-    // 5. Thử gọi API Backend nếu có
-    try {
-        await fetch(`http://localhost:8080/crm/api/quotes/${quote.id}/convert-to-contract`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
+            const payload = {
+                quoteId: currentQuote.id,
                 contractNumber: number,
+                title: `Hợp đồng kinh tế - ${currentQuote.customerName || "Khách hàng"} (${number})`,
                 signedDate: signed,
                 effectiveDate: effective,
-                expiryDate: expiry,
+                expiryDate: expiry || null,
                 paymentTerms: paymentTerms
-            })
-        });
-    } catch (_) {
-        // Backend có thể chưa chạy, dữ liệu đã lưu trữ trên localStorage
-    }
-
-    // 6. Hiển thị Modal thông báo thành công
-    showSuccessModal(contractData);
-}
-
-function syncOpportunityToWon(oppId, oppName, contractAmount) {
-    let opps = [];
-    try {
-        opps = JSON.parse(localStorage.getItem("crm_ui_opportunities")) || [];
-    } catch (_) {
-        opps = [];
-    }
-
-    let found = false;
-    opps = opps.map(opp => {
-        const matchId = oppId && String(opp.id) === String(oppId);
-        const matchName = oppName && opp.name && opp.name.toLowerCase().trim() === oppName.toLowerCase().trim();
-
-        if (matchId || matchName) {
-            found = true;
-            return {
-                ...opp,
-                stage: "5",
-                stageId: 5,
-                stageName: "Chốt thành công (Won)",
-                status: "WON",
-                probability: 100,
-                amount: contractAmount,
-                value: contractAmount,
-                isWon: true,
-                isLost: false,
-                wonDate: todayString()
             };
+
+            const res = await fetch("api/contracts", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify(payload)
+            });
+
+            const json = await res.json();
+
+            if (!res.ok || !json.success) {
+                showValidation(json.message || "Tạo hợp đồng không thành công.", "error");
+                createButton.disabled = false;
+                createButton.innerHTML = "Tạo Hợp đồng";
+                return;
+            }
+
+            const createdContract = json.data;
+            const successOverlay = document.getElementById("contractSuccess");
+            if (successOverlay) {
+                const box = successOverlay.querySelector(".contract-success-box");
+                if (box) {
+                    box.innerHTML = `
+                        <div class="success-check" style="width:64px;height:64px;border-radius:50%;background:rgba(16,185,129,0.15);color:#10b981;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem auto;">
+                            <svg style="width:36px;height:36px;stroke:currentColor;fill:none;stroke-width:2.5" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>
+                        </div>
+                        <h2 style="font-size:1.5rem;font-weight:700;margin-bottom:0.75rem;color:var(--text-heading);">Tạo Hợp đồng thành công!</h2>
+                        <div style="background:var(--surface-sunken, #f8fafc);border-radius:0.75rem;padding:1rem;margin-bottom:1.5rem;text-align:left;font-size:0.925rem;">
+                            <p style="margin:0.25rem 0;"><strong>Số hợp đồng:</strong> <span style="color:var(--primary);">${escapeHtml(createdContract.contractNumber)}</span></p>
+                            <p style="margin:0.25rem 0;"><strong>Giá trị hợp đồng:</strong> <span style="font-weight:600;color:#10b981;">${formatMoney(createdContract.totalAmount)}</span></p>
+                            <p style="margin:0.25rem 0;"><strong>Trạng thái cơ hội:</strong> <span class="badge" style="background:rgba(16,185,129,0.15);color:#10b981;padding:0.2rem 0.5rem;border-radius:4px;font-weight:600;">Đóng thắng (WON)</span></p>
+                            <p style="margin:0.25rem 0;color:var(--text-muted);font-size:0.85rem;">Bằng chữ: <em>${escapeHtml(createdContract.totalAmountInWords || "")}</em></p>
+                        </div>
+                        <div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;">
+                            <a href="contract-print.html?id=${createdContract.id}" target="_blank" class="crm-btn" style="background:var(--primary);color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:0.5rem;">
+                                <span>🖨️ In / Xuất PDF Hợp đồng</span>
+                            </a>
+                            <a href="quotations" class="crm-btn" style="background:var(--surface-overlay, #e2e8f0);color:var(--text-body);text-decoration:none;">
+                                Quay lại Báo giá
+                            </a>
+                        </div>
+                    `;
+                }
+                successOverlay.classList.add("open");
+            }
+        } catch (err) {
+            showValidation("Lỗi kết nối máy chủ: " + err.message, "error");
+            createButton.disabled = false;
+            createButton.innerHTML = "Tạo Hợp đồng";
         }
-        return opp;
     });
-
-    // Nếu chưa có trong danh sách cơ hội thì thêm mới để Pipeline hiển thị
-    if (!found && (oppName || oppId)) {
-        opps.push({
-            id: oppId || Date.now(),
-            name: oppName || "Cơ hội kinh doanh",
-            customer: quote.customer,
-            customerName: quote.customer,
-            stage: "5",
-            stageId: 5,
-            stageName: "Chốt thành công (Won)",
-            status: "WON",
-            probability: 100,
-            amount: contractAmount,
-            value: contractAmount,
-            isWon: true,
-            isLost: false,
-            wonDate: todayString(),
-            owner: "Tôi"
-        });
-    }
-
-    localStorage.setItem("crm_ui_opportunities", JSON.stringify(opps));
 }
 
-function showSuccessModal(contract) {
-    const detailsBox = document.getElementById("successDetailsBox");
-    if (detailsBox) {
-        detailsBox.innerHTML = `
-            <div><strong>Số hợp đồng:</strong> <span style="color:var(--crm-primary); font-weight:700;">${escapeHtml(contract.contractNumber)}</span></div>
-            <div><strong>Khách hàng:</strong> ${escapeHtml(contract.customer)}</div>
-            <div><strong>Cơ hội:</strong> ${escapeHtml(contract.opportunity)} <span style="color:#059669; font-weight:700;">→ Đã chốt Thắng (Won)!</span></div>
-            <div><strong>Tổng giá trị chốt:</strong> <span style="font-weight:700; color:#059669;">${money(contract.total)}</span></div>
-            <div><strong>Ngày ký:</strong> ${contract.signedDate} | <strong>Hiệu lực:</strong> ${contract.effectiveDate}</div>
-        `;
-    }
+function showValidation(msg, type = "error") {
+    if (!validationBox) return;
+    validationBox.hidden = false;
+    validationBox.style.display = "block";
+    validationBox.style.padding = "0.75rem 1rem";
+    validationBox.style.borderRadius = "0.5rem";
+    validationBox.style.marginBottom = "1rem";
+    validationBox.style.fontSize = "0.9rem";
+    validationBox.style.fontWeight = "500";
 
-    const overlay = document.getElementById("contractSuccess");
-    if (overlay) overlay.classList.add("open");
+    if (type === "error") {
+        validationBox.style.background = "rgba(239, 68, 68, 0.12)";
+        validationBox.style.color = "#dc2626";
+        validationBox.style.border = "1px solid rgba(239, 68, 68, 0.25)";
+    } else {
+        validationBox.style.background = "rgba(16, 185, 129, 0.12)";
+        validationBox.style.color = "#059669";
+        validationBox.style.border = "1px solid rgba(16, 185, 129, 0.25)";
+    }
+    validationBox.textContent = msg;
 }
 
-/* =========================================================
-   DATA ACCESS HELPERS
-========================================================= */
-function getQuotes() {
-    try {
-        return JSON.parse(localStorage.getItem("crm_ui_quotes")) || [];
-    } catch {
-        return [];
-    }
+function clearValidation() {
+    if (!validationBox) return;
+    validationBox.hidden = true;
+    validationBox.style.display = "none";
+    validationBox.textContent = "";
 }
 
-function getContracts() {
-    try {
-        return JSON.parse(localStorage.getItem("crm_ui_contracts")) || [];
-    } catch {
-        return [];
+function statusText(st) {
+    switch ((st || "").toUpperCase()) {
+        case "DRAFT": return "Nháp";
+        case "PENDING_APPROVAL": return "Chờ duyệt";
+        case "APPROVED": return "Đã duyệt";
+        case "SENT": return "Đã gửi khách";
+        case "ACCEPTED": return "Khách chấp nhận";
+        case "REJECTED": return "Khách từ chối";
+        case "CONVERTED": return "Đã tạo hợp đồng";
+        case "EXPIRED": return "Hết hiệu lực";
+        default: return st || "—";
     }
 }
 
 function value(id) {
-    return (document.getElementById(id)?.value || "").trim();
+    const el = document.getElementById(id);
+    return el ? el.value.trim() : "";
 }
 
 function text(id, val) {
     const el = document.getElementById(id);
-    if (el) el.textContent = val ?? "";
+    if (el) el.textContent = val;
 }
 
-function money(val) {
+function formatMoney(amount) {
     return new Intl.NumberFormat("vi-VN", {
         style: "currency",
         currency: "VND",
         maximumFractionDigits: 0
-    }).format(Number(val) || 0);
+    }).format(Number(amount) || 0);
 }
 
-function escapeHtml(val) {
-    return String(val ?? "")
+function escapeHtml(value) {
+    return String(value ?? "")
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 }
+
+document.addEventListener("DOMContentLoaded", initContractPage);

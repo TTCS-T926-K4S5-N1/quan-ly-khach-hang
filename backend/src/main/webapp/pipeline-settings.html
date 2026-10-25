@@ -194,29 +194,29 @@
 
     <div class="settings-layout">
 
-        <aside class="crm-card settings-nav">
+        <nav class="crm-card settings-nav" aria-label="Cài đặt">
 
-            <a class="active" href="#">
+            <a class="active" href="pipeline-settings">
                 Pipeline & Giai đoạn
             </a>
 
-            <a href="#">
-                Lý do Thắng / Thua
+            <a href="win-loss-settings">
+                Lý do Thắng / Thua & Đối thủ
             </a>
 
-            <a href="#">
-                Đối thủ cạnh tranh
-            </a>
-
-            <a href="#">
+            <a href="master-data">
                 Danh mục dùng chung
             </a>
 
-            <a href="#">
+            <a href="custom-fields">
                 Trường tùy chỉnh
             </a>
 
-        </aside>
+            <a href="automation-rules">
+                Tự động hoá Khi – Thì
+            </a>
+
+        </nav>
 
 
         <section class="crm-card stages-panel">
@@ -249,6 +249,27 @@
                 class="stage-empty"
             >
                 Chưa có giai đoạn Pipeline.
+            </div>
+
+            <!-- Cấu hình Bảng xếp hạng doanh số nội bộ -->
+            <div style="margin-top: 24px; padding: 20px; border-top: 1px solid var(--crm-border); background: var(--crm-bg); border-radius: 10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:16px;">
+                    <div>
+                        <h3 style="margin:0 0 4px 0; font-size:14.5px; color:var(--crm-text); font-weight:700;">
+                            🏆 Bảng xếp hạng Doanh số trong Nhóm (Sales Leaderboard)
+                        </h3>
+                        <p style="margin:0; font-size:12.5px; color:var(--crm-muted);">
+                            Cho phép nhân viên kinh doanh xem bảng xếp hạng doanh số thực tế đã chốt và tiến độ chỉ tiêu của các đồng đội trong nhóm của mình.
+                        </p>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span id="lbStatusText" style="font-size:12px; font-weight:700; color:#16a34a;">Đang bật</span>
+                        <label class="crm-switch">
+                            <input type="checkbox" id="toggleLeaderboardSetting" checked>
+                            <span class="crm-slider"></span>
+                        </label>
+                    </div>
+                </div>
             </div>
 
         </section>
@@ -343,24 +364,51 @@
 
 
         <label>
-            Điều kiện bắt buộc để rời giai đoạn
+            Quy tắc điều kiện rời giai đoạn (Exit Criteria)
+            <select id="stageConditionType" class="crm-input" style="margin-top: 6px;">
+                <option value="NONE">-- Không áp dụng quy tắc tự động --</option>
+                <option value="HAS_MEETING">Phải có ít nhất một cuộc gặp (Meeting) trong Hoạt động</option>
+                <option value="HAS_CALL">Phải có ít nhất một cuộc gọi (Call) trong Hoạt động</option>
+                <option value="HAS_PRODUCTS">Phải thêm sản phẩm / dịch vụ vào cơ hội để có giá trị căn cứ</option>
+                <option value="HAS_CONTACT">Phải gắn thông tin Người liên hệ (Contact)</option>
+                <option value="MIN_AMOUNT">Giá trị hợp đồng phải lớn hơn 0 đ</option>
+                <option value="CUSTOM">Quy tắc tùy chỉnh khác</option>
+            </select>
+        </label>
 
+        <label style="margin-top: 10px;">
+            Mô tả điều kiện bắt buộc để rời giai đoạn
             <textarea
                 id="stageCondition"
-                rows="4"
-                placeholder="VD: Phải có ít nhất một cuộc gặp..."
+                rows="3"
+                placeholder="VD: Phải có ít nhất một cuộc gặp được ghi nhận trong Hoạt động..."
             ></textarea>
         </label>
 
-
-        <label class="condition-toggle">
-
+        <label class="condition-toggle" style="margin-top: 10px;">
             <input
                 id="stageConditionRequired"
                 type="checkbox"
             >
+            Bắt buộc thỏa điều kiện trước khi chuyển giai đoạn (Trưởng nhóm trở lên có thể ghi đè)
+        </label>
 
-            Bắt buộc thỏa điều kiện trước khi chuyển giai đoạn
+        <label style="margin-top: 10px;">
+            Số ngày tối đa không hoạt động trước khi cảnh báo đình trệ (N ngày)
+            <em>*</em>
+            <input
+                id="stageStagnantDays"
+                class="crm-input"
+                type="number"
+                min="1"
+                max="365"
+                value="7"
+                placeholder="7"
+                style="margin-top: 4px;"
+            >
+            <small style="color: var(--crm-muted); font-size: 11px; display: block; margin-top: 2px;">
+                Cơ hội ở giai đoạn này không có hoạt động trong N ngày sẽ bị gắn cờ cảnh báo đình trệ.
+            </small>
         </label>
 
 

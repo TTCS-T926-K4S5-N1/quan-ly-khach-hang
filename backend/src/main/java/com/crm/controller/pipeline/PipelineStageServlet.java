@@ -62,7 +62,9 @@ public class PipelineStageServlet extends HttpServlet {
                                         order_no,
                                         probability,
                                         exit_condition,
+                                        condition_type,
                                         condition_required,
+                                        stagnant_days,
                                         active
                                     FROM pipeline_stages
                                     WHERE pipeline_id = ?
@@ -242,6 +244,15 @@ public class PipelineStageServlet extends HttpServlet {
                             "exitCondition"
                     );
 
+            String conditionType =
+                    optionalString(
+                            body,
+                            "conditionType"
+                    );
+            if (conditionType == null || conditionType.isBlank()) {
+                conditionType = "NONE";
+            }
+
             boolean conditionRequired =
                     body.has("conditionRequired")
                     &&
@@ -255,6 +266,13 @@ public class PipelineStageServlet extends HttpServlet {
                     body.get("active").isJsonNull()
                     ||
                     body.get("active").getAsBoolean();
+
+            int stagnantDays =
+                    body.has("stagnantDays")
+                    && !body.get("stagnantDays").isJsonNull()
+                    ? body.get("stagnantDays").getAsInt()
+                    : 7;
+            if (stagnantDays <= 0) stagnantDays = 7;
 
 
             if (orderNo < 1) {
@@ -310,10 +328,12 @@ public class PipelineStageServlet extends HttpServlet {
                                                 order_no,
                                                 probability,
                                                 exit_condition,
+                                                condition_type,
                                                 condition_required,
+                                                stagnant_days,
                                                 active
                                             )
-                                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                                             """,
                                             Statement.RETURN_GENERATED_KEYS
                                     )
@@ -344,13 +364,23 @@ public class PipelineStageServlet extends HttpServlet {
                                 exitCondition
                         );
 
-                        statement.setBoolean(
+                        statement.setString(
                                 6,
-                                conditionRequired
+                                conditionType
                         );
 
                         statement.setBoolean(
                                 7,
+                                conditionRequired
+                        );
+
+                        statement.setInt(
+                                8,
+                                stagnantDays
+                        );
+
+                        statement.setBoolean(
+                                9,
                                 active
                         );
 
@@ -406,7 +436,9 @@ public class PipelineStageServlet extends HttpServlet {
                                                 order_no = ?,
                                                 probability = ?,
                                                 exit_condition = ?,
+                                                condition_type = ?,
                                                 condition_required = ?,
+                                                stagnant_days = ?,
                                                 active = ?
                                             WHERE id = ?
                                             """
@@ -438,18 +470,28 @@ public class PipelineStageServlet extends HttpServlet {
                                 exitCondition
                         );
 
-                        statement.setBoolean(
+                        statement.setString(
                                 6,
-                                conditionRequired
+                                conditionType
                         );
 
                         statement.setBoolean(
                                 7,
+                                conditionRequired
+                        );
+
+                        statement.setInt(
+                                8,
+                                stagnantDays
+                        );
+
+                        statement.setBoolean(
+                                9,
                                 active
                         );
 
                         statement.setLong(
-                                8,
+                                10,
                                 id
                         );
 
@@ -530,7 +572,9 @@ public class PipelineStageServlet extends HttpServlet {
                                     order_no,
                                     probability,
                                     exit_condition,
+                                    condition_type,
                                     condition_required,
+                                    stagnant_days,
                                     active
                                 FROM pipeline_stages
                                 WHERE id = ?
@@ -596,8 +640,18 @@ public class PipelineStageServlet extends HttpServlet {
         );
 
         item.put(
+                "conditionType",
+                rs.getString("condition_type")
+        );
+
+        item.put(
                 "conditionRequired",
                 rs.getBoolean("condition_required")
+        );
+
+        item.put(
+                "stagnantDays",
+                rs.getInt("stagnant_days")
         );
 
         item.put(

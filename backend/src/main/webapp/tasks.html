@@ -4,413 +4,302 @@
 <script>
 (function () {
     try {
-        var theme =
-            localStorage.getItem("crm_ui_theme");
-
-        document.documentElement.setAttribute(
-            "data-theme",
-            theme === "dark"
-                ? "dark"
-                : "light"
-        );
-
-        document.documentElement.removeAttribute(
-            "data-crm-theme"
-        );
+        var theme = localStorage.getItem("crm_ui_theme");
+        document.documentElement.setAttribute("data-theme", theme === "dark" ? "dark" : "light");
+        document.documentElement.removeAttribute("data-crm-theme");
     } catch (e) {
-        document.documentElement.setAttribute(
-            "data-theme",
-            "light"
-        );
+        document.documentElement.setAttribute("data-theme", "light");
     }
 })();
 </script>
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-
-<title>Công việc</title>
+<title>Công việc có hạn hoàn thành (Tasks) - Corporate CRM</title>
 
 <link rel="stylesheet" href="css/design-system.css">
 <link rel="stylesheet" href="css/app-shell.css">
 <link rel="stylesheet" href="css/pages/tasks.css">
-
-
-
-
-
-
-
-
-
-
-
 <link rel="stylesheet" href="css/animations.css">
 </head>
 
 <body class="crm-private">
 
-
 <aside class="crm-sidebar">
-
     <div class="crm-brand">
         <div class="crm-brand-mark">C</div>
         <span class="crm-brand-name">Corporate CRM</span>
     </div>
-
-    <nav class="crm-nav">
-
-        <a href="dashboard" class="crm-nav-item">
-            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
-            <span class="crm-nav-label">Tổng quan</span>
-        </a>
-
-        <a href="customers" class="crm-nav-item">
-            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
-            <span class="crm-nav-label">Khách hàng</span>
-        </a>
-
-        <a href="pipeline" class="crm-nav-item">
-            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 9-8 9-8-9 8-9Z"/></svg></span>
-            <span class="crm-nav-label">Cơ hội</span>
-        </a>
-
-        <a href="activities" class="crm-nav-item">
-            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m7 12 3 3 7-7"/></svg></span>
-            <span class="crm-nav-label">Hoạt động</span>
-        </a>
-
-        <a href="tasks" class="crm-nav-item active">
-            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>
-            <span class="crm-nav-label">Công việc</span>
-        </a>
-
-        <a href="calendar" class="crm-nav-item">
-            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4m8-4v4M3 10h18"/></svg></span>
-            <span class="crm-nav-label">Lịch</span>
-        </a>
-
-    </nav>
-
-    
-
+    <nav class="crm-nav" id="desktopNavigation"></nav>
 </aside>
 
-
 <header class="crm-topbar">
-
     <div class="crm-search">
-
         <svg viewBox="0 0 24 24">
             <circle cx="11" cy="11" r="7"/>
             <path d="m20 20-4-4"/>
         </svg>
-
-        <input id="globalSearch" type="search" placeholder="Tìm kiếm...">
+        <input id="globalSearch" type="search" placeholder="Tìm kiếm công việc... (Ctrl + K)">
         <kbd>Ctrl K</kbd>
-
     </div>
-
-    <div class="crm-top-actions">
-        <div class="crm-avatar">U</div>
-    </div>
-
 </header>
-
 
 <main class="crm-main tasks-page">
 
     <section class="tasks-head">
-
         <div>
-
-            <p>
-                CRM / Công việc
+            <p class="tasks-kicker" style="margin: 0 0 2px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--crm-primary); font-weight: 700;">
+                CRM / Quản lý công việc
             </p>
-
-            <h1>
-                Công việc cần làm
-            </h1>
-
-            <span>
-                Theo dõi task được tạo trong hệ thống.
+            <h1 class="tasks-title">Công việc có hạn hoàn thành (Tasks)</h1>
+            <span class="tasks-subtitle">
+                Theo dõi lời hứa gửi báo giá, cuộc gọi, công việc cá nhân và giao việc cho thành viên nhóm.
             </span>
-
         </div>
-
-
-        <div style="display:flex; align-items:center; gap:10px;">
-            <a
-                href="calendar.html"
-                class="crm-btn crm-btn-secondary"
-                style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;"
-            >
-                <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4m8-4v4M3 10h18"/></svg>
-                Xem trên Lịch nhóm
+        <div class="tasks-head-actions" style="display:flex; gap:10px; align-items:center;">
+            <a href="calendar" class="crm-btn crm-btn-secondary" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                📅 Xem trên Lịch nhóm
             </a>
-
-            <button
-                id="newTask"
-                class="crm-btn crm-btn-primary"
-                type="button"
-            >
-                + Tạo công việc
+            <button id="newTask" class="crm-btn crm-btn-primary" type="button">
+                <span>➕</span>
+                <span>Tạo công việc</span>
             </button>
         </div>
-
     </section>
 
-
-    <div style="display:flex; gap:8px; margin-bottom:14px;">
-        <button type="button" class="crm-btn" style="background:var(--crm-primary); color:#fff; border:1px solid var(--crm-primary); font-size:12.5px; font-weight:600; padding:6px 14px; border-radius:6px;">
-            📋 Dạng danh sách
-        </button>
-        <a href="calendar.html" class="crm-btn crm-btn-secondary" style="text-decoration:none; font-size:12.5px; font-weight:600; padding:6px 14px; display:inline-flex; align-items:center; gap:6px; border-radius:6px;">
-            📅 Xem trên Lịch nhóm (Calendar View) →
-        </a>
+    <!-- KPI Summary Cards -->
+    <div class="task-kpi-grid">
+        <div class="task-kpi-card kpi-total is-active" data-filter="" onclick="setQuickFilter('')">
+            <div class="task-kpi-icon">📋</div>
+            <div class="task-kpi-info">
+                <div class="task-kpi-val" id="kpiTotalTasks">0</div>
+                <div class="task-kpi-lbl">Tổng công việc</div>
+            </div>
+        </div>
+        <div class="task-kpi-card kpi-open" data-filter="open" onclick="setQuickFilter('open')">
+            <div class="task-kpi-icon">⏳</div>
+            <div class="task-kpi-info">
+                <div class="task-kpi-val" id="kpiOpenTasks">0</div>
+                <div class="task-kpi-lbl">Đang cần làm</div>
+            </div>
+        </div>
+        <div class="task-kpi-card kpi-late" data-filter="late" onclick="setQuickFilter('late')">
+            <div class="task-kpi-icon">⚠️</div>
+            <div class="task-kpi-info">
+                <div class="task-kpi-val" id="kpiLateTasks">0</div>
+                <div class="task-kpi-lbl">Quá hạn chót</div>
+            </div>
+        </div>
+        <div class="task-kpi-card kpi-postponed" data-filter="postponed" onclick="setQuickFilter('postponed')">
+            <div class="task-kpi-icon">⏱️</div>
+            <div class="task-kpi-info">
+                <div class="task-kpi-val" id="kpiPostponedTasks">0</div>
+                <div class="task-kpi-lbl">Đã hoãn lại</div>
+            </div>
+        </div>
+        <div class="task-kpi-card kpi-done" data-filter="done" onclick="setQuickFilter('done')">
+            <div class="task-kpi-icon">✅</div>
+            <div class="task-kpi-info">
+                <div class="task-kpi-val" id="kpiDoneTasks">0</div>
+                <div class="task-kpi-lbl">Đã hoàn thành</div>
+            </div>
+        </div>
     </div>
 
-
-    <section class="crm-card tasks-filter">
-
-        <input
-            id="taskSearch"
-            class="crm-input"
-            type="search"
-            placeholder="Tìm công việc..."
-        >
-
-
-        <select
-            id="taskState"
-            class="crm-input"
-        >
-            <option value="">
-                Tất cả trạng thái
-            </option>
-
-            <option value="open">
-                Đang mở
-            </option>
-
-            <option value="done">
-                Hoàn thành
-            </option>
-
-            <option value="late">
-                Quá hạn
-            </option>
-        </select>
-
-
-        <select
-            id="taskPriorityFilter"
-            class="crm-input"
-        >
-            <option value="">
-                Tất cả ưu tiên
-            </option>
-
-            <option value="high">
-                Cao
-            </option>
-
-            <option value="medium">
-                Trung bình
-            </option>
-
-            <option value="low">
-                Thấp
-            </option>
-        </select>
-
-    </section>
-
-
-    <section class="crm-card tasks-card">
-
-        <div
-            id="tasksList"
-            class="tasks-list"
-        ></div>
-
-
-        <div
-            id="tasksEmpty"
-            class="tasks-empty"
-        >
-            Chưa có công việc.
+    <!-- Filters Bar -->
+    <section class="tasks-filter">
+        <div class="task-search-wrap">
+            <svg class="task-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>
+            </svg>
+            <input id="taskSearch" class="crm-input task-search-input" type="search" placeholder="Tìm kiếm công việc, khách hàng, người thực hiện...">
         </div>
 
+        <select id="taskState" class="crm-input task-select" title="Lọc theo trạng thái công việc">
+            <option value="">Tất cả trạng thái</option>
+            <option value="open">⏳ Đang cần làm</option>
+            <option value="late">⚠️ Quá hạn chót</option>
+            <option value="postponed">⏱️ Đã hoãn lại</option>
+            <option value="done">✅ Đã hoàn thành</option>
+        </select>
+
+        <select id="taskPriorityFilter" class="crm-input task-select" title="Lọc theo mức ưu tiên">
+            <option value="">Tất cả mức ưu tiên</option>
+            <option value="urgent">🔥 Khẩn cấp</option>
+            <option value="high">⚡ Cao</option>
+            <option value="medium">🔷 Trung bình</option>
+            <option value="low">⚪ Thấp</option>
+        </select>
+
+        <select id="taskMemberFilter" class="crm-input task-select" title="Lọc theo người thực hiện">
+            <option value="">Tất cả người thực hiện</option>
+            <option value="self">👤 Chỉ của tôi</option>
+        </select>
+    </section>
+
+    <!-- Tasks List Container -->
+    <section class="crm-card tasks-card">
+        <div id="tasksList" class="tasks-list"></div>
+        <div id="tasksEmpty" class="tasks-empty" style="display: none;">
+            <div class="tasks-empty-icon">📭</div>
+            <div>Chưa có công việc nào phù hợp với bộ lọc hiện tại.</div>
+        </div>
+
+        <!-- Standard Pagination Component -->
+        <div class="crm-pagination" id="taskPagination" style="margin-top: 14px; padding: 12px 16px;">
+            <div class="crm-pagination-info">
+                Hiển thị <span id="taskPaginationRange">0-0</span> của <span id="taskPaginationTotal">0</span> công việc
+            </div>
+            <div class="crm-pagination-size">
+                <label for="taskPageSizeSelect">Hiển thị:</label>
+                <select id="taskPageSizeSelect" class="crm-pagination-size-select">
+                    <option value="10" selected>10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                </select>
+            </div>
+            <div class="crm-pagination-controls" id="taskPaginationControls">
+                <!-- Populated dynamically via JS -->
+            </div>
+        </div>
     </section>
 
 </main>
 
-<header class="crm-mobile-header"></header>
-<div id="drawerOverlay" class="crm-drawer-overlay"></div>
-<aside id="mobileDrawer" class="crm-mobile-drawer"></aside>
+<!-- ========================================================
+     TASK MODAL: CREATE / EDIT
+     ======================================================== -->
+<div id="taskOverlay" class="task-overlay"></div>
 
-
-<!-- TASK MODAL -->
-
-<div
-    id="taskOverlay"
-    class="task-overlay"
-></div>
-
-
-<section
-    id="taskModal"
-    class="task-modal crm-card"
->
-
-    <header>
-
-        <strong id="taskModalTitle">
-            Tạo công việc
-        </strong>
-
-        <button
-            id="closeTaskModal"
-            type="button"
-        >
+<section id="taskModal" class="task-modal crm-card" style="max-width: 580px; width: 92%;">
+    <header style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--crm-border); padding-bottom: 12px; margin-bottom: 16px;">
+        <strong id="taskModalTitle" style="font-size: 17px; color: var(--crm-text);">Tạo công việc mới</strong>
+        <button id="closeTaskModal" type="button" style="background: none; border: none; cursor: pointer; color: var(--crm-muted);">
             <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
         </button>
-
     </header>
 
-
     <form id="taskForm">
+        <input id="editingTaskId" type="hidden">
 
-        <input
-            id="editingTaskId"
-            type="hidden"
-        >
-
-
-        <label>
-            Tiêu đề
-            <em>*</em>
-
-            <input
-                id="taskTitle"
-                class="crm-input"
-                type="text"
-            >
+        <label style="display: block; margin-bottom: 12px;">
+            <span style="font-size: 13px; font-weight: 600;">Tiêu đề công việc <em style="color: #ef4444;">*</em></span>
+            <input id="taskTitle" class="crm-input" type="text" placeholder="Ví dụ: Gửi báo giá CRM cho khách vào thứ Sáu..." required style="margin-top: 4px; width: 100%;">
         </label>
 
-
-        <label>
-            Khách hàng / Cơ hội
-
-            <input
-                id="taskRelation"
-                class="crm-input"
-                type="text"
-            >
-        </label>
-
-
-        <div class="task-two-cols">
-
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
             <label>
-                Hạn hoàn thành
-
-                <input
-                    id="taskDate"
-                    class="crm-input"
-                    type="date"
-                >
-            </label>
-
-
-            <label>
-                Ưu tiên
-
-                <select
-                    id="taskPriority"
-                    class="crm-input"
-                >
-                    <option value="medium">
-                        Trung bình
-                    </option>
-
-                    <option value="high">
-                        Cao
-                    </option>
-
-                    <option value="low">
-                        Thấp
-                    </option>
+                <span style="font-size: 13px; font-weight: 600;">Mức ưu tiên</span>
+                <select id="taskPriority" class="crm-input" style="margin-top: 4px; width: 100%;">
+                    <option value="URGENT">🔥 Khẩn cấp</option>
+                    <option value="HIGH">⚡ Cao</option>
+                    <option value="MEDIUM" selected>🔷 Trung bình</option>
+                    <option value="LOW">⚪ Thấp</option>
                 </select>
             </label>
 
+            <label>
+                <span style="font-size: 13px; font-weight: 600;">Người thực hiện (Phân công)</span>
+                <select id="taskAssignee" class="crm-input" style="margin-top: 4px; width: 100%;">
+                    <option value="">Đang tải nhân sự...</option>
+                </select>
+            </label>
         </div>
 
-
-        <label>
-            Người phụ trách
-
-            <input
-                id="taskOwner"
-                class="crm-input"
-                type="text"
-            >
+        <label style="display: block; margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 13px; font-weight: 600;">Hạn hoàn thành <em style="color: #ef4444;">*</em></span>
+                <div style="display: flex; gap: 4px;">
+                    <button type="button" class="quick-chip-btn" onclick="setQuickDueDate(0)">Hôm nay</button>
+                    <button type="button" class="quick-chip-btn" onclick="setQuickDueDate(1)">Ngày mai</button>
+                    <button type="button" class="quick-chip-btn" onclick="setQuickDueThisFriday()">Thứ Sáu này</button>
+                    <button type="button" class="quick-chip-btn" onclick="setQuickDueDate(7)">Tuần sau</button>
+                </div>
+            </div>
+            <input id="taskDate" class="crm-input" type="date" required style="margin-top: 4px; width: 100%;">
         </label>
 
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <label>
+                <span style="font-size: 13px; font-weight: 600;">Gắn với Khách hàng</span>
+                <select id="taskCustomerSelect" class="crm-input" style="margin-top: 4px; width: 100%;">
+                    <option value="">-- Chọn khách hàng --</option>
+                </select>
+            </label>
 
-        <label>
-            Mô tả
+            <label>
+                <span style="font-size: 13px; font-weight: 600;">Gắn với Cơ hội</span>
+                <select id="taskOpportunitySelect" class="crm-input" style="margin-top: 4px; width: 100%;">
+                    <option value="">-- Chọn cơ hội --</option>
+                </select>
+            </label>
+        </div>
 
-            <textarea
-                id="taskDescription"
-                rows="4"
-            ></textarea>
+        <label style="display: block; margin-bottom: 12px;">
+            <span style="font-size: 13px; font-weight: 600;">Mô tả chi tiết / Ghi chú công việc</span>
+            <textarea id="taskDescription" rows="3" class="crm-input" placeholder="Ghi chú chi tiết yêu cầu, lời hứa với khách hàng..." style="margin-top: 4px; width: 100%; resize: vertical;"></textarea>
         </label>
 
+        <div id="taskError" class="task-error" style="color: #ef4444; font-size: 12.5px; margin-bottom: 12px;"></div>
 
-        <div
-            id="taskError"
-            class="task-error"
-        ></div>
-
-
-        <footer>
-
-            <button
-                id="cancelTask"
-                class="crm-btn crm-btn-secondary"
-                type="button"
-            >
-                Hủy
-            </button>
-
-            <button
-                class="crm-btn crm-btn-primary"
-                type="submit"
-            >
-                Lưu
-            </button>
-
+        <footer style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--crm-border); padding-top: 14px;">
+            <button id="cancelTask" class="crm-btn crm-btn-secondary" type="button">Hủy</button>
+            <button class="crm-btn crm-btn-primary" type="submit">Lưu công việc</button>
         </footer>
-
     </form>
-
 </section>
 
+<!-- ========================================================
+     POSTPONE MODAL: HOÃN CÔNG VIỆC KÈM LÝ DO
+     ======================================================== -->
+<div id="postponeOverlay" class="task-overlay" style="display: none;"></div>
 
+<section id="postponeModal" class="task-modal crm-card" style="max-width: 500px; width: 90%; display: none;">
+    <header style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--crm-border); padding-bottom: 12px; margin-bottom: 14px;">
+        <strong style="font-size: 16px; color: #b45309; display: flex; align-items: center; gap: 6px;">
+            <span>⏱️</span> Hoãn hạn hoàn thành công việc
+        </strong>
+        <button id="closePostponeModal" type="button" style="background: none; border: none; cursor: pointer; color: var(--crm-muted);">
+            <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+    </header>
 
+    <div style="margin-bottom: 12px; font-size: 13px; color: var(--crm-text);">
+        Công việc: <strong id="postponeTaskSubject">—</strong>
+    </div>
 
+    <form id="postponeForm">
+        <input id="postponeTaskId" type="hidden">
 
-<script src="js/pages/tasks.js"></script>
+        <label style="display: block; margin-bottom: 12px;">
+            <span style="font-size: 13px; font-weight: 600;">Hạn hoàn thành mới</span>
+            <input id="postponeNewDate" class="crm-input" type="date" required style="margin-top: 4px; width: 100%;">
+        </label>
 
-<script src="js/page-transition.js"></script>
+        <label style="display: block; margin-bottom: 12px;">
+            <span style="font-size: 13px; font-weight: 600;">Lý do hoãn <em style="color: #ef4444;">*</em></span>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px;">
+                <button type="button" class="quick-chip-btn" onclick="setPostponeReason('Khách hàng bận họp đột xuất')">Khách bận họp</button>
+                <button type="button" class="quick-chip-btn" onclick="setPostponeReason('Chờ phản hồi thông số kỹ thuật')">Chờ kỹ thuật</button>
+                <button type="button" class="quick-chip-btn" onclick="setPostponeReason('Khách hẹn liên hệ lại tuần sau')">Hẹn tuần sau</button>
+                <button type="button" class="quick-chip-btn" onclick="setPostponeReason('Đang hoàn thiện tài liệu báo giá bổ sung')">Chờ bổ sung báo giá</button>
+            </div>
+            <textarea id="postponeReason" rows="3" class="crm-input" placeholder="Vui lòng ghi rõ lý do hoãn để quản lý và đồng đội nắm được..." required style="width: 100%;"></textarea>
+        </label>
 
+        <div id="postponeError" style="color: #ef4444; font-size: 12.5px; margin-bottom: 10px;"></div>
 
+        <footer style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--crm-border); padding-top: 12px;">
+            <button id="cancelPostpone" class="crm-btn crm-btn-secondary" type="button">Hủy</button>
+            <button class="crm-btn" type="submit" style="background: #f59e0b; color: #fff; border: none; font-weight: 600;">Xác nhận hoãn</button>
+        </footer>
+    </form>
+</section>
 
-
-<script src="js/theme.js"></script>
 <script src="js/shared-shell.js"></script>
+<script src="js/pages/tasks.js"></script>
+<script src="js/page-transition.js"></script>
+<script src="js/theme.js"></script>
 <script src="js/ui-core.js"></script>
 <script src="js/ui-effects.js"></script>
 </body>

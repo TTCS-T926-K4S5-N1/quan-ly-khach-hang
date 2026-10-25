@@ -1,11 +1,25 @@
 "use strict";
 
-const API_BASE =
-    "http://localhost:8080/crm";
+const API_BASE = (function () {
+    if (window.location.port === "8080" || window.location.pathname.startsWith("/crm")) {
+        return "/crm";
+    }
+    return "http://localhost:8080/crm";
+})();
 
 let products = [];
-
 let searchTimer = null;
+
+// Pagination state
+let currentPage = 1;
+let pageSize = 10;
+let totalItems = 0;
+let totalPages = 1;
+
+const productPagination = document.getElementById("productPagination");
+const prodPaginationRange = document.getElementById("prodPaginationRange");
+const prodPageSizeSelect = document.getElementById("prodPageSizeSelect");
+const prodPaginationControls = document.getElementById("prodPaginationControls");
 
 
 /* =========================================================
@@ -132,107 +146,126 @@ async function api(
    LOAD
 ========================================================= */
 
-async function loadProducts() {
-
+async function loadProducts(targetPage = currentPage) {
     try {
+        currentPage = targetPage;
+        const params = new URLSearchParams();
+        params.set("page", String(currentPage));
+        params.set("size", String(pageSize));
 
-        const params =
-            new URLSearchParams();
-
-
-        const keyword =
-            value(
-                "productSearch"
-            );
-
-
-        const status =
-            value(
-                "productStatusFilter"
-            );
-
+        const keyword = value("productSearch");
+        const status = value("productStatusFilter");
 
         if (keyword) {
-
-            params.set(
-                "keyword",
-                keyword
-            );
+            params.set("keyword", keyword);
         }
 
-
-        if (
-            status === "active"
-        ) {
-
-            params.set(
-                "active",
-                "true"
-            );
+        if (status === "active") {
+            params.set("active", "true");
         }
 
-
-        if (
-            status === "inactive" ||
-            status === "discontinued"
-        ) {
-
-            params.set(
-                "active",
-                "false"
-            );
+        if (status === "inactive" || status === "discontinued") {
+            params.set("active", "false");
         }
 
+        const query = params.toString();
+        const data = await api("/api/products" + (query ? "?" + query : ""));
 
-        const query =
-            params.toString();
-
-
-        const data =
-            await api(
-                "/api/products" +
-                (
-                    query
-                        ? "?" + query
-                        : ""
-                )
-            );
-
-
-        products =
-            Array.isArray(
-                data?.items
-            )
-                ? data.items
-                : [];
-
+        products = Array.isArray(data?.items) ? data.items : [];
+        totalItems = data?.totalItems !== undefined ? Number(data.totalItems) : products.length;
+        totalPages = data?.totalPages !== undefined ? Math.max(1, Number(data.totalPages)) : 1;
+        currentPage = data?.page !== undefined ? Number(data.page) : currentPage;
 
         render();
-
+        renderPagination();
 
     } catch (error) {
-
-        console.error(
-            "Load products error:",
-            error
-        );
-
-
+        console.error("Load products error:", error);
         products = [];
-
         render();
-
-
+        if (productPagination) productPagination.style.display = "none";
         if (empty) {
-
-            empty.style.display =
-                "flex";
-
-            empty.textContent =
-                error.message ||
-                "Không thể tải sản phẩm.";
+            empty.style.display = "flex";
+            empty.textContent = error.message || "Không thể tải sản phẩm.";
         }
     }
+}
+
+function renderPagination() {
+    if (!productPagination) return;
+    if (totalItems === 0 || products.length === 0) {
+        productPagination.style.display = "none";
+        return;
+    }
+
+    productPagination.style.display = "flex";
+
+    const start = (currentPage - 1) * pageSize + 1;
+    const end = Math.min(currentPage * pageSize, totalItems);
+    if (prodPaginationRange) {
+        prodPaginationRange.textContent = `Hiển thị ${start} - ${end} / ${totalItems} sản phẩm (Trang ${currentPage}/${totalPages})`;
+    }
+
+    if (prodPageSizeSelect && prodPageSizeSelect.value !== String(pageSize)) {
+        prodPageSizeSelect.value = String(pageSize);
+    }
+
+    if (!prodPaginationControls) return;
+    prodPaginationControls.innerHTML = "";
+
+    // 1. Nút Đầu «
+    prodPaginationControls.appendChild(createPageBtn("«", 1, currentPage <= 1, false, "Trang đầu"));
+    // 2. Nút Trước ‹
+    prodPaginationControls.appendChild(createPageBtn("‹", currentPage - 1, currentPage <= 1, false, "Trang trước"));
+
+    // 3. Số trang
+    const pageNumbers = getPageRange(currentPage, totalPages);
+    pageNumbers.forEach(p => {
+        if (p === "...") {
+            const ellipsis = document.createElement("span");
+            ellipsis.className = "crm-pagination-ellipsis";
+            ellipsis.textContent = "…";
+            prodPaginationControls.appendChild(ellipsis);
+        } else {
+            prodPaginationControls.appendChild(createPageBtn(String(p), p, false, p === currentPage));
+        }
+    });
+
+    // 4. Nút Sau ›
+    prodPaginationControls.appendChild(createPageBtn("›", currentPage + 1, currentPage >= totalPages, false, "Trang sau"));
+    // 5. Nút Cuối »
+    prodPaginationControls.appendChild(createPageBtn("»", totalPages, currentPage >= totalPages, false, "Trang cuối"));
+}
+
+function createPageBtn(label, targetPage, disabled, isActive = false, title = "") {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `crm-pagination-btn ${isActive ? "active" : ""}`;
+    btn.textContent = label;
+    if (title) btn.title = title;
+    if (disabled) {
+        btn.disabled = true;
+    } else if (!isActive) {
+        btn.addEventListener("click", () => {
+            loadProducts(targetPage);
+        });
+    }
+    return btn;
+}
+
+function getPageRange(current, total) {
+    if (total <= 7) {
+        return Array.from({ length: total }, (_, i) => i + 1);
+    }
+    const pages = [];
+    pages.push(1);
+    if (current > 3) pages.push("...");
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (current < total - 2) pages.push("...");
+    pages.push(total);
+    return pages;
 }
 
 
@@ -291,15 +324,16 @@ function bindEvents() {
                     searchTimer
                 );
 
-
                 searchTimer =
                     setTimeout(
-                        loadProducts,
+                        () => {
+                            currentPage = 1;
+                            loadProducts(1);
+                        },
                         300
                     );
             }
         );
-
 
     document
         .getElementById(
@@ -307,8 +341,20 @@ function bindEvents() {
         )
         ?.addEventListener(
             "change",
-            loadProducts
+            () => {
+                currentPage = 1;
+                loadProducts(1);
+            }
         );
+
+    prodPageSizeSelect?.addEventListener(
+        "change",
+        (e) => {
+            pageSize = Number(e.target.value) || 10;
+            currentPage = 1;
+            loadProducts(1);
+        }
+    );
 
 
     document
@@ -549,6 +595,18 @@ async function saveProductForm() {
 
         await loadProducts();
 
+        if (editing) {
+            if (typeof window.crmToast === "function") {
+                window.crmToast("Cập nhật sản phẩm thành công!", "success");
+            }
+            alert("Cập nhật sản phẩm thành công!");
+        } else {
+            if (typeof window.crmToast === "function") {
+                window.crmToast("Thêm sản phẩm thành công!", "success");
+            }
+            alert("Thêm sản phẩm thành công!");
+        }
+
 
     } catch (error) {
 
@@ -612,6 +670,11 @@ async function discontinueProduct(
 
 
         await loadProducts();
+
+        if (typeof window.crmToast === "function") {
+            window.crmToast("Ngừng kinh doanh sản phẩm thành công!", "success");
+        }
+        alert("Ngừng kinh doanh sản phẩm thành công!");
 
 
     } catch (error) {

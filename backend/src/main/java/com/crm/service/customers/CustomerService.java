@@ -98,12 +98,22 @@ public class CustomerService {
             throw new IllegalArgumentException("Tên khách hàng/công ty là bắt buộc.");
         }
 
+        customFieldValueDAO.validateRequiredFields("CUSTOMER", req.getCustomFields());
+
         dataScopeService.resolve(currentUserId, "customer", "create");
         long customerId = customerDAO.create(req, currentUserId);
 
         if (req.getCustomFields() != null && !req.getCustomFields().isEmpty()) {
             customFieldValueDAO.saveValues("CUSTOMER", customerId, req.getCustomFields());
         }
+
+        // Tự động chấm điểm và phân bổ lead
+        try {
+            new com.crm.service.routing.LeadScoringService().evaluateAndSaveLeadScore(null, customerId);
+            if (req.getOwnerUserId() == null || req.getOwnerUserId() <= 0) {
+                new com.crm.service.routing.LeadAssignmentService().evaluateAndAssignLead(null, customerId, null);
+            }
+        } catch (Exception ignored) {}
 
         return getById(currentUserId, customerId);
     }
@@ -113,10 +123,20 @@ public class CustomerService {
             throw new IllegalArgumentException("Tên khách hàng/công ty là bắt buộc.");
         }
 
+        if (req.getCustomFields() != null) {
+            customFieldValueDAO.validateRequiredFields("CUSTOMER", req.getCustomFields());
+        }
+
         DataScopeContext scope = dataScopeService.resolve(currentUserId, "customer", "update");
         Map<String, Object> existing = customerDAO.findById(id);
         if (existing == null) {
             return null;
+        }
+
+        // Quy tắc nghiệp vụ User Story 4: Lead chuyển sang trạng thái Đã chuyển đổi và không sửa được nữa
+        String currentStatus = (String) existing.get("status");
+        if ("CONVERTED".equalsIgnoreCase(currentStatus)) {
+            throw new IllegalStateException("Lead này đã được chuyển đổi thành Khách hàng và Cơ hội bán hàng, dữ liệu ở chế độ chỉ đọc và không thể chỉnh sửa.");
         }
 
         long ownerId = (Long) existing.get("ownerUserId");
@@ -130,6 +150,12 @@ public class CustomerService {
             customFieldValueDAO.saveValues("CUSTOMER", id, req.getCustomFields());
         }
 
+        // Tự động tính lại điểm khi thông tin thay đổi (Acceptance Criteria Story 1)
+        try {
+            new com.crm.service.routing.LeadScoringService().evaluateAndSaveLeadScore(null, id);
+            new com.crm.service.routing.LeadAssignmentService().evaluateAndAssignLead(null, id, null);
+        } catch (Exception ignored) {}
+
         return getById(currentUserId, id);
     }
 
@@ -138,6 +164,11 @@ public class CustomerService {
         Map<String, Object> existing = customerDAO.findById(id);
         if (existing == null) {
             throw new NoSuchElementException("Khách hàng không tồn tại.");
+        }
+
+        String currentStatus = (String) existing.get("status");
+        if ("CONVERTED".equalsIgnoreCase(currentStatus)) {
+            throw new IllegalStateException("Lead này đã được chuyển đổi, không thể xóa để bảo đảm toàn vẹn dữ liệu lịch sử.");
         }
 
         long ownerId = (Long) existing.get("ownerUserId");
@@ -162,6 +193,27 @@ public class CustomerService {
             Long excludeId
     ) throws Exception {
         return customerMergeDAO.checkDuplicates(name, taxCode, website, excludeId);
+    }
+
+    public List<Map<String, Object>> checkDuplicates(
+            long currentUserId,
+            String name,
+            String taxCode,
+            String website,
+            String email,
+            String phone,
+            Long excludeId
+    ) throws Exception {
+        return customerMergeDAO.checkDuplicates(name, taxCode, website, email, phone, excludeId);
+    }
+
+    public Map<String, Object> suggestExistingCustomer(
+            long currentUserId,
+            String email,
+            String phone,
+            String companyName
+    ) throws Exception {
+        return customerMergeDAO.suggestExistingCustomer(email, phone, companyName);
     }
 
     public List<Map<String, Object>> findAllDuplicatePairs(long currentUserId) throws Exception {

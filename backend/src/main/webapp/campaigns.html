@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<script>
+(function () {
+    try {
+        var theme = localStorage.getItem("crm_ui_theme");
+        document.documentElement.setAttribute("data-theme", theme === "dark" ? "dark" : "light");
+        document.documentElement.removeAttribute("data-crm-theme");
+    } catch (e) {
+        document.documentElement.setAttribute("data-theme", "light");
+    }
+})();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Chiến dịch Marketing & Đo lường ROI | Corporate CRM</title>
+
+<link rel="stylesheet" href="css/design-system.css">
+<link rel="stylesheet" href="css/app-shell.css">
+<link rel="stylesheet" href="css/pages/campaigns.css">
+<link rel="stylesheet" href="css/animations.css">
+</head>
+
+<body class="crm-private">
+
+<aside class="crm-sidebar"></aside>
+
+<div class="crm-shell">
+    <header class="crm-topbar"></header>
+
+    <main class="crm-content">
+        <!-- Breadcrumbs & Header -->
+        <div style="font-size: 13px; color: var(--crm-text-muted); margin-bottom: 8px;">
+            <a href="dashboard" style="color: inherit; text-decoration: none;">Tổng quan</a>
+            <span style="margin: 0 6px;">/</span>
+            <span>Tiếp thị (Marketing)</span>
+            <span style="margin: 0 6px;">/</span>
+            <span style="color: var(--crm-primary); font-weight: 600;">Chiến dịch Marketing & ROI</span>
+        </div>
+
+        <div class="campaign-header">
+            <div class="campaign-title-area">
+                <h1>
+                    <span>🎯</span> Theo dõi Lead theo Chiến dịch Marketing
+                </h1>
+                <p>Khai báo ngân sách, thời gian, kênh chạy. Đo lường chiến dịch nào thực sự đem về doanh thu chứ không chỉ ra nhiều lead.</p>
+            </div>
+            <div class="campaign-header-actions">
+                <a href="customers" class="crm-btn crm-btn-secondary" style="text-decoration:none;">
+                    👥 Danh sách Lead
+                </a>
+                <button id="btnRefresh" class="crm-btn crm-btn-secondary" type="button" title="Tải lại dữ liệu">
+                    🔄 Làm mới
+                </button>
+                <button id="btnNewCampaign" class="crm-btn crm-btn-primary" type="button">
+                    ➕ Khai báo chiến dịch mới
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Ribbon -->
+        <div class="campaign-stats-grid">
+            <div class="campaign-stat-card">
+                <div class="stat-meta">
+                    <span class="stat-label">Chiến dịch đang chạy</span>
+                    <span class="stat-icon" style="background:#e0f2fe; color:#0284c7;">🎯</span>
+                </div>
+                <div class="stat-value" id="statActiveCampaigns">0</div>
+                <div class="stat-sub">Tổng số: <strong id="statTotalCampaigns">0</strong> chiến dịch</div>
+            </div>
+
+            <div class="campaign-stat-card">
+                <div class="stat-meta">
+                    <span class="stat-label">Tổng ngân sách đầu tư</span>
+                    <span class="stat-icon" style="background:#fef3c7; color:#d97706;">💰</span>
+                </div>
+                <div class="stat-value" id="statTotalBudget">0 đ</div>
+                <div class="stat-sub">Phân bổ theo kế hoạch marketing</div>
+            </div>
+
+            <div class="campaign-stat-card">
+                <div class="stat-meta">
+                    <span class="stat-label">Tổng Lead thu được</span>
+                    <span class="stat-icon" style="background:#ede9fe; color:#7c3aed;">👥</span>
+                </div>
+                <div class="stat-value" id="statTotalLeads">0</div>
+                <div class="stat-sub">Từ hội thảo, form web & quảng cáo</div>
+            </div>
+
+            <div class="campaign-stat-card">
+                <div class="stat-meta">
+                    <span class="stat-label">Doanh thu chốt (Won Value)</span>
+                    <span class="stat-icon" style="background:#d1fae5; color:#059669;">🏆</span>
+                </div>
+                <div class="stat-value text-emerald" id="statTotalWonRevenue">0 đ</div>
+                <div class="stat-sub"><strong id="statWonOpps">0</strong> cơ hội đã chốt thành công</div>
+            </div>
+
+            <div class="campaign-stat-card">
+                <div class="stat-meta">
+                    <span class="stat-label">Tỷ suất sinh lời ROI</span>
+                    <span class="stat-icon" style="background:#dcfce7; color:#15803d;">📈</span>
+                </div>
+                <div class="stat-value text-emerald" id="statOverallRoi">+0%</div>
+                <div class="stat-sub">Hiệu quả đầu tư tổng thể</div>
+            </div>
+        </div>
+
+        <!-- Filter bar -->
+        <div class="campaign-filter-card">
+            <div class="campaign-search-box">
+                <span class="search-icon">🔍</span>
+                <input id="searchCampaignInput" type="text" placeholder="Tìm theo tên hoặc mã chiến dịch (vd: VIETBUILD, FB, GOOGLE)...">
+            </div>
+
+            <div class="campaign-filter-selects">
+                <select id="filterChannel" class="crm-select">
+                    <option value="ALL">-- Tất cả kênh tiếp thị --</option>
+                    <option value="HOI_THAO">Hội thảo / Sự kiện</option>
+                    <option value="FACEBOOK">Facebook Lead Ads</option>
+                    <option value="GOOGLE_ADS">Google Search / Ads</option>
+                    <option value="EMAIL">Email Marketing</option>
+                    <option value="TIKTOK">TikTok Ads</option>
+                    <option value="LINKEDIN">LinkedIn B2B</option>
+                    <option value="OTHER">Kênh khác</option>
+                </select>
+
+                <select id="filterStatus" class="crm-select">
+                    <option value="ALL">-- Tất cả trạng thái --</option>
+                    <option value="ACTIVE" selected>Đang chạy (Active)</option>
+                    <option value="PLANNING">Lên kế hoạch (Planning)</option>
+                    <option value="PAUSED">Tạm dừng (Paused)</option>
+                    <option value="COMPLETED">Đã kết thúc (Completed)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Main Data Table Card -->
+        <div class="campaign-table-card">
+            <div class="table-container">
+                <table class="crm-table">
+                    <thead>
+                        <tr>
+                            <th style="min-width: 200px;">Chiến dịch</th>
+                            <th style="width: 140px;">Kênh tiếp thị</th>
+                            <th style="width: 150px;">Thời gian chạy</th>
+                            <th style="width: 130px; text-align: right;">Ngân sách</th>
+                            <th style="width: 90px; text-align: center;">Số Lead</th>
+                            <th style="width: 90px; text-align: center;">Cơ hội</th>
+                            <th style="width: 140px; text-align: right;">Doanh thu chốt</th>
+                            <th style="width: 110px; text-align: center;">Hiệu quả ROI</th>
+                            <th style="width: 110px; text-align: center;">Trạng thái</th>
+                            <th style="width: 130px; text-align: center;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="campaignsTbody">
+                        <tr>
+                            <td colspan="10" style="text-align: center; padding: 40px; color: var(--crm-text-muted);">
+                                ⏳ Đang tải danh sách chiến dịch...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- ================= MODAL: KHAI BÁO / CHỈNH SỬA CHIẾN DỊCH ================= -->
+<div id="campaignModalOverlay" class="crm-modal-overlay" style="display: none;">
+    <div class="crm-modal campaign-modal">
+        <div class="crm-modal-header">
+            <h2 id="modalTitle">➕ Khai báo chiến dịch Marketing mới</h2>
+            <button id="btnCloseModal" type="button" class="crm-icon-btn">✕</button>
+        </div>
+
+        <form id="campaignForm">
+            <input type="hidden" id="campaignId">
+
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label for="campaignName">Tên chiến dịch <span class="text-danger">*</span></label>
+                    <input id="campaignName" class="crm-input" type="text" placeholder="VD: Hội thảo VietBuild 2026 Hà Nội" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="campaignCode">Mã chiến dịch <span class="text-danger">*</span></label>
+                    <input id="campaignCode" class="crm-input" type="text" placeholder="VD: CAMP-VIETBUILD-2026" required style="font-family:monospace; font-weight:700;">
+                </div>
+            </div>
+
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label for="campaignChannel">Kênh tiếp thị <span class="text-danger">*</span></label>
+                    <select id="campaignChannel" class="crm-select" required>
+                        <option value="HOI_THAO">Hội thảo / Triển lãm / Sự kiện</option>
+                        <option value="FACEBOOK">Facebook Lead Ads</option>
+                        <option value="GOOGLE_ADS">Google Search / Ads</option>
+                        <option value="EMAIL">Email Marketing</option>
+                        <option value="TIKTOK">TikTok Ads</option>
+                        <option value="LINKEDIN">LinkedIn B2B</option>
+                        <option value="OTHER">Kênh khác</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="campaignStatus">Trạng thái</label>
+                    <select id="campaignStatus" class="crm-select">
+                        <option value="ACTIVE">Đang chạy (Active)</option>
+                        <option value="PLANNING">Lên kế hoạch (Planning)</option>
+                        <option value="PAUSED">Tạm dừng (Paused)</option>
+                        <option value="COMPLETED">Đã kết thúc (Completed)</option>
+                        <option value="CANCELLED">Đã hủy (Cancelled)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-grid-3">
+                <div class="form-group">
+                    <label for="campaignBudget">Ngân sách (VNĐ) <span class="text-danger">*</span></label>
+                    <input id="campaignBudget" class="crm-input" type="number" min="0" step="100000" placeholder="50000000" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="campaignExpectedRev">Doanh thu kỳ vọng (VNĐ)</label>
+                    <input id="campaignExpectedRev" class="crm-input" type="number" min="0" step="100000" placeholder="300000000">
+                </div>
+
+                <div class="form-group">
+                    <label for="campaignActualCost">Chi phí thực tế (VNĐ)</label>
+                    <input id="campaignActualCost" class="crm-input" type="number" min="0" step="100000" placeholder="48500000">
+                </div>
+            </div>
+
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label for="campaignStartDate">Ngày bắt đầu chạy</label>
+                    <input id="campaignStartDate" class="crm-input" type="date">
+                </div>
+
+                <div class="form-group">
+                    <label for="campaignEndDate">Ngày kết thúc</label>
+                    <input id="campaignEndDate" class="crm-input" type="date">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="campaignDescription">Mô tả mục tiêu & đối tượng tiếp cận</label>
+                <textarea id="campaignDescription" class="crm-input" rows="3" placeholder="Mục tiêu thu thập 50 lead B2B từ các nhà thầu xây dựng tại hội thảo..."></textarea>
+            </div>
+
+            <div class="crm-modal-footer">
+                <button id="btnCancelModal" type="button" class="crm-btn crm-btn-secondary">Hủy bỏ</button>
+                <button id="btnSaveCampaign" type="submit" class="crm-btn crm-btn-primary">💾 Lưu chiến dịch</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ================= MODAL: ĐO LƯỜNG CHI TIẾT HIỆU QUẢ CHIẾN DỊCH & DOANH THU ================= -->
+<div id="detailModalOverlay" class="crm-modal-overlay" style="display: none;">
+    <div class="crm-modal detail-modal">
+        <div class="crm-modal-header">
+            <div>
+                <h2 id="detailCampaignName">📊 Báo cáo hiệu quả & Doanh thu chiến dịch</h2>
+                <span id="detailCampaignCode" class="badge-code" style="font-size:12px; font-weight:700;">CAMP-XXX</span>
+            </div>
+            <button id="btnCloseDetailModal" type="button" class="crm-icon-btn">✕</button>
+        </div>
+
+        <div class="detail-body">
+            <!-- Conversion Funnel Ribbon -->
+            <div class="funnel-container">
+                <div class="funnel-step">
+                    <div class="funnel-label">Ngân sách</div>
+                    <div class="funnel-value" id="dBudget">0 đ</div>
+                    <div class="funnel-sub">Chi phí thực: <span id="dActualCost">0 đ</span></div>
+                </div>
+                <div class="funnel-arrow">➜</div>
+                <div class="funnel-step">
+                    <div class="funnel-label">Lead sinh ra</div>
+                    <div class="funnel-value" id="dLeads">0</div>
+                    <div class="funnel-sub">CPL: <span id="dCpl">0 đ/lead</span></div>
+                </div>
+                <div class="funnel-arrow">➜</div>
+                <div class="funnel-step">
+                    <div class="funnel-label">Cơ hội mở ra</div>
+                    <div class="funnel-value" id="dOpps">0</div>
+                    <div class="funnel-sub">Tỷ lệ chuyển: <span id="dConvRate">0%</span></div>
+                </div>
+                <div class="funnel-arrow">➜</div>
+                <div class="funnel-step" style="background:#ecfdf5; border-color:#10b981;">
+                    <div class="funnel-label" style="color:#065f46;">Doanh thu đã chốt (Won)</div>
+                    <div class="funnel-value text-emerald" id="dWonRevenue">0 đ</div>
+                    <div class="funnel-sub"><strong id="dWonOpps">0</strong> deal thành công</div>
+                </div>
+                <div class="funnel-arrow">➜</div>
+                <div class="funnel-step" style="background:#eff6ff; border-color:#3b82f6;">
+                    <div class="funnel-label" style="color:#1e40af;">Tỷ suất sinh lời ROI</div>
+                    <div class="funnel-value text-blue" id="dRoiPercent">+0%</div>
+                    <div class="funnel-sub">Thực tế ra doanh thu</div>
+                </div>
+            </div>
+
+            <!-- Detail Tabs -->
+            <div class="detail-tabs">
+                <button class="tab-btn active" data-tab="leads">👥 Danh sách Lead thuộc chiến dịch (<span id="tabCountLeads">0</span>)</button>
+                <button class="tab-btn" data-tab="opps">💼 Cơ hội & Giá trị chốt (<span id="tabCountOpps">0</span>)</button>
+            </div>
+
+            <!-- Tab Content: Leads -->
+            <div id="tabContentLeads" class="tab-pane active">
+                <div class="detail-table-box">
+                    <table class="crm-table">
+                        <thead>
+                            <tr>
+                                <th>Khách hàng / Doanh nghiệp</th>
+                                <th>Số điện thoại</th>
+                                <th>Email</th>
+                                <th>Nguồn Lead</th>
+                                <th>Cơ hội phát sinh</th>
+                                <th>Giá trị chốt</th>
+                                <th>Phụ trách</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailLeadsTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab Content: Opportunities -->
+            <div id="tabContentOpps" class="tab-pane">
+                <div class="detail-table-box">
+                    <table class="crm-table">
+                        <thead>
+                            <tr>
+                                <th>Tên cơ hội bán hàng</th>
+                                <th>Khách hàng</th>
+                                <th style="text-align: right;">Giá trị (Amount)</th>
+                                <th style="text-align: center;">Trạng thái</th>
+                                <th>Ngày dự kiến chốt</th>
+                                <th>Người phụ trách</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailOppsTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="js/shared-shell.js"></script>
+<script src="js/pages/campaigns.js"></script>
+<script src="js/page-transition.js"></script>
+
+</body>
+</html>

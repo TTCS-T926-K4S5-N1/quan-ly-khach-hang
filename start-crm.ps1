@@ -29,6 +29,19 @@ if (-not $mysqlRunning) {
     }
     Start-Sleep -Seconds 3
 }
+
+# Kiểm tra đảm bảo crm-mysql đã bind cổng 3306 ra host
+$portMapped = docker port crm-mysql 3306 2>$null
+if (-not $portMapped) {
+    $conflict = docker ps --filter "publish=3306" --format "{{.Names}}" | Where-Object { $_ -ne "crm-mysql" }
+    if ($conflict) {
+        Write-Host "  Tạm dừng container đang chiếm cổng 3306 ($conflict)..." -ForegroundColor DarkYellow
+        docker stop $conflict | Out-Null
+    }
+    docker network connect bridge crm-mysql 2>$null
+    docker restart crm-mysql | Out-Null
+    Start-Sleep -Seconds 2
+}
 Write-Host "MySQL đang chạy tại localhost:3306 (db: crm_db)" -ForegroundColor Green
 
 # 2. Khởi động Apache Tomcat (Chạy cả Frontend và Backend API)
@@ -39,7 +52,7 @@ $env:CATALINA_HOME = "D:\Tomcat\apache-tomcat-10.1.60"
 # Kiểm tra xem Tomcat đã chạy chưa
 $tomcatPort = Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue
 if (-not $tomcatPort) {
-    Start-Process -FilePath "cmd.exe" -ArgumentList "/c set CATALINA_HOME=D:\Tomcat\apache-tomcat-10.1.60&& D:\Tomcat\apache-tomcat-10.1.60\bin\startup.bat" -WindowStyle Minimized
+    Start-Process -FilePath "cmd.exe" -ArgumentList "/c set CATALINA_HOME=D:\Tomcat\apache-tomcat-10.1.60&& set JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot&& D:\Tomcat\apache-tomcat-10.1.60\bin\startup.bat" -WindowStyle Minimized
     $waited = 0
     while ($waited -lt 15) {
         Start-Sleep -Seconds 2

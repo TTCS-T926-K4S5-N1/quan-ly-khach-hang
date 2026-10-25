@@ -1,4 +1,3 @@
- HEAD
 # Logs
 logs
 *.log
@@ -33,8 +32,6 @@ frontend/node_modules/
 .vscode/
 .env
 .env.*
- feat/SCRUM-221-team-calendar
 *.backup_*
-
- origin/main
- main
+scratch/
+backend/sources.txt

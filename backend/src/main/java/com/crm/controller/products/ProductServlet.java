@@ -47,6 +47,7 @@ public class ProductServlet
                     "product.read"
             );
 
+            String keyword = req.getParameter("keyword");
             Boolean active =
                     parseBoolean(
                             req.getParameter(
@@ -54,12 +55,20 @@ public class ProductServlet
                             )
                     );
 
+            int page = intParam(req, "page", 1);
+            int size = intParam(req, "size", 10);
+            if (page < 1) page = 1;
+            if (size < 1) size = 10;
+
+            long total = dao.count(keyword, active);
+            int totalPages = (int) Math.ceil((double) total / size);
+
             List<Map<String,Object>> items =
                     dao.findAll(
-                            req.getParameter(
-                                    "keyword"
-                            ),
-                            active
+                            keyword,
+                            active,
+                            page,
+                            size
                     );
 
             boolean canViewCost =
@@ -90,24 +99,22 @@ public class ProductServlet
 
             data.put(
                     "page",
-                    1
+                    page
             );
 
             data.put(
                     "size",
-                    items.size()
+                    size
             );
 
             data.put(
                     "totalItems",
-                    items.size()
+                    total
             );
 
             data.put(
                     "totalPages",
-                    items.isEmpty()
-                            ? 0
-                            : 1
+                    totalPages
             );
 
             ResponseUtil.json(
@@ -815,5 +822,15 @@ public class ProductServlet
                         null
                 )
         );
+    }
+
+    private int intParam(HttpServletRequest req, String name, int fallback) {
+        String val = req.getParameter(name);
+        if (val == null || val.isBlank()) return fallback;
+        try {
+            return Integer.parseInt(val.trim());
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
     }
 }

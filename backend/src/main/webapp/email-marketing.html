@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mẫu Email & Hàng đợi Gửi Thư | Corporate CRM</title>
+    <link rel="stylesheet" href="css/app-shell.css">
+    <link rel="stylesheet" href="css/pages/email-marketing.css">
+</head>
+<body>
+    <!-- App Shell Containers (Rendered by shared-shell.js) -->
+    <header class="crm-topbar"></header>
+    <aside class="crm-sidebar"></aside>
+
+    <main class="crm-main email-marketing-page">
+        <!-- Header & Breadcrumbs -->
+        <div style="font-size:12.5px; color:var(--crm-muted); margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+            <a href="dashboard" style="color:var(--crm-muted); text-decoration:none;">Trang chủ</a>
+            <span>›</span>
+            <span>Không gian làm việc</span>
+            <span>›</span>
+            <span style="color:var(--crm-text); font-weight:600;">Mẫu & Gửi Email</span>
+        </div>
+
+        <section class="email-header-panel">
+            <div class="email-title-group">
+                <h1>
+                    <span>✉️</span> Mẫu Email & Gửi Email Khách hàng
+                </h1>
+                <p>Soạn mẫu email chèn biến thông minh, gửi email cho khách từ trong hệ thống, ghi nhận dòng thời gian tương tác và xử lý hàng đợi bất đồng bộ.</p>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <button type="button" id="btnOpenNewTemplateModal" class="crm-btn crm-btn-secondary" style="font-size:13px; padding:9px 16px; display:inline-flex; align-items:center; gap:6px;">
+                    📝 Tạo mẫu thư mới
+                </button>
+                <button type="button" id="btnOpenSendEmailModal" class="crm-btn crm-btn-primary" style="font-size:13px; padding:9px 18px; display:inline-flex; align-items:center; gap:6px;">
+                    ➕ Soạn & Gửi Email
+                </button>
+            </div>
+        </section>
+
+        <!-- Stats Bar -->
+        <section class="email-stats-grid">
+            <div class="email-stat-card">
+                <div class="email-stat-icon" style="background:#eff6ff; color:#2563eb;">📨</div>
+                <div>
+                    <div class="email-stat-val" id="statSentEmails">0</div>
+                    <div class="email-stat-lbl">Đã gửi thành công</div>
+                </div>
+            </div>
+            <div class="email-stat-card">
+                <div class="email-stat-icon" style="background:#fffbeb; color:#d97706;">⏳</div>
+                <div>
+                    <div class="email-stat-val" id="statQueuedEmails" style="color:#d97706;">0</div>
+                    <div class="email-stat-lbl">Đang chờ gửi (Queue)</div>
+                </div>
+            </div>
+            <div class="email-stat-card">
+                <div class="email-stat-icon" style="background:#fef2f2; color:#dc2626;">⚠️</div>
+                <div>
+                    <div class="email-stat-val" id="statFailedEmails" style="color:#dc2626;">0</div>
+                    <div class="email-stat-lbl">Thất bại (Cần gửi lại)</div>
+                </div>
+            </div>
+            <div class="email-stat-card">
+                <div class="email-stat-icon" style="background:#f5f3ff; color:#7c3aed;">📑</div>
+                <div>
+                    <div class="email-stat-val" id="statTotalTemplates" style="color:#7c3aed;">0</div>
+                    <div class="email-stat-lbl">Mẫu email sẵn sàng</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Workspace Tabs -->
+        <div class="email-tabs-nav">
+            <button type="button" class="email-tab-btn active" data-tab="templatesTab">
+                📑 Danh sách Mẫu Email (<span id="tabCountTemplates">0</span>)
+            </button>
+            <button type="button" class="email-tab-btn" data-tab="queueTab">
+                📬 Hàng đợi & Lịch sử gửi thư (<span id="tabCountQueue">0</span>)
+            </button>
+        </div>
+
+        <!-- TAB 1: MẪU EMAIL -->
+        <section id="templatesTab" class="email-tab-content active">
+            <div class="email-templates-grid" id="templatesContainer">
+                <div style="text-align:center; padding:50px; grid-column:1/-1; color:var(--crm-muted);">
+                    Đang tải danh sách mẫu email...
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: HÀNG ĐỢI & LỊCH SỬ GỬI THƯ -->
+        <section id="queueTab" class="email-tab-content">
+            <div class="queue-filter-bar">
+                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <label style="font-size:12.5px; font-weight:600; color:var(--crm-text);">Trạng thái:</label>
+                    <select id="filterQueueStatus" class="crm-select" style="width:160px; font-size:13px; padding:6px 10px;">
+                        <option value="ALL">Tất cả trạng thái</option>
+                        <option value="SENT">Đã gửi thành công</option>
+                        <option value="QUEUED">Đang chờ gửi (Queue)</option>
+                        <option value="FAILED">Gửi thất bại (Failed)</option>
+                    </select>
+                    <button type="button" id="btnRefreshQueue" class="crm-btn crm-btn-secondary" style="font-size:12.5px; padding:6px 12px;">
+                        🔄 Làm mới
+                    </button>
+                </div>
+                <div style="font-size:12.5px; color:var(--crm-muted);" id="queueCountNote">
+                    Hiển thị danh sách email gửi bất đồng bộ
+                </div>
+            </div>
+
+            <div class="crm-card queue-table-card">
+                <table class="email-queue-table">
+                    <thead>
+                        <tr>
+                            <th style="width:14%;">Thời gian</th>
+                            <th style="width:20%;">Người nhận</th>
+                            <th style="width:18%;">Khách hàng liên quan</th>
+                            <th style="width:28%;">Tiêu đề email</th>
+                            <th style="width:10%; text-align:center;">Trạng thái</th>
+                            <th style="width:10%; text-align:right;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="queueTableBody">
+                        <tr>
+                            <td colspan="6" style="text-align:center; padding:40px; color:var(--crm-muted);">
+                                Đang tải danh sách hàng đợi email...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODAL 1: SOẠN & GỬI EMAIL CHO KHÁCH -->
+    <div id="modalSendEmail" class="crm-modal-backdrop" style="display:none;">
+        <div class="crm-modal-card email-modal-card">
+            <div class="modal-header">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:20px;">✉️</span>
+                    <div>
+                        <h3 style="margin:0; font-size:16px; font-weight:700;">Soạn & Gửi Email cho Khách hàng</h3>
+                        <p style="margin:2px 0 0; font-size:12px; color:var(--crm-muted);">Thư gửi đi sẽ được ghi nhận tự động vào Dòng thời gian của khách hàng</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close-modal" data-modal="modalSendEmail">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="formSendEmail">
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+                        <div>
+                            <label class="form-label">Chọn Khách hàng / Doanh nghiệp <span style="color:#ef4444;">*</span></label>
+                            <select id="sendCustomerSelect" class="crm-select" required>
+                                <option value="">-- Chọn khách hàng nhận thư --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Áp dụng Mẫu email sẵn có</label>
+                            <select id="sendTemplateSelect" class="crm-select">
+                                <option value="">-- Tự soạn hoặc chọn mẫu sẵn --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+                        <div>
+                            <label class="form-label">Email người nhận <span style="color:#ef4444;">*</span></label>
+                            <input type="email" id="sendRecipientEmail" class="crm-input" placeholder="khachhang@congty.com" required>
+                        </div>
+                        <div>
+                            <label class="form-label">Tên người nhận / Liên hệ</label>
+                            <input type="text" id="sendRecipientName" class="crm-input" placeholder="Họ và tên người nhận">
+                        </div>
+                    </div>
+
+                    <!-- Variable Quick Insertion Chips -->
+                    <div class="var-chips-box">
+                        <span style="font-size:11.5px; font-weight:700; color:var(--crm-muted); text-transform:uppercase;">Chèn biến nhanh:</span>
+                        <button type="button" class="var-chip" data-var="{{contact_name}}" title="Tên người liên hệ">+ Tên người liên hệ</button>
+                        <button type="button" class="var-chip" data-var="{{company_name}}" title="Tên công ty / khách hàng">+ Tên công ty</button>
+                        <button type="button" class="var-chip" data-var="{{staff_name}}" title="Tên nhân viên phụ trách">+ Tên nhân viên phụ trách</button>
+                        <button type="button" class="var-chip" data-var="{{customer_email}}" title="Email khách hàng">+ Email khách</button>
+                        <button type="button" class="var-chip" data-var="{{customer_phone}}" title="Số điện thoại">+ Số điện thoại</button>
+                    </div>
+
+                    <div style="margin-bottom:14px;">
+                        <label class="form-label">Tiêu đề email <span style="color:#ef4444;">*</span></label>
+                        <input type="text" id="sendSubject" class="crm-input" placeholder="Tiêu đề thư gửi khách..." required>
+                    </div>
+
+                    <div style="margin-bottom:14px;">
+                        <label class="form-label">Nội dung thư (HTML / Text) <span style="color:#ef4444;">*</span></label>
+                        <textarea id="sendBodyHtml" class="crm-textarea" style="height:170px; font-family:inherit; font-size:13.5px;" placeholder="Soạn nội dung thư tại đây, có thể sử dụng các biến {{contact_name}}, {{company_name}}, {{staff_name}}..." required></textarea>
+                    </div>
+
+                    <!-- Live Preview Panel -->
+                    <div id="sendPreviewBox" class="preview-box" style="display:none;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <strong style="font-size:12.5px; color:#1e40af;">👁️ Bản xem trước dữ liệu thực tế:</strong>
+                            <button type="button" id="btnClosePreview" style="background:none; border:none; color:#64748b; font-size:12px; cursor:pointer;">Đóng xem trước</button>
+                        </div>
+                        <div id="previewSubjectText" style="font-weight:700; font-size:13px; color:#0f172a; margin-bottom:8px;"></div>
+                        <div id="previewBodyContent" style="font-size:13px; color:#334155; line-height:1.5; background:#ffffff; padding:12px; border-radius:6px; border:1px solid #bfdbfe;"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="btnPreviewSend" class="crm-btn crm-btn-secondary" style="font-size:13px;">
+                    👁️ Xem trước với dữ liệu thật
+                </button>
+                <div style="display:flex; gap:10px;">
+                    <button type="button" class="crm-btn crm-btn-secondary btn-close-modal" data-modal="modalSendEmail">Hủy</button>
+                    <button type="submit" form="formSendEmail" id="btnSubmitSendEmail" class="crm-btn crm-btn-primary">
+                        🚀 Gửi ngay (Bất đồng bộ)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: TẠO / SỬA MẪU EMAIL -->
+    <div id="modalEmailTemplate" class="crm-modal-backdrop" style="display:none;">
+        <div class="crm-modal-card email-modal-card">
+            <div class="modal-header">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:20px;">📝</span>
+                    <div>
+                        <h3 id="tplModalTitle" style="margin:0; font-size:16px; font-weight:700;">Tạo Mẫu Email Mới</h3>
+                        <p style="margin:2px 0 0; font-size:12px; color:var(--crm-muted);">Tạo mẫu thư chuẩn dùng chung cho Marketing và Sales</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close-modal" data-modal="modalEmailTemplate">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="formEmailTemplate">
+                    <input type="hidden" id="tplId" value="">
+                    <div style="display:grid; grid-template-columns:2fr 1fr; gap:14px; margin-bottom:14px;">
+                        <div>
+                            <label class="form-label">Tên mẫu email <span style="color:#ef4444;">*</span></label>
+                            <input type="text" id="tplName" class="crm-input" placeholder="VD: Thư giới thiệu dịch vụ CRM Enterprise" required>
+                        </div>
+                        <div>
+                            <label class="form-label">Phân loại danh mục</label>
+                            <select id="tplCategory" class="crm-select">
+                                <option value="MARKETING">Marketing & Quảng bá</option>
+                                <option value="SALES">Bán hàng & Chăm sóc</option>
+                                <option value="ONBOARDING">Khách hàng mới (Onboarding)</option>
+                                <option value="NURTURING">Nuôi dưỡng tiềm năng</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="var-chips-box">
+                        <span style="font-size:11.5px; font-weight:700; color:var(--crm-muted); text-transform:uppercase;">Chèn biến nhanh:</span>
+                        <button type="button" class="var-chip-tpl" data-var="{{contact_name}}">+ Tên người liên hệ</button>
+                        <button type="button" class="var-chip-tpl" data-var="{{company_name}}">+ Tên công ty</button>
+                        <button type="button" class="var-chip-tpl" data-var="{{staff_name}}">+ Tên nhân viên</button>
+                        <button type="button" class="var-chip-tpl" data-var="{{customer_email}}">+ Email</button>
+                        <button type="button" class="var-chip-tpl" data-var="{{customer_phone}}">+ Số điện thoại</button>
+                    </div>
+
+                    <div style="margin-bottom:14px;">
+                        <label class="form-label">Tiêu đề thư mặc định <span style="color:#ef4444;">*</span></label>
+                        <input type="text" id="tplSubject" class="crm-input" placeholder="VD: Giới thiệu giải pháp CRM cho {{company_name}} - Kính gửi {{contact_name}}" required>
+                    </div>
+
+                    <div style="margin-bottom:14px;">
+                        <label class="form-label">Nội dung thư mẫu (HTML) <span style="color:#ef4444;">*</span></label>
+                        <textarea id="tplBodyHtml" class="crm-textarea" style="height:220px; font-family:inherit; font-size:13.5px;" placeholder="<p>Kính gửi Anh/Chị <strong>{{contact_name}}</strong>,</p>..." required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="crm-btn crm-btn-secondary btn-close-modal" data-modal="modalEmailTemplate">Hủy</button>
+                <button type="submit" form="formEmailTemplate" id="btnSubmitTemplate" class="crm-btn crm-btn-primary">Lưu Mẫu Thư</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: XEM NỘI DUNG THƯ / CHI TIẾT GỬI -->
+    <div id="modalViewEmail" class="crm-modal-backdrop" style="display:none;">
+        <div class="crm-modal-card email-modal-card" style="max-width:680px;">
+            <div class="modal-header">
+                <div>
+                    <h3 id="viewMailSubject" style="margin:0; font-size:16px; font-weight:700;">Chi tiết thư đã gửi</h3>
+                    <div id="viewMailMeta" style="margin-top:4px; font-size:12px; color:var(--crm-muted);"></div>
+                </div>
+                <button type="button" class="btn-close-modal" data-modal="modalViewEmail">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="viewMailErrorAlert" style="display:none; background:#fee2e2; border:1px solid #fca5a5; padding:10px 14px; border-radius:8px; margin-bottom:14px; color:#991b1b; font-size:12.5px;"></div>
+                <div id="viewMailContent" style="padding:16px; border:1px solid var(--crm-border); border-radius:8px; background:#ffffff; min-height:180px; font-size:13.5px; line-height:1.6;"></div>
+            </div>
+            <div class="modal-footer" style="justify-content:space-between;">
+                <div id="viewMailRetryBtnBox"></div>
+                <button type="button" class="crm-btn crm-btn-secondary btn-close-modal" data-modal="modalViewEmail">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/shared-shell.js"></script>
+    <script src="js/pages/email-marketing.js"></script>
+</body>
+</html>

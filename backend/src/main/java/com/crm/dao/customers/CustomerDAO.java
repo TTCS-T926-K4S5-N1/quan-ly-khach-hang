@@ -40,6 +40,17 @@ public class CustomerDAO {
                     c.phone,
                     c.website,
                     c.address,
+                    c.lead_source,
+                    c.lead_source_id,
+                    c.lead_score,
+                    c.score_grade,
+                    c.assignment_status,
+                    c.sla_breached,
+                    c.sla_deadline,
+                    c.accepted_at,
+                    c.converted_at,
+                    c.converted_customer_id,
+                    c.converted_opportunity_id,
                     c.industry_id,
                     c.company_size_id,
                     c.region_id,
@@ -75,7 +86,11 @@ public class CustomerDAO {
 
         int page = criteria != null ? criteria.getPage() : 1;
         int size = criteria != null ? criteria.getSize() : 20;
-        sql.append(" ORDER BY c.id DESC LIMIT ? OFFSET ?");
+        if (criteria != null && "score".equalsIgnoreCase(criteria.getSortBy())) {
+            sql.append(" ORDER BY c.lead_score DESC, c.id DESC LIMIT ? OFFSET ?");
+        } else {
+            sql.append(" ORDER BY c.id DESC LIMIT ? OFFSET ?");
+        }
         params.add(size);
         params.add((page - 1) * size);
 
@@ -221,6 +236,80 @@ public class CustomerDAO {
             sql.append(" AND c.owner_user_id = ?");
             params.add(criteria.getOwnerUserId());
         }
+
+        // 11. Lọc theo trường tùy chỉnh (custom field key & value)
+        if (criteria.getCustomFieldKey() != null && !criteria.getCustomFieldKey().isBlank()) {
+            sql.append("""
+                 AND EXISTS (
+                    SELECT 1 FROM custom_field_values cfv
+                    JOIN custom_fields cf ON cf.id = cfv.custom_field_id
+                    WHERE cfv.record_id = c.id
+                      AND cf.entity_type = 'CUSTOMER'
+                      AND cf.field_key = ?
+                """);
+            params.add(criteria.getCustomFieldKey().trim());
+            if (criteria.getCustomFieldValue() != null && !criteria.getCustomFieldValue().isBlank()) {
+                sql.append(" AND LOWER(cfv.field_value) LIKE ?");
+                params.add("%" + criteria.getCustomFieldValue().trim().toLowerCase() + "%");
+            }
+            sql.append(")");
+        }
+
+        // 12. Lọc theo phân hạng điểm (HOT, WARM, COLD)
+        if (criteria.getScoreGrade() != null && !criteria.getScoreGrade().isBlank()) {
+            sql.append(" AND c.score_grade = ?");
+            params.add(criteria.getScoreGrade().trim().toUpperCase());
+        }
+
+        // 13. Lọc theo trạng thái phân bổ
+        if (criteria.getAssignmentStatus() != null && !criteria.getAssignmentStatus().isBlank()) {
+            if ("UNASSIGNED".equalsIgnoreCase(criteria.getAssignmentStatus())) {
+                sql.append(" AND (c.owner_user_id IS NULL OR c.assignment_status = 'UNASSIGNED')");
+            } else {
+                sql.append(" AND c.assignment_status = ?");
+                params.add(criteria.getAssignmentStatus().trim());
+            }
+        }
+
+        // 14. Lọc theo vi phạm SLA phản hồi
+        if (criteria.getSlaBreached() != null) {
+            if (criteria.getSlaBreached()) {
+                sql.append(" AND c.sla_breached = 1");
+            } else {
+                sql.append(" AND (c.sla_breached = 0 OR c.sla_breached IS NULL)");
+            }
+        }
+
+        // 15. Lọc theo nguồn lead (Story 5)
+        if (criteria.getLeadSource() != null && !criteria.getLeadSource().isBlank()) {
+            sql.append(" AND c.lead_source = ?");
+            params.add(criteria.getLeadSource().trim());
+        }
+
+        // 16. Lọc theo khoảng thời gian tạo lead (Story 5)
+        if (criteria.getDatePreset() != null && !criteria.getDatePreset().isBlank()) {
+            switch (criteria.getDatePreset().toUpperCase()) {
+                case "TODAY":
+                    sql.append(" AND DATE(c.created_at) = CURDATE()");
+                    break;
+                case "LAST_7_DAYS":
+                    sql.append(" AND c.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
+                    break;
+                case "THIS_MONTH":
+                    sql.append(" AND c.created_at >= DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00')");
+                    break;
+                default:
+                    break;
+            }
+        }
+        if (criteria.getCreatedFrom() != null && !criteria.getCreatedFrom().isBlank()) {
+            sql.append(" AND c.created_at >= ?");
+            params.add(criteria.getCreatedFrom().trim() + " 00:00:00");
+        }
+        if (criteria.getCreatedTo() != null && !criteria.getCreatedTo().isBlank()) {
+            sql.append(" AND c.created_at <= ?");
+            params.add(criteria.getCreatedTo().trim() + " 23:59:59");
+        }
     }
 
     public Map<String, Object> findById(long id) throws SQLException {
@@ -234,9 +323,20 @@ public class CustomerDAO {
                     c.phone,
                     c.website,
                     c.address,
+                    c.lead_source,
+                    c.lead_source_id,
                     c.industry_id,
                     c.company_size_id,
                     c.owner_user_id,
+                    c.lead_score,
+                    c.score_grade,
+                    c.assignment_status,
+                    c.sla_breached,
+                    c.sla_deadline,
+                    c.accepted_at,
+                    c.converted_at,
+                    c.converted_customer_id,
+                    c.converted_opportunity_id,
                     c.parent_id,
                     p.name AS parent_name,
                     (SELECT COUNT(*) FROM customers sub WHERE sub.parent_id = c.id AND sub.is_deleted = 0) AS subsidiary_count,
@@ -492,6 +592,14 @@ public class CustomerDAO {
             map.put("supportRisk", null);
         }
 
+        try {
+            map.put("leadSource", rs.getString("lead_source"));
+            map.put("leadSourceId", rs.getObject("lead_source_id"));
+        } catch (SQLException ignored) {
+            map.put("leadSource", null);
+            map.put("leadSourceId", null);
+        }
+
         // Thông tin phân loại & khu vực mở rộng
         try {
             map.put("regionId", rs.getObject("region_id"));
@@ -515,6 +623,34 @@ public class CustomerDAO {
             map.put("primaryContactPhone", null);
             map.put("primaryContactRole", null);
         }
+        // Chấm điểm Lead & Phân bổ tự động
+        try {
+            map.put("leadScore", rs.getInt("lead_score"));
+            map.put("scoreGrade", rs.getString("score_grade") != null ? rs.getString("score_grade") : "COLD");
+            map.put("assignmentStatus", rs.getString("assignment_status") != null ? rs.getString("assignment_status") : "UNASSIGNED");
+        } catch (SQLException ignored) {
+            map.put("leadScore", 0);
+            map.put("scoreGrade", "COLD");
+            map.put("assignmentStatus", "UNASSIGNED");
+        }
+
+        // SLA & Chuyển đổi Lead
+        try {
+            map.put("slaBreached", rs.getBoolean("sla_breached"));
+            map.put("slaDeadline", rs.getTimestamp("sla_deadline"));
+            map.put("acceptedAt", rs.getTimestamp("accepted_at"));
+            map.put("convertedAt", rs.getTimestamp("converted_at"));
+            map.put("convertedCustomerId", rs.getObject("converted_customer_id"));
+            map.put("convertedOpportunityId", rs.getObject("converted_opportunity_id"));
+        } catch (SQLException ignored) {
+            map.put("slaBreached", false);
+            map.put("slaDeadline", null);
+            map.put("acceptedAt", null);
+            map.put("convertedAt", null);
+            map.put("convertedCustomerId", null);
+            map.put("convertedOpportunityId", null);
+        }
+
         return map;
     }
 }

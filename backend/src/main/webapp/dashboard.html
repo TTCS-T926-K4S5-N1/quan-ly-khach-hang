@@ -38,30 +38,20 @@
 
 <link
     rel="stylesheet"
-    href="css/design-system.css"
+    href="css/design-system.css?v=20261019_2"
 >
 
 <link
     rel="stylesheet"
-    href="css/app-shell.css"
+    href="css/app-shell.css?v=20261019_2"
 >
 
 <link
     rel="stylesheet"
-    href="css/pages/dashboard.css"
+    href="css/pages/dashboard.css?v=20261019_2"
 >
 
-
-
-
-
-
-
-
-
-
-
-<link rel="stylesheet" href="css/animations.css">
+<link rel="stylesheet" href="css/animations.css?v=20261019_2">
 </head>
 
 
@@ -167,6 +157,38 @@
 
 
         <div class="crm-nav-section">
+            Báo cáo & Phân tích
+        </div>
+
+
+        <a
+            href="forecast-report"
+            class="crm-nav-item"
+        >
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/><circle cx="19" cy="9" r="1.5"/></svg></span>
+            <span class="crm-nav-label">Dự báo & Chỉ tiêu</span>
+        </a>
+
+
+        <a
+            href="team-activity-report"
+            class="crm-nav-item"
+        >
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></span>
+            <span class="crm-nav-label">Năng suất Nhóm</span>
+        </a>
+
+
+        <a
+            href="lead-reports"
+            class="crm-nav-item"
+        >
+            <span class="crm-nav-icon"><svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07M3 11v2a2 2 0 0 0 2 2h2l5 4V5L7 9H5a2 2 0 0 0-2 2Z"/></svg></span>
+            <span class="crm-nav-label">Hiệu quả Lead & ROI</span>
+        </a>
+
+
+        <div class="crm-nav-section">
             Quản trị
         </div>
 
@@ -233,15 +255,29 @@
 
     <div class="crm-top-actions">
 
-        <button
-            class="crm-icon-btn"
-            type="button"
-            title="Thông báo"
-        >
-            <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
-
-            <span class="crm-notification-dot"></span>
-        </button>
+        <div style="position:relative;">
+            <button
+                id="btnRemindersBell"
+                class="crm-icon-btn"
+                type="button"
+                title="Nhắc việc & Quá hạn"
+            >
+                <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
+                <span id="bellBadge" class="crm-notification-dot" style="display:none; background:#ef4444;"></span>
+            </button>
+            <div id="remindersDropdown" class="crm-card" style="display:none; position:absolute; right:0; top:42px; width:340px; z-index:1000; padding:12px; box-shadow:0 10px 25px rgba(0,0,0,0.15); border-radius:10px; background:#fff;">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--crm-border); padding-bottom:8px; margin-bottom:8px;">
+                    <strong style="font-size:13px; color:var(--crm-text);">🔔 Nhắc việc & Quá hạn</strong>
+                    <span id="remindersCountBadge" style="font-size:11px; font-weight:700; color:#dc2626;">0 việc</span>
+                </div>
+                <div id="remindersDropdownList" style="max-height:260px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;">
+                    <div style="font-size:12px; color:var(--crm-muted); text-align:center; padding:12px 0;">Đang kiểm tra nhắc việc...</div>
+                </div>
+                <div style="border-top:1px solid var(--crm-border); margin-top:8px; padding-top:8px; text-align:center;">
+                    <a href="tasks" style="font-size:12px; color:var(--crm-primary); text-decoration:none; font-weight:600;">Xem toàn bộ công việc →</a>
+                </div>
+            </div>
+        </div>
 
 
         <div class="crm-user">
@@ -334,401 +370,544 @@
 
 <main class="crm-main dashboard-page">
 
-
-    <!-- HEADING -->
-
-    <section class="dashboard-head">
-
-        <div>
-
-            <p>
-                CRM / Tổng quan
-            </p>
-
+    <!-- ROLE DASHBOARD HEADER & ROLE SWITCHER BAR -->
+    <section class="role-dashboard-header">
+        <div class="role-dashboard-title">
             <h1>
-                Bảng điều khiển
+                <span>📊</span> Bảng Điều Khiển Kinh Doanh
             </h1>
-
-            <span>
-                Tổng quan hoạt động bán hàng từ dữ liệu hệ thống CRM.
-            </span>
-
+            <p id="dashboardSubtitle">
+                Đang hiển thị theo cấp quyết định: <strong id="currentRoleViewLabel" style="color:#2563eb;">👑 Giám đốc kinh doanh</strong>
+                <span id="currentTeamBadge" style="display:none; margin-left: 8px; padding: 2px 8px; border-radius: 6px; background: #eff6ff; color: #1d4ed8; font-size: 12px; font-weight: 600;"></span>
+            </p>
         </div>
 
-
-        <button
-            id="refreshDashboard"
-            class="crm-btn crm-btn-secondary"
-            type="button"
-        >
-            <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 0-2 5"/></svg> Làm mới
-        </button>
-
-    </section>
-
-
-    <!-- KPI -->
-
-    <section class="dashboard-kpis">
-
-
-        <article class="crm-card dashboard-kpi">
-
-            <header>
-                <span>Doanh thu dự kiến</span>
-                <span class="kpi-menu">⋮</span>
-            </header>
-
-            <strong id="kpiRevenue">
-                0 ₫
-            </strong>
-
-            <small>
-                Tổng giá trị cơ hội đang mở
-            </small>
-
-        </article>
-
-
-        <article class="crm-card dashboard-kpi">
-
-            <header>
-                <span>Cơ hội đang mở</span>
-                <span class="kpi-menu">⋮</span>
-            </header>
-
-            <strong id="kpiOpportunities">
-                0
-            </strong>
-
-            <small>
-                Chưa đóng thắng / thua
-            </small>
-
-        </article>
-
-
-        <article class="crm-card dashboard-kpi">
-
-            <header>
-                <span>Báo giá đã duyệt</span>
-                <span class="kpi-menu">⋮</span>
-            </header>
-
-            <strong id="kpiApprovedQuotes">
-                0
-            </strong>
-
-            <small id="kpiApprovedValue">
-                Tổng giá trị 0 ₫
-            </small>
-
-        </article>
-
-
-        <article class="crm-card dashboard-kpi">
-
-            <header>
-                <span>Công việc chưa xong</span>
-                <span class="kpi-menu">⋮</span>
-            </header>
-
-            <strong id="kpiTasks">
-                0
-            </strong>
-
-            <small id="kpiLateTasks">
-                0 công việc quá hạn
-            </small>
-
-        </article>
-
-
-    </section>
-
-
-    <!-- MAIN CONTENT -->
-
-    <section class="dashboard-grid">
-
-
-        <!-- FUNNEL -->
-
-        <article class="crm-card dashboard-panel">
-
-            <header class="panel-head">
-
-                <div>
-
-                    <h2>
-                        Biểu đồ Phễu
-                    </h2>
-
-                    <p>
-                        Phân bố cơ hội theo giai đoạn.
-                    </p>
-
-                </div>
-
-
-                <a
-                    href="pipeline"
-                    class="panel-link"
-                >
-                    Xem Pipeline →
-                </a>
-
-            </header>
-
-
-            <div
-                id="funnelContainer"
-                class="funnel-container"
-            ></div>
-
-
-            <div
-                id="funnelEmpty"
-                class="dashboard-empty"
-            >
-                Chưa có cơ hội để hiển thị.
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:10px;">
+            <!-- Role Switcher Pills (Only authorized roles can be clicked) -->
+            <div class="role-pills-group" id="rolePillsGroup">
+                <button type="button" class="role-pill-btn active" data-role="DIRECTOR" id="roleBtnDirector">
+                    👑 Giám đốc
+                </button>
+                <button type="button" class="role-pill-btn" data-role="TEAM_LEAD" id="roleBtnTeamLead">
+                    👥 Trưởng nhóm
+                </button>
+                <button type="button" class="role-pill-btn" data-role="STAFF" id="roleBtnStaff">
+                    👤 Nhân viên
+                </button>
             </div>
 
-        </article>
+            <!-- Filter Toolbar -->
+            <div class="dashboard-filter-toolbar">
+                <!-- Year -->
+                <select id="dashYearSelect" class="dash-select" title="Chọn năm">
+                    <option value="2025">Năm 2025</option>
+                    <option value="2026" selected>Năm 2026</option>
+                    <option value="2027">Năm 2027</option>
+                </select>
 
+                <!-- Month -->
+                <select id="dashMonthSelect" class="dash-select" title="Chọn tháng">
+                    <option value="1">Tháng 1</option>
+                    <option value="2">Tháng 2</option>
+                    <option value="3">Tháng 3</option>
+                    <option value="4">Tháng 4</option>
+                    <option value="5">Tháng 5</option>
+                    <option value="6">Tháng 6</option>
+                    <option value="7">Tháng 7</option>
+                    <option value="8">Tháng 8</option>
+                    <option value="9">Tháng 9</option>
+                    <option value="10" selected>Tháng 10</option>
+                    <option value="11">Tháng 11</option>
+                    <option value="12">Tháng 12</option>
+                </select>
 
-        <!-- FORECAST -->
+                <!-- Team Select (for Team Lead view) -->
+                <select id="dashTeamSelect" class="dash-select" style="display:none;" title="Chọn nhóm kinh doanh">
+                    <option value="">-- Chọn nhóm --</option>
+                </select>
 
-        <article class="crm-card dashboard-panel">
+                <!-- Refresh -->
+                <button type="button" id="btnRefreshDashboard" class="crm-btn crm-btn-secondary" style="font-size:12.5px; padding:6px 12px;">
+                    🔄 Làm mới
+                </button>
 
-            <header class="panel-head">
-
-                <div>
-
-                    <h2>
-                        Dự báo doanh số
-                    </h2>
-
-                    <p>
-                        Giá trị cơ hội × xác suất thắng.
-                    </p>
-
-                </div>
-
-            </header>
-
-
-            <div class="forecast-total">
-
-                <span>
-                    Dự báo hiện tại
+                <!-- Performance Constraint Metric (< 2s) -->
+                <span id="dashPerfBadge" class="perf-metric-badge" title="Thời gian tải dữ liệu backend">
+                    ⚡ 0ms (&lt; 2s)
                 </span>
-
-                <strong id="forecastTotal">
-                    0 ₫
-                </strong>
-
             </div>
-
-
-            <div
-                id="forecastBars"
-                class="forecast-bars"
-            ></div>
-
-
-            <div
-                id="forecastEmpty"
-                class="dashboard-empty"
-            >
-                Chưa có dữ liệu dự báo.
-            </div>
-
-        </article>
-
-
-        <!-- ACTIVITIES -->
-
-        <article class="crm-card dashboard-panel">
-
-            <header class="panel-head">
-
-                <div>
-
-                    <h2>
-                        Hoạt động gần đây
-                    </h2>
-
-                    <p>
-                        Các tương tác mới nhất.
-                    </p>
-
-                </div>
-
-
-                <a
-                    href="activities"
-                    class="panel-link"
-                >
-                    Xem tất cả →
-                </a>
-
-            </header>
-
-
-            <div
-                id="recentActivities"
-                class="recent-activities"
-            ></div>
-
-
-            <div
-                id="recentActivitiesEmpty"
-                class="dashboard-empty small"
-            >
-                Chưa có hoạt động.
-            </div>
-
-        </article>
-
-
-        <!-- TODO -->
-
-        <article class="crm-card dashboard-panel">
-
-            <header class="panel-head">
-
-                <div>
-
-                    <h2>
-                        Công việc cần chú ý
-                    </h2>
-
-                    <p>
-                        Task chưa hoàn thành.
-                    </p>
-
-                </div>
-
-
-                <a
-                    href="tasks"
-                    class="panel-link"
-                >
-                    Xem công việc →
-                </a>
-
-            </header>
-
-
-            <div
-                id="dashboardTasks"
-                class="dashboard-tasks"
-            ></div>
-
-
-            <div
-                id="dashboardTasksEmpty"
-                class="dashboard-empty small"
-            >
-                Không có công việc đang mở.
-            </div>
-
-        </article>
-
-
+        </div>
     </section>
 
+    <!-- ==============================================================
+         1. GIÁM ĐỐC KINH DOANH VIEW (Toàn khối)
+         - Dự báo so với chỉ tiêu
+         - Giá trị pipeline theo giai đoạn
+         - Doanh số đã chốt theo tháng
+    ============================================================== -->
+    <section id="viewDirector" class="role-view-section">
+        <!-- BLOCK 1: DỰ BÁO SO VỚI CHỈ TIÊU (Sales Forecast vs Quota) -->
+        <div class="dash-card">
+            <div class="dash-card-header">
+                <div>
+                    <h2><span>🎯</span> Dự Báo Doanh Số So Với Chỉ Tiêu (Toàn Khối)</h2>
+                    <span class="dash-card-sub">So sánh giữa chỉ tiêu cam kết đầu kỳ, thực tế đã chốt (Won) và dự báo kỳ vọng pipeline.</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="font-size: 13px; font-weight: 600; color: #475569;" id="dirPeriodLabel">Tháng 10/2026</div>
+                    <a href="forecast-report" class="crm-btn crm-btn-secondary" style="font-size:12px; padding:4px 10px; text-decoration:none; display:inline-flex; align-items:center; gap:5px;">
+                        📊 Báo cáo Dự báo & Lý do thua →
+                    </a>
+                </div>
+            </div>
 
-    <!-- SYSTEM SUMMARY -->
+            <div class="dash-kpis-grid">
+                <div class="dash-kpi-box">
+                    <span class="dash-kpi-label">🎯 Tổng Chỉ Tiêu Cam Kết</span>
+                    <strong class="dash-kpi-value" id="dirKpiTarget">0 ₫</strong>
+                    <span class="dash-kpi-sub" id="dirKpiTargetDeals">Mục tiêu: 0 hợp đồng</span>
+                </div>
+                <div class="dash-kpi-box" style="border-left: 3px solid #10b981;">
+                    <span class="dash-kpi-label" style="color:#059669;">💰 Doanh Số Đã Chốt (WON)</span>
+                    <strong class="dash-kpi-value" style="color:#059669;" id="dirKpiWon">0 ₫</strong>
+                    <span class="dash-kpi-sub" id="dirKpiWonDeals">0 hợp đồng đã chốt thành công</span>
+                </div>
+                <div class="dash-kpi-box" style="border-left: 3px solid #3b82f6;">
+                    <span class="dash-kpi-label" style="color:#2563eb;">🔮 Dự Báo Theo Trọng Số (Pipeline)</span>
+                    <strong class="dash-kpi-value" style="color:#2563eb;" id="dirKpiWeighted">0 ₫</strong>
+                    <span class="dash-kpi-sub" id="dirKpiWeightedSub">Dự báo theo xác suất các deal mở</span>
+                </div>
+                <div class="dash-kpi-box" style="border-left: 3px solid #8b5cf6;">
+                    <span class="dash-kpi-label" style="color:#7c3aed;">📈 Dự Báo Tối Đa (Best Case)</span>
+                    <strong class="dash-kpi-value" style="color:#7c3aed;" id="dirKpiBestCase">0 ₫</strong>
+                    <span class="dash-kpi-sub" id="dirKpiBestCaseSub">Nếu thắng toàn bộ cơ hội mở</span>
+                </div>
+            </div>
 
-    <section class="dashboard-system-grid">
+            <!-- Visual Multi-layer Forecast Bar -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-top: 10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:600; margin-bottom:8px;">
+                    <div>Tiến độ đạt chỉ tiêu: <span id="dirWonRateText" style="color:#059669; font-weight:700;">0%</span> thực chốt | <span id="dirForecastRateText" style="color:#2563eb; font-weight:700;">0%</span> dự báo tổng</div>
+                    <div id="dirVarianceText" style="font-weight:700;">Còn thiếu: 0 ₫</div>
+                </div>
+                <div style="height: 16px; background: #e2e8f0; border-radius: 8px; overflow: hidden; display: flex; position: relative;">
+                    <div id="dirBarWon" style="height: 100%; background: #10b981; transition: width 0.3s ease; width: 0%;" title="Thực tế đã chốt (Won)"></div>
+                    <div id="dirBarWeighted" style="height: 100%; background: #3b82f6; transition: width 0.3s ease; width: 0%;" title="Dự báo thêm từ Pipeline"></div>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:11.5px; color:#64748b; margin-top:6px;">
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <span style="display:inline-block; width:10px; height:10px; background:#10b981; border-radius:2px;"></span> Đã chốt WON
+                        <span style="display:inline-block; width:10px; height:10px; background:#3b82f6; border-radius:2px; margin-left:10px;"></span> Kỳ vọng Pipeline (Weighted)
+                    </div>
+                    <div>Vạch 100% Chỉ tiêu: <strong id="dirBarTargetLabel">0 ₫</strong></div>
+                </div>
+            </div>
+        </div>
 
+        <!-- 2 COLS: PIPELINE THEO GIAI ĐOẠN & DOANH SỐ ĐÃ CHỐT 12 THÁNG -->
+        <div class="dash-two-cols">
+            <!-- BLOCK 2: GIÁ TRỊ PIPELINE THEO GIAI ĐOẠN (Pipeline Value by Stage) -->
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <div>
+                        <h2><span>📊</span> Giá Trị Pipeline Theo Giai Đoạn</h2>
+                        <span class="dash-card-sub">Tổng giá trị và số lượng cơ hội đang mở ở từng bước bán hàng.</span>
+                    </div>
+                    <div>
+                        <strong style="color: #2563eb; font-size: 13.5px;" id="dirTotalPipelineValue">Tổng: 0 ₫</strong>
+                    </div>
+                </div>
 
-        <a
-            href="customers"
-            class="crm-card system-tile"
-        >
+                <div style="overflow-x:auto;">
+                    <table class="dash-table">
+                        <thead>
+                            <tr>
+                                <th>Giai đoạn</th>
+                                <th style="text-align: center;">Xác suất</th>
+                                <th style="text-align: center;">Số cơ hội</th>
+                                <th style="text-align: right;">Tổng giá trị (₫)</th>
+                                <th style="width: 140px;">Tỷ trọng (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dirPipelineStagesBody">
+                            <tr>
+                                <td colspan="5" style="text-align:center; padding:30px; color:#94a3b8;">Đang tải giai đoạn pipeline...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
-            <span>
-                Khách hàng
-            </span>
+            <!-- BLOCK 3: DOANH SỐ ĐÃ CHỐT THEO THÁNG (Closed-Won Sales Revenue by Month) -->
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <div>
+                        <h2><span>📅</span> Doanh Số Đã Chốt Theo 12 Tháng</h2>
+                        <span class="dash-card-sub">Theo dõi thực tế chốt đơn so với chỉ tiêu từng tháng trong năm.</span>
+                    </div>
+                    <div style="font-size: 12.5px; color:#475569;">
+                        Lũy kế YTD: <strong id="dirYtdWon" style="color:#059669;">0 ₫</strong> / <span id="dirYtdTarget">0 ₫</span>
+                    </div>
+                </div>
 
-            <strong id="systemCustomers">
-                —
-            </strong>
-
-        </a>
-
-
-        <a
-            href="users"
-            class="crm-card system-tile"
-        >
-
-            <span>
-                Người dùng
-            </span>
-
-            <strong id="systemUsers">
-                0
-            </strong>
-
-        </a>
-
-
-        <a
-            href="products"
-            class="crm-card system-tile"
-        >
-
-            <span>
-                Sản phẩm
-            </span>
-
-            <strong id="systemProducts">
-                0
-            </strong>
-
-        </a>
-
-
-        <a
-            href="quotations"
-            class="crm-card system-tile"
-        >
-
-            <span>
-                Báo giá
-            </span>
-
-            <strong id="systemQuotes">
-                0
-            </strong>
-
-        </a>
-
-
-        <a
-            href="calendar"
-            class="crm-card system-tile"
-        >
-
-            <span>
-                Hoạt động có lịch
-            </span>
-
-            <strong id="systemScheduled">
-                0
-            </strong>
-
-        </a>
-
-
+                <div style="overflow-x:auto; max-height: 420px; overflow-y: auto;">
+                    <table class="dash-table">
+                        <thead>
+                            <tr>
+                                <th>Kỳ tháng</th>
+                                <th style="text-align: right;">Chỉ tiêu (₫)</th>
+                                <th style="text-align: right;">Đã chốt WON (₫)</th>
+                                <th style="width: 110px; text-align: center;">Tỷ lệ đạt</th>
+                                <th style="text-align: center;">Số deal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dirMonthlySalesBody">
+                            <tr>
+                                <td colspan="5" style="text-align:center; padding:30px; color:#94a3b8;">Đang tải doanh số 12 tháng...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </section>
 
+    <!-- ==============================================================
+         2. TRƯỞNG NHÓM KINH DOANH VIEW (Theo nhóm)
+         - Xếp hạng thành viên (Leaderboard)
+         - Cơ hội đình trệ của nhóm
+         - Việc quá hạn của nhóm
+         - Kèm chỉ tiêu & việc của nhóm
+    ============================================================== -->
+    <section id="viewTeamLead" class="role-view-section" style="display:none;">
+        <!-- Header Banner for Team Lead -->
+        <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #fff; border-radius: 14px; padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+            <div>
+                <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8;">DÀNH CHO TRƯỞNG NHÓM</div>
+                <h2 style="font-size: 18px; font-weight: 700; margin: 4px 0 0; color: #f8fafc;" id="tlTeamHeaderTitle">
+                    👥 Bảng Điều Khiển Nhóm Kinh Doanh
+                </h2>
+                <div style="font-size: 13px; color: #cbd5e1; margin-top: 4px;" id="tlTeamHeaderSub">
+                    Quản lý thành viên, phát hiện cơ hội đình trệ và đôn đốc công việc quá hạn.
+                </div>
+                <div style="margin-top:8px;">
+                    <a href="team-activity-report" class="crm-btn crm-btn-primary" style="font-size:12px; padding:5px 12px; text-decoration:none; display:inline-flex; align-items:center; gap:5px; background:#0284c7; border:none; color:#fff;">
+                        👥 Xem Báo cáo Hoạt động, Báo giá & Tỷ lệ SLA Nhóm →
+                    </a>
+                </div>
+            </div>
+            <div style="display:flex; gap:16px;">
+                <div style="text-align:right;">
+                    <div style="font-size:11px; color:#94a3b8;">CHỈ TIÊU CỦA TRƯỞNG NHÓM</div>
+                    <div style="font-size:16px; font-weight:800; color:#38bdf8;" id="tlLeadTargetAmount">0 ₫</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-size:11px; color:#94a3b8;">ĐÃ CHỐT THỰC TẾ</div>
+                    <div style="font-size:16px; font-weight:800; color:#4ade80;" id="tlLeadWonAmount">0 ₫</div>
+                </div>
+            </div>
+        </div>
 
+        <!-- BLOCK 1: XẾP HẠNG THÀNH VIÊN (Member Leaderboard) -->
+        <div class="dash-card">
+            <div class="dash-card-header">
+                <div>
+                    <h2><span>🏆</span> Xếp Hạng Thành Viên Nhóm (Leaderboard)</h2>
+                    <span class="dash-card-sub">Xếp hạng thành viên theo doanh số đã chốt (Won) và tỷ lệ hoàn thành chỉ tiêu kỳ này.</span>
+                </div>
+                <span id="tlMemberCountBadge" class="dash-tag dash-tag-blue">0 thành viên</span>
+            </div>
+
+            <div style="overflow-x:auto;">
+                <table class="dash-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 60px; text-align: center;">Hạng</th>
+                            <th>Thành viên kinh doanh</th>
+                            <th style="text-align: right;">Chỉ tiêu cá nhân (₫)</th>
+                            <th style="text-align: right;">Doanh số đã chốt (₫)</th>
+                            <th style="width: 180px;">Tiến độ & Tỷ lệ (%)</th>
+                            <th style="text-align: center;">Số deal WON</th>
+                            <th style="text-align: center;">Đánh giá</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tlLeaderboardBody">
+                        <tr>
+                            <td colspan="7" style="text-align:center; padding:30px; color:#94a3b8;">Đang tải bảng xếp hạng thành viên...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 2 COLS: CƠ HỘI ĐÌNH TRỆ & VIỆC QUÁ HẠN CỦA NHÓM -->
+        <div class="dash-two-cols">
+            <!-- BLOCK 2: CƠ HỘI ĐÌNH TRỆ CỦA NHÓM (Team Stagnant Opportunities) -->
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <div>
+                        <h2><span>⚠️</span> Cơ Hội Đình Trệ Của Nhóm</h2>
+                        <span class="dash-card-sub">Cơ hội mở quá lâu ở 1 giai đoạn cần trưởng nhóm can thiệp hỗ trợ.</span>
+                    </div>
+                    <span id="tlStagnantCountBadge" class="dash-tag dash-tag-red">0 cơ hội</span>
+                </div>
+
+                <div id="tlStagnantAlert" class="stagnant-alert-box" style="display:none;">
+                    <span>🚨 Tổng giá trị thương vụ có nguy cơ đình trệ:</span>
+                    <strong id="tlStagnantTotalAmount" style="font-size:14px;">0 ₫</strong>
+                </div>
+
+                <div style="overflow-x:auto;">
+                    <table class="dash-table">
+                        <thead>
+                            <tr>
+                                <th>Tên cơ hội / Khách hàng</th>
+                                <th>Phụ trách</th>
+                                <th>Giai đoạn</th>
+                                <th style="text-align: right;">Giá trị (₫)</th>
+                                <th style="text-align: center;">Số ngày kẹt</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tlStagnantBody">
+                            <tr>
+                                <td colspan="5" style="text-align:center; padding:30px; color:#94a3b8;">Không có cơ hội nào bị đình trệ.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- BLOCK 3: VIỆC QUÁ HẠN CỦA NHÓM (Team Overdue Tasks) -->
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <div>
+                        <h2><span>⏰</span> Công Việc Quá Hạn Của Nhóm</h2>
+                        <span class="dash-card-sub">Đôn đốc thành viên xử lý kịp thời tránh bỏ lỡ khách hàng.</span>
+                    </div>
+                    <span id="tlOverdueTotalBadge" class="dash-tag dash-tag-amber">0 việc quá hạn</span>
+                </div>
+
+                <!-- Overdue Member Breakdown Chips -->
+                <div id="tlOverdueMemberChips" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;"></div>
+
+                <div style="overflow-x:auto;">
+                    <table class="dash-table">
+                        <thead>
+                            <tr>
+                                <th>Tiêu đề công việc</th>
+                                <th>Phụ trách</th>
+                                <th>Hạn chót</th>
+                                <th>Khách hàng</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tlOverdueBody">
+                            <tr>
+                                <td colspan="4" style="text-align:center; padding:30px; color:#94a3b8;">Không có công việc nào bị quá hạn.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==============================================================
+         3. NHÂN VIÊN KINH DOANH VIEW (Cá nhân)
+         - Chỉ tiêu và tiến độ của mình
+         - Cơ hội đang mở
+         - Việc hôm nay
+         - Lead chưa liên hệ
+    ============================================================== -->
+    <section id="viewStaff" class="role-view-section" style="display:none;">
+        <!-- BLOCK 1: CHỈ TIÊU VÀ TIẾN ĐỘ CỦA MÌNH -->
+        <div class="dash-card">
+            <div class="dash-card-header">
+                <div>
+                    <h2><span>🎯</span> Chỉ Tiêu & Tiến Độ Của Mình</h2>
+                    <span class="dash-card-sub">Theo dõi cam kết doanh số cá nhân trong kỳ hiện tại.</span>
+                </div>
+                <div id="staffPeriodLabel" style="font-size:13px; font-weight:600; color:#475569;">Tháng 10/2026</div>
+            </div>
+
+            <div class="dash-kpis-grid">
+                <div class="dash-kpi-box">
+                    <span class="dash-kpi-label">🎯 Chỉ Tiêu Của Tôi</span>
+                    <strong class="dash-kpi-value" id="staffKpiTarget">0 ₫</strong>
+                    <span class="dash-kpi-sub" id="staffKpiTargetDeals">Mục tiêu: 0 deal</span>
+                </div>
+                <div class="dash-kpi-box" style="border-left: 3px solid #10b981;">
+                    <span class="dash-kpi-label" style="color:#059669;">💰 Doanh Số Đã Đạt (WON)</span>
+                    <strong class="dash-kpi-value" style="color:#059669;" id="staffKpiWon">0 ₫</strong>
+                    <span class="dash-kpi-sub" id="staffKpiWonDeals">0 deal thành công</span>
+                </div>
+                <div class="dash-kpi-box" style="border-left: 3px solid #3b82f6;">
+                    <span class="dash-kpi-label" style="color:#2563eb;">📈 Tỷ Lệ Hoàn Thành</span>
+                    <strong class="dash-kpi-value" style="color:#2563eb;" id="staffKpiRate">0%</strong>
+                    <span class="dash-kpi-sub" id="staffKpiRateStatus">⚡ Đang thực hiện</span>
+                </div>
+                <div class="dash-kpi-box" style="border-left: 3px solid #f59e0b;">
+                    <span class="dash-kpi-label" style="color:#b45309;">⏳ Còn Thiếu Để Đạt</span>
+                    <strong class="dash-kpi-value" style="color:#b45309;" id="staffKpiRemaining">0 ₫</strong>
+                    <span class="dash-kpi-sub">Cần nỗ lực hoàn thành</span>
+                </div>
+            </div>
+
+            <!-- Visual Progress Track -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px;">
+                <div style="display:flex; justify-content:space-between; font-size:12.5px; font-weight:600; margin-bottom:6px;">
+                    <div>Tiến độ chỉ tiêu: <strong id="staffProgressText" style="color:#2563eb;">0%</strong></div>
+                    <div id="staffRemainingDetail">Đã đạt 0 ₫ / 0 ₫</div>
+                </div>
+                <div class="mini-prog-track" style="height: 12px; border-radius: 6px;">
+                    <div id="staffProgressBar" class="mini-prog-fill prog-blue" style="width: 0%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BLOCK: BẢNG XẾP HẠNG DOANH SỐ TRONG NHÓM (Team Sales Leaderboard) -->
+        <div class="dash-card" id="staffLeaderboardCard">
+            <div class="dash-card-header">
+                <div>
+                    <h2><span>🏆</span> Bảng Xếp Hạng Doanh Số Trong Nhóm</h2>
+                    <span class="dash-card-sub" id="staffLeaderboardSub">Xem bạn đang đứng ở đâu so với đồng đội trong nhóm bán hàng của mình.</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span id="staffMyRankBadge" class="dash-tag" style="background:#fef3c7; color:#b45309; font-weight:700; font-size:12.5px;">
+                        Đang tải xếp hạng...
+                    </span>
+                    <span id="staffTeamNameBadge" class="dash-tag dash-tag-blue">Nhóm của bạn</span>
+                </div>
+            </div>
+
+            <!-- Banner notice if disabled by config -->
+            <div id="staffLeaderboardDisabledAlert" style="display:none; padding:16px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; text-align:center; color:#64748b; font-size:13px;">
+                🔒 Tính năng bảng xếp hạng doanh số nhóm hiện đang tạm tắt theo cấu hình quản trị.
+            </div>
+
+            <!-- Table of team members -->
+            <div id="staffLeaderboardTableWrap" style="overflow-x:auto;">
+                <table class="dash-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 70px; text-align: center;">Hạng</th>
+                            <th>Thành viên</th>
+                            <th style="text-align: right;">Doanh số đã chốt (WON)</th>
+                            <th style="text-align: center;">Số HĐ</th>
+                            <th style="text-align: right;">Chỉ tiêu cá nhân</th>
+                            <th style="width: 220px;">Tiến độ đạt chỉ tiêu</th>
+                        </tr>
+                    </thead>
+                    <tbody id="staffLeaderboardBody">
+                        <tr>
+                            <td colspan="6" style="text-align:center; padding:30px; color:#94a3b8;">Đang tải bảng xếp hạng doanh số nhóm...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Motivation Callout -->
+            <div id="staffLeaderboardMotivation" style="display:none; margin-top:12px; padding:10px 16px; background:#f0fdf4; border:1px dashed #86efac; border-radius:8px; display:flex; align-items:center; justify-content:space-between; font-size:13px; color:#166534;">
+                <span id="staffMotivationText">🔥 Bạn chỉ cần thêm 0 ₫ để vượt lên vị trí cao hơn! Hãy tiếp tục tăng tốc!</span>
+                <a href="pipeline" class="crm-btn crm-btn-secondary" style="font-size:11.5px; padding:4px 10px; text-decoration:none;">🚀 Đẩy nhanh deal cơ hội →</a>
+            </div>
+        </div>
+
+        <!-- 2 COLS: CƠ HỘI ĐANG MỞ & VIỆC HÔM NAY -->
+        <div class="dash-two-cols">
+            <!-- BLOCK 2: CƠ HỘI ĐANG MỞ (Open Opportunities) -->
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <div>
+                        <h2><span>💼</span> Cơ Hội Đang Mở Của Tôi</h2>
+                        <span class="dash-card-sub" id="staffOpenOppsSub">Đang phụ trách 0 cơ hội - Tổng giá trị 0 ₫</span>
+                    </div>
+                    <a href="pipeline" class="crm-btn crm-btn-secondary" style="font-size:12px; text-decoration:none;">Xem Pipeline →</a>
+                </div>
+
+                <div style="overflow-x:auto;">
+                    <table class="dash-table">
+                        <thead>
+                            <tr>
+                                <th>Thương vụ</th>
+                                <th>Khách hàng</th>
+                                <th style="text-align: right;">Giá trị (₫)</th>
+                                <th>Giai đoạn</th>
+                                <th style="text-align: center;">Dự kiến chốt</th>
+                            </tr>
+                        </thead>
+                        <tbody id="staffOpenOppsBody">
+                            <tr>
+                                <td colspan="5" style="text-align:center; padding:30px; color:#94a3b8;">Không có cơ hội mở nào.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- BLOCK 3: VIỆC HÔM NAY (Today's Tasks & Urgent) -->
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <div>
+                        <h2><span>📋</span> Việc Hôm Nay Cần Xử Lý</h2>
+                        <span class="dash-card-sub" id="staffTasksSub">0 việc hôm nay (0 chưa hoàn thành)</span>
+                    </div>
+                    <a href="tasks" class="crm-btn crm-btn-secondary" style="font-size:12px; text-decoration:none;">Xem tất cả →</a>
+                </div>
+
+                <div style="overflow-x:auto;">
+                    <table class="dash-table">
+                        <thead>
+                            <tr>
+                                <th>Công việc</th>
+                                <th>Loại việc</th>
+                                <th>Ưu tiên</th>
+                                <th>Khách hàng</th>
+                                <th style="text-align: center;">Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody id="staffTasksBody">
+                            <tr>
+                                <td colspan="5" style="text-align:center; padding:30px; color:#94a3b8;">Hôm nay bạn không có công việc nào tồn đọng! 🎉</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- BLOCK 4: LEAD CHƯA LIÊN HỆ (Untouched Leads) -->
+        <div class="dash-card">
+            <div class="dash-card-header">
+                <div>
+                    <h2><span>📞</span> Lead Chưa Liên Hệ (Cần Tiếp Cận Sớm)</h2>
+                    <span class="dash-card-sub">Danh sách khách hàng tiềm năng mới chưa có bất kỳ cuộc gọi hay hoạt động chăm sóc nào.</span>
+                </div>
+                <span id="staffUntouchedBadge" class="dash-tag dash-tag-amber">0 lead chưa liên hệ</span>
+            </div>
+
+            <div style="overflow-x:auto;">
+                <table class="dash-table">
+                    <thead>
+                        <tr>
+                            <th>Tên Khách hàng / Lead</th>
+                            <th>Số điện thoại</th>
+                            <th>Email</th>
+                            <th>Trạng thái</th>
+                            <th>Ngày nhận lead</th>
+                            <th style="text-align: right;">Hành động nhanh</th>
+                        </tr>
+                    </thead>
+                    <tbody id="staffUntouchedLeadsBody">
+                        <tr>
+                            <td colspan="6" style="text-align:center; padding:30px; color:#94a3b8;">Tuyệt vời! Không có lead nào bị bỏ quên.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
 </main>
+
 
 
 <!-- ======================================================
@@ -918,7 +1097,133 @@
 
 
 
-<script src="js/pages/dashboard.js"></script>
+    <!-- 📞 FLOATING ACTION BUTTON (FAB) GHI NHANH CUỘC GỌI <= 3 CHẠM (Story 2) -->
+    <button type="button" id="fabQuickCall" class="quick-call-fab" title="Ghi nhanh cuộc gọi trên điện thoại">
+        <svg class="crm-inline-icon" viewBox="0 0 24 24" aria-hidden="true" style="width:20px;height:20px;fill:currentColor;"><path d="M5 3h4l2 5-3 2c2 3 3 4 6 6l2-3 5 2v4c0 2-2 3-4 2C9 19 5 15 3 7 2 5 3 3 5 3Z"/></svg>
+        <span>Ghi nhanh cuộc gọi</span>
+    </button>
+
+    <!-- MODAL GHI NHANH CUỘC GỌI (TỐI ƯU <= 3 CHẠM TRÊN ĐIỆN THOẠI) (Story 2) -->
+    <div id="quickCallOverlay" class="crm-modal-backdrop" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:9998; backdrop-filter:blur(2px);"></div>
+    <div id="quickCallModal" class="crm-modal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:90%; max-width:480px; z-index:9999; background:#fff; border-radius:16px; box-shadow:0 20px 40px rgba(0,0,0,0.2); overflow:hidden;">
+        <div style="background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:#fff; padding:16px 20px; display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:20px;">📞</span>
+                <strong style="font-size:16px;">Ghi nhanh cuộc gọi (3 chạm)</strong>
+            </div>
+            <button type="button" id="closeQuickCallModal" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer; line-height:1;">&times;</button>
+        </div>
+
+        <form id="quickCallForm" style="padding:18px 20px; display:flex; flex-direction:column; gap:14px; max-height:80vh; overflow-y:auto;">
+            <!-- CHẠM 1: CHỌN KHÁCH HÀNG -->
+            <div>
+                <label style="font-size:12.5px; font-weight:700; color:#334155; display:block; margin-bottom:6px;">
+                    1. Khách hàng <span style="color:#ef4444;">*</span>
+                </label>
+                <select id="quickCallCustomerSelect" class="crm-input" style="width:100%; height:40px; font-size:13.5px; border-radius:8px;" required>
+                    <option value="">-- Chọn khách hàng vừa gọi --</option>
+                </select>
+                <div id="quickCallLinkedOppNotice" style="display:none; font-size:12px; color:#15803d; background:#dcfce7; padding:6px 10px; border-radius:6px; margin-top:6px; border:1px solid #bbf7d0;">
+                    🔗 Tự động gắn vào cơ hội mở gần nhất: <strong id="quickCallOppName">—</strong>
+                </div>
+            </div>
+
+            <!-- CHẠM 2: KẾT QUẢ CUỘC GỌI -->
+            <div>
+                <label style="font-size:12.5px; font-weight:700; color:#334155; display:block; margin-bottom:6px;">
+                    2. Kết quả cuộc gọi (Chạm 1 nút) <span style="color:#ef4444;">*</span>
+                </label>
+                <div class="quick-call-touch-grid">
+                    <button type="button" class="touch-btn active" data-outcome="Nghe máy - Quan tâm">
+                        <span style="font-size:18px;">👍</span>
+                        <span>Quan tâm</span>
+                    </button>
+                    <button type="button" class="touch-btn outcome-call-back" data-outcome="Hẹn gọi lại">
+                        <span style="font-size:18px;">📅</span>
+                        <span>Hẹn gọi lại</span>
+                    </button>
+                    <button type="button" class="touch-btn" data-outcome="Không nghe máy">
+                        <span style="font-size:18px;">📵</span>
+                        <span>Không nghe</span>
+                    </button>
+                    <button type="button" class="touch-btn" data-outcome="Máy bận">
+                        <span style="font-size:18px;">⏳</span>
+                        <span>Máy bận</span>
+                    </button>
+                    <button type="button" class="touch-btn outcome-reject" data-outcome="Từ chối">
+                        <span style="font-size:18px;">❌</span>
+                        <span>Từ chối</span>
+                    </button>
+                </div>
+                <input type="hidden" id="quickCallOutcome" value="Nghe máy - Quan tâm">
+            </div>
+
+            <!-- GHI CHÚ NHANH -->
+            <div>
+                <label style="font-size:12.5px; font-weight:700; color:#334155; display:block; margin-bottom:6px;">
+                    Ghi chú ngắn
+                </label>
+                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
+                    <button type="button" class="quick-tag-chip" data-tag="Đã gửi báo giá">Đã gửi báo giá</button>
+                    <button type="button" class="quick-tag-chip" data-tag="Khách hẹn tuần sau">Khách hẹn tuần sau</button>
+                    <button type="button" class="quick-tag-chip" data-tag="Cần tư vấn thêm">Cần tư vấn thêm</button>
+                    <button type="button" class="quick-tag-chip" data-tag="Hỏi chiết khấu">Hỏi chiết khấu</button>
+                </div>
+                <input type="text" id="quickCallNotes" class="crm-input" placeholder="Nhập ghi chú nhanh..." style="width:100%; height:38px; border-radius:8px; font-size:13px;">
+            </div>
+
+            <!-- CHẠM 3: ĐẶT LỊCH GỌI LẠI -->
+            <div>
+                <label style="font-size:12.5px; font-weight:700; color:#334155; display:block; margin-bottom:6px;">
+                    3. Đặt lịch gọi lại (Tự động tạo task nhắc nhở)
+                </label>
+                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
+                    <button type="button" class="quick-tag-chip callback-chip" data-cb="none">Không hẹn</button>
+                    <button type="button" class="quick-tag-chip callback-chip" data-cb="2h">+2 giờ nữa</button>
+                    <button type="button" class="quick-tag-chip callback-chip active" data-cb="tomorrow">Sáng mai 09:00</button>
+                    <button type="button" class="quick-tag-chip callback-chip" data-cb="next_monday">Thứ Hai tới</button>
+                </div>
+                <input type="hidden" id="quickCallCallback" value="tomorrow">
+            </div>
+
+            <!-- SUBMIT BUTTON -->
+            <button type="submit" id="btnSubmitQuickCall" class="crm-btn crm-btn-primary" style="margin-top:6px; height:46px; font-size:14.5px; font-weight:700; background:linear-gradient(135deg, #10b981 0%, #059669 100%); border:none; border-radius:10px; box-shadow:0 4px 12px rgba(16,185,129,0.3); display:flex; align-items:center; justify-content:center; gap:8px;">
+                <span>⚡ LƯU NHANH CUỘC GỌI</span>
+            </button>
+        </form>
+    </div>
+
+    <!-- MODAL HOÃN CÔNG VIỆC NHANH (POSTPONE) TRÊN DASHBOARD (Story 1) -->
+    <div id="postponeOverlay" class="crm-modal-backdrop" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:9998; backdrop-filter:blur(2px);"></div>
+    <div id="postponeModal" class="crm-modal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:90%; max-width:440px; z-index:9999; background:#fff; border-radius:14px; box-shadow:0 20px 40px rgba(0,0,0,0.2); overflow:hidden;">
+        <div style="background:#fef2f2; border-bottom:1px solid #fee2e2; padding:14px 18px; display:flex; justify-content:space-between; align-items:center;">
+            <strong style="font-size:15px; color:#991b1b;">⏰ Hoãn công việc kèm lý do</strong>
+            <button type="button" id="closePostponeModal" style="background:none; border:none; font-size:22px; cursor:pointer; color:#991b1b;">&times;</button>
+        </div>
+        <form id="postponeForm" style="padding:18px; display:flex; flex-direction:column; gap:12px;">
+            <input type="hidden" id="postponeTaskId">
+            <div style="font-size:13px; color:#334155; font-weight:600;" id="postponeTaskTitle">—</div>
+            <div>
+                <label style="font-size:12px; font-weight:600; color:#475569; display:block; margin-bottom:4px;">Lý do hoãn công việc <span style="color:#ef4444;">*</span></label>
+                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
+                    <button type="button" class="quick-tag-chip postpone-chip" data-reason="Khách hàng bận họp đột xuất">Khách bận họp</button>
+                    <button type="button" class="quick-tag-chip postpone-chip" data-reason="Chờ phản hồi kỹ thuật">Chờ kỹ thuật</button>
+                    <button type="button" class="quick-tag-chip postpone-chip" data-reason="Khách yêu cầu dời sang tuần sau">Dời sang tuần sau</button>
+                </div>
+                <textarea id="postponeReasonInput" class="crm-input" rows="2" style="width:100%; border-radius:6px; font-size:13px;" placeholder="Nhập lý do hoãn..." required></textarea>
+            </div>
+            <div>
+                <label style="font-size:12px; font-weight:600; color:#475569; display:block; margin-bottom:4px;">Hạn hoàn thành mới</label>
+                <input type="datetime-local" id="postponeNewDueDate" class="crm-input" style="width:100%; height:36px; border-radius:6px;">
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
+                <button type="button" id="cancelPostponeBtn" class="crm-btn crm-btn-secondary" style="font-size:12.5px;">Hủy</button>
+                <button type="submit" class="crm-btn crm-btn-primary" style="background:#dc2626; border-color:#dc2626; font-size:12.5px;">Xác nhận hoãn</button>
+            </div>
+        </form>
+    </div>
+
+<script src="js/pages/dashboard.js?v=20261019_2"></script>
 
 <script src="js/page-transition.js"></script>
 
