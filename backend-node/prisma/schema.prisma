@@ -1,0 +1,180 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Customer {
+  id              String                @id @default(uuid())
+  customerCode    String                @unique
+  customerName    String
+  phone           String?
+  email           String?
+  address         String?
+  lastContactAt   DateTime?
+  lastContactNote String?
+  careStatus      String                @default("NEEDS_CARE")
+  syncedAt        DateTime?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  contracts       Contract[]
+  careHistories   CustomerCareHistory[]
+  contacts        Contact[]
+  opportunities   Opportunity[]
+  leads           Lead[]
+
+  @@index([syncedAt])
+  @@index([lastContactAt])
+  @@index([customerCode])
+}
+
+model Contact {
+  id            String        @id @default(uuid())
+  contactCode   String?       @unique
+  customerId    String?
+  name          String
+  email         String?
+  phone         String?
+  jobTitle      String?
+  address       String?
+  isPrimary     Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  customer      Customer?     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  opportunities Opportunity[]
+  leads         Lead[]
+
+  @@index([customerId])
+  @@index([email])
+  @@index([phone])
+}
+
+model Opportunity {
+  id                String    @id @default(uuid())
+  opportunityCode   String?   @unique
+  name              String
+  customerId        String
+  contactId         String?
+  stage             String    @default("QUALIFICATION")
+  amount            Float?
+  expectedValue     Float?
+  closeDate         DateTime?
+  expectedCloseDate DateTime?
+  probability       Float?    @default(10)
+  source            String?
+  description       String?
+  notes             String?
+  ownerId           String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  customer          Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  contact           Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  leads             Lead[]
+
+  @@index([customerId])
+  @@index([contactId])
+  @@index([stage])
+  @@index([ownerId])
+  @@index([createdAt])
+}
+
+model Contract {
+  id             String    @id @default(uuid())
+  customerId     String
+  contractNumber String    @unique
+  status         String    @default("ACTIVE")
+  startDate      DateTime?
+  endDate        DateTime?
+  value          Float?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  customer       Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+}
+
+model CustomerCareHistory {
+  id            String    @id @default(uuid())
+  customerId    String
+  contactedById String?
+  contactedAt   DateTime  @default(now())
+  note          String?
+  channel       String    @default("PHONE")
+  createdAt     DateTime  @default(now())
+
+  customer      Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([contactedAt])
+}
+
+model SystemConfig {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+model User {
+  id          String   @id @default(uuid())
+  username    String   @unique
+  name        String
+  role        String   @default("CARE_STAFF")
+  permissions String   @default("CUSTOMER_CARE_VIEW,CUSTOMER_CARE_MANAGE")
+  createdAt   DateTime @default(now())
+}
+
+model Lead {
+  id                     String         @id @default(uuid())
+  leadCode               String?        @unique
+  fullName               String
+  email                  String?
+  phone                  String?
+  company                String?
+  jobTitle               String?
+  address                String?
+  source                 String
+  status                 String         @default("NEW")
+  notes                  String?
+  createdById            String?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+
+  convertedAt            DateTime?
+  convertedCustomerId    String?
+  convertedContactId     String?
+  convertedOpportunityId String?
+  customer               Customer?      @relation(fields: [convertedCustomerId], references: [id], onDelete: SetNull)
+  contact                Contact?       @relation(fields: [convertedContactId], references: [id], onDelete: SetNull)
+  opportunity            Opportunity?   @relation(fields: [convertedOpportunityId], references: [id], onDelete: SetNull)
+  activities             LeadActivity[]
+
+  @@index([source])
+  @@index([phone])
+  @@index([email])
+  @@index([createdAt])
+  @@index([status])
+}
+
+model LeadActivity {
+  id            String    @id @default(uuid())
+  leadId        String
+  action        String
+  description   String?
+  performedById String?
+  createdAt     DateTime  @default(now())
+
+  lead          Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@index([createdAt])
+}
+
