@@ -12,3 +12,11 @@ logs/
 src/main/resources/db-local.properties
 .DS_Store
 Thumbs.db
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+
+prisma/dev.db
